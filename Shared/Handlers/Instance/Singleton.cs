@@ -1,27 +1,22 @@
 using System.Reflection;
 
-namespace Shared.Utils;
+namespace Shared.Handlers.Instance;
 
-public abstract class Singleton<T> where T : class
-{
+public abstract class Singleton<T> where T : class {
     private static T _instance;
 
-    public static T Instance
-    {
-        get
-        {
+    public static T Instance {
+        get {
             OnInit();
 
             return _instance;
         }
     }
 
-    private static void OnInit()
-    {
-        if (_instance != null)
+    private static void OnInit() {
+        if(_instance != null)
             return;
-        lock (typeof(T))
-        {
+        lock(typeof(T)) {
             _instance = typeof(T).InvokeMember(typeof(T).Name,
                 BindingFlags.CreateInstance |
                 BindingFlags.Instance |

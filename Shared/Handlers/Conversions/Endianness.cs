@@ -1,4 +1,4 @@
-﻿namespace Shared.Utils.Conversions;
+﻿namespace Shared.Handlers.Conversions;
 
 /// <summary>
 /// Endianness of a converter

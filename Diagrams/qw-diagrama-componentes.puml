@@ -1,0 +1,42 @@
+@startuml qw-diagrama-componentes
+' Configurações gerais
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+' Componentes principais
+component "Client" as Client {
+    [Start Connection]
+    [Send/Receive Packets]
+    [Disconnect]
+}
+
+component "Server" as Server {
+    [Accept Connections]
+    [Process Packets]
+    [Manage Sessions]
+}
+
+component "Encryption (EncDec)" as EncDec {
+    [Encrypt]
+    [Decrypt]
+}
+
+component "PacketStream" as PacketStream {
+    [Write Data]
+    [Read Data]
+}
+
+component "Protocols" as Protocols {
+    [AuthProtocol]
+    [GameProtocol]
+    [GameAuthProtocol]
+}
+
+' Relacionamentos
+Client --> Server : Connects to
+Server --> Protocols : Uses for packet handling
+Protocols --> PacketStream : Parses packets
+Protocols --> EncDec : Encrypts/Decrypts data
+PacketStream --> EncDec : Processes encrypted data
+
+@enduml

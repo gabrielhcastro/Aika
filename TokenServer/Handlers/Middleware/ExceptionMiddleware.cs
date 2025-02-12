@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Text.Json;
 
-namespace TokenServer.Middleware;
+namespace TokenServer.Handlers.Middleware;
 
 public class ExceptionMiddleware {
     private readonly RequestDelegate _next;

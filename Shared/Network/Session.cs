@@ -1,12 +1,12 @@
 using NLog;
+using Shared.Network.Base;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
 namespace Shared.Network;
 
-public class Session : IDisposable
-{
+public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
 
     private readonly INetwork _network;
@@ -15,16 +15,15 @@ public class Session : IDisposable
     private ConcurrentQueue<byte[]> _packetQueue = new();
     private bool _sending;
     private bool _closed;
-    private IPEndPoint RemoteEndPoint => (IPEndPoint) Socket.RemoteEndPoint;
+    private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
     public uint Id { get; }
     public Socket Socket { get; }
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }
 
-    public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket)
-    {
+    public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;
-        Id = (uint) RemoteEndPoint.GetHashCode();
+        Id = (uint)RemoteEndPoint.GetHashCode();
         _network = network;
         ReadEventArg = readEventArg;
         _writeEventArg.Completed += WriteComplete;
@@ -32,53 +31,44 @@ public class Session : IDisposable
         ProccessPackets();
     }
 
-    public void SendPacket(byte[] packet)
-    {
-        if (_packetQueue == null)
+    public void SendPacket(byte[] packet) {
+        if(_packetQueue == null)
             return;
         _packetQueue.Enqueue(packet);
         _log.Debug($"Sending Packet: {packet}");
-        lock (Socket)
-        {
-            if (!_sending)
+        lock(Socket) {
+            if(!_sending)
                 ProccessPackets();
         }
     }
 
-    public void AddAttribute(string name, object attribute)
-    {
+    public void AddAttribute(string name, object attribute) {
         _attributes.Add(name, attribute);
         _log.Debug($"Adding Attributes. Key: {name} Value:{attribute}");
     }
 
-    public object GetAttribute(string name)
-    {
+    public object GetAttribute(string name) {
         _attributes.TryGetValue(name, out var attribute);
         _log.Debug($"Getting Attributes. Key: {name} Value:{attribute}");
         return attribute;
     }
 
-    private byte[] GetNextPacket()
-    {
-        if (_packetQueue == null)
+    private byte[] GetNextPacket() {
+        if(_packetQueue == null)
             return null;
         _packetQueue.TryDequeue(out var result);
         _log.Debug($"Getting Next Packet: {result}");
         return result;
     }
 
-    private void ProccessPackets()
-    {
-        lock (Socket)
-        {
+    private void ProccessPackets() {
+        lock(Socket) {
             _sending = true;
         }
 
         var buffer = GetNextPacket();
-        if (buffer == null)
-        {
-            lock (Socket)
-            {
+        if(buffer == null) {
+            lock(Socket) {
                 _sending = false;
             }
 
@@ -87,62 +77,51 @@ public class Session : IDisposable
 
         _writeEventArg.SetBuffer(buffer, 0, buffer.Length);
 
-        try
-        {
+        try {
             var willRaise = Socket.SendAsync(_writeEventArg);
-            if (!willRaise)
+            if(!willRaise)
                 ProcessSend(_writeEventArg);
         }
-        catch (ObjectDisposedException)
-        {
+        catch(ObjectDisposedException) {
             _packetQueue = null;
-            lock (Socket)
-            {
+            lock(Socket) {
                 _sending = false;
             }
         }
     }
 
-    private void WriteComplete(object sender, SocketAsyncEventArgs e)
-    {
-        switch (e.LastOperation)
-        {
+    private void WriteComplete(object sender, SocketAsyncEventArgs e) {
+        switch(e.LastOperation) {
             case SocketAsyncOperation.Send:
-                ProcessSend(e);
-                break;
+            ProcessSend(e);
+            break;
             default:
-                throw new ArgumentException("The last operation completed on the socket was not a send");
+            throw new ArgumentException("The last operation completed on the socket was not a send");
         }
     }
 
-    private void ProcessSend(SocketAsyncEventArgs e)
-    {
-        if (e.SocketError == SocketError.Success)
-        {
+    private void ProcessSend(SocketAsyncEventArgs e) {
+        if(e.SocketError == SocketError.Success) {
             _network.OnSend(this, e.Buffer, e.Offset, e.BytesTransferred);
             ProccessPackets();
         }
-        else
-        {
+        else {
             _log.Error("Error on ProcessSend: {0}", e.SocketError.ToString());
             Close();
         }
     }
 
-    public void Close()
-    {
-        if (_closed)
+    public void Close() {
+        if(_closed)
             return;
 
         _closed = true;
         _packetQueue = null;
         _network.OnDisconnect(this);
-        try
-        {
+        try {
             Socket.Shutdown(SocketShutdown.Receive);
         }
-        catch (Exception)
-        {
+        catch(Exception) {
             // ignored
         }
 
@@ -150,9 +129,8 @@ public class Session : IDisposable
         _network.RemoveSession(this);
     }
 
-    public void Dispose()
-    {
-        _writeEventArg.Dispose();
+    public void Dispose() {
+        _writeEventArg?.Dispose();
         GC.SuppressFinalize(this);
     }
 }

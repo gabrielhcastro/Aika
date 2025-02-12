@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using TokenServer.Entities;
+using TokenServer.Models.Entities;
 
 namespace TokenServer.Data;
 

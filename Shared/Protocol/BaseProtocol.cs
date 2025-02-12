@@ -1,4 +1,6 @@
-namespace Shared.Network.Base;
+using Shared.Network;
+
+namespace Shared.Protocol;
 
 public abstract class BaseProtocol {
     public virtual void OnConnect(Session session) {

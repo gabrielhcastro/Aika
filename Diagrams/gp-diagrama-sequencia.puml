@@ -1,0 +1,32 @@
+@startuml gp-diagrama-sequencia
+autonumber
+
+participant "Client" as C
+participant "GameProtocol (Client)" as GPC
+participant "Server" as S
+participant "GameProtocol (Server)" as GPS
+participant "Session" as Sess
+participant "PacketStream" as PS
+participant "EncDec" as ENC
+
+C -> GPC: Conectar ao servidor
+GPC -> C: "Connected to the server!"
+
+C -> GPC: Enviar pacote
+GPC -> ENC: Decrypt(buff)
+ENC -> GPC: Retorna buff descriptografado
+GPC -> PS: Criar PacketStream
+PS -> GPC: Retorna opcode do pacote
+GPC -> S: Enviar pacote para o servidor
+
+S -> GPS: Recebe pacote do cliente
+GPS -> ENC: Decrypt(buff)
+ENC -> GPS: Retorna buff descriptografado
+GPS -> PS: Criar PacketStream
+PS -> GPS: Retorna opcode do pacote
+GPS -> Sess: Processar pacote
+
+S -> GPS: Cliente desconectou
+GPS -> S: "Player disconnected"
+
+@enduml

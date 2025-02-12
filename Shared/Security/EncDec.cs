@@ -1,6 +1,6 @@
 namespace Shared.Network.Encryption;
 
-public static class Encryption
+public static class EncDec
 {
     public static void Encrypt(ref byte[] data, int size)
     {

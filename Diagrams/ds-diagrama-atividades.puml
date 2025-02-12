@@ -1,0 +1,20 @@
+@startuml ds-diagrama-atividades
+start
+
+:Iniciar cliente;
+:Conectar ao servidor;
+if (Conexão bem-sucedida?) then (sim)
+  :Criar sessão;
+  :Notificar protocolo (OnConnect);
+  :Aguardar pacotes;
+  while (Recebendo pacotes?) is (sim)
+    :Decriptar pacote;
+    :Processar pacote;
+  endwhile
+  :Desconectar;
+else (não)
+  :Tentar reconectar;
+endif
+
+stop
+@enduml

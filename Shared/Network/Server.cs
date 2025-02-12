@@ -1,5 +1,7 @@
 using NLog;
+using Shared.Handlers;
 using Shared.Network.Base;
+using Shared.Protocol;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -10,7 +12,7 @@ public class Server : INetwork {
     private static Logger _log = LogManager.GetCurrentClassLogger();
 
     private const int ReceiveBufferSize = 8096;
-    private readonly BufferControl _bufferControl;
+    private readonly BufferHandler _bufferControl;
     private readonly Socket _listenSocket;
     private readonly Semaphore _maxNumberAcceptedClients;
     private readonly ConcurrentDictionary<uint, Session> _sessions;
@@ -23,7 +25,7 @@ public class Server : INetwork {
         _listenSocket.Bind(localEndPoint);
         _listenSocket.Listen(100);
 
-        _bufferControl = new BufferControl(ReceiveBufferSize * numConnections, ReceiveBufferSize);
+        _bufferControl = new BufferHandler(ReceiveBufferSize * numConnections, ReceiveBufferSize);
         _maxNumberAcceptedClients = new Semaphore(numConnections, numConnections);
         _sessions = new ConcurrentDictionary<uint, Session>();
         _bufferControl.Init();

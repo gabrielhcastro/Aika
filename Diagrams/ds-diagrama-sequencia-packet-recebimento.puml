@@ -1,0 +1,21 @@
+@startuml ds-diagrama-sequencia-packet-recebimento
+
+actor User
+participant Client
+participant Server
+participant Session
+participant GameProtocol
+participant EncDec
+
+User -> Client: Send packet
+Client -> Server: Send packet data
+Server -> Session: Receive packet
+Session -> GameProtocol: OnReceive(session, buff, bytes)
+GameProtocol -> EncDec: Decrypt packet
+EncDec --> GameProtocol: Decrypted packet
+GameProtocol --> Session: Process packet
+Session --> Server: Packet processed
+Server --> Client: Acknowledge packet
+Client --> User: Packet received
+
+@enduml

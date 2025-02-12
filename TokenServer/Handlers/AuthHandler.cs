@@ -1,7 +1,7 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using TokenServer.Data;
-using TokenServer.Entities;
+using TokenServer.Models.Entities;
 
 namespace TokenServer.Handlers;
 
@@ -22,8 +22,7 @@ public static class AuthHandlers {
             if(account.Password != password)
                 return "-1";
 
-            if(account.AccountStatus == 8)
-            {
+            if(account.AccountStatus == 8) {
                 if(account.BanDays > 0 && DateTime.Now > account.TokenCreationTime.AddDays(account.BanDays)) {
                     account.AccountStatus = 0;
                     account.BanDays = 0;
@@ -41,11 +40,11 @@ public static class AuthHandlers {
             account.TokenCreationTime = DateTime.Now;
             context.SaveChanges();
 
-            _logger.LogInformation($"Token [{token}] criado por {username}.");
+            _logger.LogInformation("Token [{Token}] criado por {Username}.", token, username);
             return token;
         }
         catch(Exception ex) {
-            _logger.LogError($"Erro ao gerar token: {ex.Message}");
+            _logger.LogError("Erro ao gerar token: {Message}", ex.Message);
             return "-99";
         }
     }
@@ -74,7 +73,7 @@ public static class AuthHandlers {
             return infos.ToString();
         }
         catch(Exception ex) {
-            _logger.LogError($"Erro ao recuperar contagem de personagens: {ex.Message}");
+            _logger.LogError("Erro ao recuperar contagem de personagens: {Message}", ex.Message);
             return "-99";
         }
     }
@@ -96,11 +95,11 @@ public static class AuthHandlers {
             account.TokenCreationTime = DateTime.Now;
             context.SaveChanges();
 
-            _logger.LogInformation($"Token renovado do usuário: {Username}.");
+            _logger.LogInformation("Token renovado do usuário: {Username}.", Username);
             return account.Token;
         }
         catch(Exception ex) {
-            _logger.LogError($"Erro ao renovar token: {ex.Message}");
+            _logger.LogError("Erro ao renovar token: {Message}", ex.Message);
             return "-99";
         }
     }
@@ -125,15 +124,16 @@ public static class AuthHandlers {
             context.Accounts.Add(account);
             context.SaveChanges();
 
-            _logger.LogInformation($"Conta {username} criada com sucesso.");
+            _logger.LogInformation("Conta {Username} criada com sucesso.", username);
             return account.Id.ToString();
         }
         catch(Exception ex) {
-            _logger.LogError($"Erro ao criar conta: {ex.Message}");
+            _logger.LogError("Erro ao criar conta: {Message}", ex.Message);
             return "-99";
         }
     }
 
+    //TO-DO: Implementar método para recuperar lista de servidores
     public static string GetServerList() {
         var infos = new StringBuilder();
 

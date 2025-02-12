@@ -1,5 +1,7 @@
 using NLog;
+using Shared.Handlers;
 using Shared.Network.Base;
+using Shared.Protocol;
 using System.Net;
 using System.Net.Sockets;
 
@@ -10,7 +12,7 @@ public class Client : INetwork {
 
     private const int BufferSize = 8096;
     private readonly IPEndPoint _remoteEndPoint;
-    private readonly BufferControl _bufferControl;
+    private readonly BufferHandler _bufferControl;
     private readonly Socket _socket;
     private readonly BaseProtocol _protocol;
 
@@ -18,7 +20,7 @@ public class Client : INetwork {
         _remoteEndPoint = remoteEndPoint;
         _socket = new Socket(remoteEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
 
-        _bufferControl = new BufferControl(BufferSize, BufferSize);
+        _bufferControl = new BufferHandler(BufferSize, BufferSize);
         _bufferControl.Init();
 
         _protocol = handler;

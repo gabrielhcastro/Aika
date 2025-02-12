@@ -1,0 +1,19 @@
+@startuml ds-object-diagram
+object Cliente {
+  Endpoint = "127.0.0.1:8831"
+  Protocolo = GameProtocol
+}
+
+object Servidor {
+  Endpoint = "0.0.0.0:8831"
+  Protocolo = GameProtocol
+}
+
+object Sessão {
+  ID = 12345
+  IP = "127.0.0.1"
+}
+
+Cliente --> Servidor : Conecta
+Servidor --> Sessão : Cria
+@enduml

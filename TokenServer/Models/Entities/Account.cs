@@ -1,4 +1,4 @@
-﻿namespace TokenServer.Entities;
+﻿namespace TokenServer.Models.Entities;
 
 public class Account {
     public int Id { get; set; }

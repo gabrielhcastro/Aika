@@ -1,0 +1,20 @@
+@@startuml ds-diagrama-componentes
+
+package "Client" {
+  [Cliente] --> [GameProtocol]
+  [Cliente] --> [EncDec]
+}
+
+package "Server" {
+  [Servidor] --> [GameProtocol]
+  [Servidor] --> [EncDec]
+}
+
+package "Shared" {
+  [GameProtocol] --> [BaseProtocol]
+  [EncDec] --> [PacketStream]
+  [PacketStream] --> [BufferControl]
+}
+
+[Cliente] --> [Servidor] : Comunicação
+@enduml

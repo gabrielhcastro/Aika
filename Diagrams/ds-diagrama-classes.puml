@@ -1,0 +1,103 @@
+@startuml ds-diagrama-classes
+package "Shared.Network.Base" {
+    abstract class BaseProtocol {
+        +OnConnect(Session session)
+        +OnReceive(Session session, byte[] buff, int bytes)
+        +OnSend(Session session, byte[] buff, int offset, int bytes)
+        +OnDisconnect(Session session)
+    }
+
+    interface INetwork {
+        +OnConnect(Session session)
+        +OnReceive(Session session, byte[] buf, int bytes)
+        +OnSend(Session session, byte[] buf, int offset, int bytes)
+        +OnDisconnect(Session session)
+        +RemoveSession(Session session)
+    }
+}
+
+package "Shared.Network.Config" {
+    class Client implements INetwork {
+        -Socket _socket
+        -BufferControl _bufferControl
+        -BaseProtocol _protocol
+        +Start()
+        +Stop()
+        -StartConnect()
+        -ProcessConnect(SocketAsyncEventArgs e)
+        -ProcessReceive(SocketAsyncEventArgs e)
+    }
+
+    class Server implements INetwork {
+        -Socket _listenSocket
+        -BufferControl _bufferControl
+        -BaseProtocol _protocol
+        +Start()
+        +Stop()
+        -StartAccept(SocketAsyncEventArgs acceptEventArg)
+        -ProcessAccept(SocketAsyncEventArgs e)
+        -ProcessReceive(SocketAsyncEventArgs e)
+    }
+
+    class Session {
+        -INetwork _network
+        -Socket _socket
+        -SocketAsyncEventArgs _writeEventArg
+        +SendPacket(byte[] packet)
+        +AddAttribute(string name, object attribute)
+        +GetAttribute(string name)
+        +Close()
+    }
+}
+
+package "Shared.Network.Stream" {
+    class BufferControl {
+        -byte[] _buffer
+        +Init()
+        +Empty(SocketAsyncEventArgs args)
+        +Set(SocketAsyncEventArgs args)
+    }
+
+    class PacketStream {
+        -byte[] Buffer
+        -int Count
+        -int Pos
+        +Replace(byte[] bytes)
+        +ReadBytes(int count)
+        +Write(byte[] value)
+    }
+}
+
+package "Shared.Network.Encryption" {
+    class EncDec {
+        +Encrypt(ref byte[] data, int size)
+        +Decrypt(ref byte[] data, int size)
+    }
+}
+
+package "ClientServer.Protocol" {
+    class GameProtocol extends BaseProtocol {
+        +OnConnect(Session session)
+        +OnReceive(Session session, byte[] buff, int bytes)
+        +OnDisconnect(Session session)
+    }
+}
+
+package "GameServer.Protocol" {
+    class GameProtocol extends BaseProtocol {
+        +OnConnect(Session session)
+        +OnReceive(Session session, byte[] buff, int bytes)
+        +OnDisconnect(Session session)
+    }
+}
+
+BaseProtocol <|-- GameProtocol
+INetwork <|.. Client
+INetwork <|.. Server
+Client --> BaseProtocol
+Server --> BaseProtocol
+Session --> INetwork
+Session --> BufferControl
+PacketStream --> BufferControl
+EncDec --> PacketStream
+@enduml

@@ -1,0 +1,17 @@
+@startuml ds-diagrama-sequencia-conexao
+
+actor User
+participant Client
+participant Server
+participant Session
+participant GameProtocol
+
+User -> Client: Start()
+Client -> Server: Connect()
+Server -> Session: Create new session
+Session -> GameProtocol: OnConnect(session)
+GameProtocol --> Session: Connection established
+Session --> Server: Session created
+Server --> Client: Connection successful
+Client --> User: Connected to server
+@enduml

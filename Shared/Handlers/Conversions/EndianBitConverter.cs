@@ -1,4 +1,4 @@
-﻿namespace Shared.Utils.Conversions;
+﻿namespace Shared.Handlers.Conversions;
 
 /// <summary>
 /// Equivalent of System.BitConverter, but with either endianness.
@@ -77,7 +77,7 @@ public abstract class EndianBitConverter {
     /// <param name="value">The number to convert. </param>
     /// <returns>A 32-bit signed integer whose value is equivalent to value.</returns>
     public unsafe int SingleToInt32Bits(float value) {
-        return *((int*)&value);
+        return *(int*)&value;
     }
 
     /// <summary>
@@ -88,7 +88,7 @@ public abstract class EndianBitConverter {
     /// <returns>A single-precision floating point number whose value is equivalent to value.</returns>
     public unsafe float Int32BitsToSingle(int value) {
         // TODO return BitConverter.ToSingle(BitConverter.GetBytes(value), 0);
-        return *((float*)&value);
+        return *(float*)&value;
     }
 
     #endregion
@@ -113,7 +113,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A character formed by two bytes beginning at startIndex.</returns>
     public char ToChar(byte[] value, int startIndex) {
-        return unchecked((char)(CheckedFromBytes(value, startIndex, 2)));
+        return unchecked((char)CheckedFromBytes(value, startIndex, 2));
     }
 
     /// <summary>
@@ -145,7 +145,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A 16-bit signed integer formed by two bytes beginning at startIndex.</returns>
     public short ToInt16(byte[] value, int startIndex) {
-        return unchecked((short)(CheckedFromBytes(value, startIndex, 2)));
+        return unchecked((short)CheckedFromBytes(value, startIndex, 2));
     }
 
     /// <summary>
@@ -155,7 +155,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A 32-bit signed integer formed by four bytes beginning at startIndex.</returns>
     public int ToInt32(byte[] value, int startIndex) {
-        return unchecked((int)(CheckedFromBytes(value, startIndex, 4)));
+        return unchecked((int)CheckedFromBytes(value, startIndex, 4));
     }
 
     /// <summary>
@@ -175,7 +175,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A 16-bit unsigned integer formed by two bytes beginning at startIndex.</returns>
     public ushort ToUInt16(byte[] value, int startIndex) {
-        return unchecked((ushort)(CheckedFromBytes(value, startIndex, 2)));
+        return unchecked((ushort)CheckedFromBytes(value, startIndex, 2));
     }
 
     /// <summary>
@@ -185,7 +185,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A 32-bit unsigned integer formed by four bytes beginning at startIndex.</returns>
     public uint ToUInt32(byte[] value, int startIndex) {
-        return unchecked((uint)(CheckedFromBytes(value, startIndex, 4)));
+        return unchecked((uint)CheckedFromBytes(value, startIndex, 4));
     }
 
     /// <summary>
@@ -195,7 +195,7 @@ public abstract class EndianBitConverter {
     /// <param name="startIndex">The starting position within value.</param>
     /// <returns>A 64-bit unsigned integer formed by eight bytes beginning at startIndex.</returns>
     public ulong ToUInt64(byte[] value, int startIndex) {
-        return unchecked((ulong)(CheckedFromBytes(value, startIndex, 8)));
+        return unchecked((ulong)CheckedFromBytes(value, startIndex, 8));
     }
 
     /// <summary>
@@ -302,7 +302,7 @@ public abstract class EndianBitConverter {
         var parts = new int[4];
         for(var i = 0; i < 4; i++)
             parts[i] = ToInt32(value, startIndex + i * 4);
-        return new Decimal(parts);
+        return new decimal(parts);
     }
 
     /// <summary>

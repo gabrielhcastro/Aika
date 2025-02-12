@@ -1,9 +1,9 @@
-using Shared.Utils.Conversions;
+using Shared.Handlers.Conversions;
 using System.Text;
 
-namespace Shared.Network;
+namespace Shared.Network.Stream;
 
-public class PacketStream {
+public class PacketHandler {
     #region Data
 
     private const int DefaultSize = 128;
@@ -18,7 +18,7 @@ public class PacketStream {
     public int Count { get; private set; }
     public int Pos { get; set; }
     private bool IsLittleEndian { get; }
-    private EndianBitConverter Converter => IsLittleEndian ? EndianBitConverter.Little : (EndianBitConverter)EndianBitConverter.Big;
+    private EndianBitConverter Converter => IsLittleEndian ? EndianBitConverter.Little : EndianBitConverter.Big;
 
     #endregion
 
@@ -29,11 +29,11 @@ public class PacketStream {
         get => Buffer[index];
     }
 
-    public static explicit operator PacketStream(byte[] bytes) {
-        return new PacketStream(bytes);
+    public static explicit operator PacketHandler(byte[] bytes) {
+        return new PacketHandler(bytes);
     }
 
-    public static implicit operator byte[](PacketStream stream) {
+    public static implicit operator byte[](PacketHandler stream) {
         return stream.GetBytes();
     }
 
@@ -41,15 +41,15 @@ public class PacketStream {
 
     #region Constructor
 
-    public PacketStream() : this(DefaultSize) {
+    public PacketHandler() : this(DefaultSize) {
     }
 
-    public PacketStream(int count) {
+    public PacketHandler(int count) {
         IsLittleEndian = true;
         Reserve(count);
     }
 
-    public PacketStream(byte[] bytes) {
+    public PacketHandler(byte[] bytes) {
         IsLittleEndian = true;
         Replace(bytes);
     }
@@ -58,19 +58,19 @@ public class PacketStream {
 
     #region Replace
 
-    public PacketStream Replace(PacketStream stream) {
+    public PacketHandler Replace(PacketHandler stream) {
         return Replace(stream.Buffer, 0, stream.Count);
     }
 
-    public PacketStream Replace(byte[] bytes) {
+    public PacketHandler Replace(byte[] bytes) {
         return Replace(bytes, 0, bytes.Length);
     }
 
-    public PacketStream Replace(PacketStream stream, int offset, int count) {
+    public PacketHandler Replace(PacketHandler stream, int offset, int count) {
         return Replace(stream.Buffer, offset, count);
     }
 
-    public PacketStream Replace(byte[] bytes, int offset, int count) {
+    public PacketHandler Replace(byte[] bytes, int offset, int count) {
         Reserve(count);
         var newBuff = new byte[count];
         System.Buffer.BlockCopy(bytes, offset, newBuff, 0, count);
@@ -92,9 +92,7 @@ public class PacketStream {
     }
 
     public void Reserve(int count) {
-        if(Buffer == null) {
-            Buffer = Roundup(count);
-        }
+        if(Buffer == null)             Buffer = Roundup(count);
         else if(count > Buffer.Length) {
             var newBuffer = Roundup(count);
             System.Buffer.BlockCopy(Buffer, 0, newBuffer, 0, Count);
@@ -102,17 +100,17 @@ public class PacketStream {
         }
     }
 
-    public PacketStream Insert(int offset, byte[] copyArray) {
+    public PacketHandler Insert(int offset, byte[] copyArray) {
         return Insert(offset, copyArray, 0, copyArray.Length);
     }
 
-    public PacketStream PushBack(byte b) {
+    public PacketHandler PushBack(byte b) {
         Reserve(Count + 1);
-        Buffer[(Count++)] = b;
+        Buffer[Count++] = b;
         return this;
     }
 
-    public PacketStream Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
+    public PacketHandler Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
         Reserve(Count + count);
         System.Buffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
         System.Buffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
@@ -134,50 +132,50 @@ public class PacketStream {
 
     #region Write Types
 
-    public PacketStream Write(bool value, bool isInt = false) {
+    public PacketHandler Write(bool value, bool isInt = false) {
         return isInt ? Write(value ? 1 : 0) : Write(value ? (byte)1 : (byte)0);
     }
 
-    public PacketStream Write(byte value) {
+    public PacketHandler Write(byte value) {
         PushBack(value);
         return this;
     }
 
-    public PacketStream Write(byte[] value, bool appendSize = false) {
+    public PacketHandler Write(byte[] value, bool appendSize = false) {
         if(appendSize)
             Write((ushort)(value.Length + 2));
         return Insert(Count, value);
     }
 
-    public PacketStream Write(short value) {
+    public PacketHandler Write(short value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(int value) {
+    public PacketHandler Write(int value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(long value) {
+    public PacketHandler Write(long value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(ushort value) {
+    public PacketHandler Write(ushort value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(uint value) {
+    public PacketHandler Write(uint value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(ulong value) {
+    public PacketHandler Write(ulong value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream Write(float value) {
+    public PacketHandler Write(float value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketStream WriteCc(int count) {
+    public PacketHandler WriteCc(int count) {
         var buff = new byte[count];
         for(var i = 0; i < count; i++)
             buff[i] = 0xCC;
@@ -189,11 +187,11 @@ public class PacketStream {
     //    return value.Write(this);
     //}
 
-    public PacketStream Write(PacketStream value, bool appendSize = false) {
+    public PacketHandler Write(PacketHandler value, bool appendSize = false) {
         return Write(value.GetBytes(), appendSize);
     }
 
-    public PacketStream Write(string value, int count, bool fillCc = false) {
+    public PacketHandler Write(string value, int count, bool fillCc = false) {
         var tmp = _encoding.GetBytes(fillCc ? value + '\u0000' : value);
         if(tmp.Length > count)
             Array.Resize(ref tmp, count);

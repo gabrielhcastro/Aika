@@ -1,0 +1,56 @@
+@startuml gp-diagrama-classes
+
+' Definição das classes principais
+class BaseProtocol {
+    +OnConnect(Session)
+    +OnReceive(Session, byte[], int)
+    +OnSend(Session, byte[], int, int)
+    +OnDisconnect(Session)
+}
+
+class GameProtocol {
+    +OnConnect(Session)
+    +OnReceive(Session, byte[], int)
+    +OnDisconnect(Session)
+}
+
+class Client {
+    +Start()
+    +Stop()
+}
+
+class Server {
+    +Start()
+    +Stop()
+}
+
+class Session {
+    +SendPacket(byte[])
+    +Close()
+}
+
+class EncDec {
+    +Encrypt(ref byte[], int)
+    +Decrypt(ref byte[], int) : bool
+}
+
+class PacketStream {
+    +ReadUInt16()
+    +ReadInt32()
+    +Write(ushort)
+    +Write(int)
+}
+
+' Relações entre as classes
+BaseProtocol <|-- GameProtocol
+BaseProtocol <|-- INetwork
+INetwork <|-- Client
+INetwork <|-- Server
+Client --> GameProtocol
+Server --> GameProtocol
+Client --> Session
+Server --> Session
+Session --> PacketStream
+Session --> EncDec
+
+@enduml
