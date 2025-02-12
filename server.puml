@@ -1,0 +1,28 @@
+@startuml
+class Server {
+    - Logger _log
+    - const int ReceiveBufferSize
+    - BufferControl _bufferControl
+    - Socket _listenSocket
+    - Semaphore _maxNumberAcceptedClients
+    - ConcurrentDictionary _sessions
+    - BaseProtocol _protocol
+    + bool IsStarted { get; private set; }
+    + Server(EndPoint localEndPoint, int numConnections, BaseProtocol handler)
+    + void Start()
+    + void Stop()
+    - void StartAccept(SocketAsyncEventArgs acceptEventArg)
+    - void AcceptEventArg_Completed(object sender, SocketAsyncEventArgs e)
+    - void ProcessAccept(SocketAsyncEventArgs e)
+    - void ReadComplete(object sender, SocketAsyncEventArgs e)
+    - void ProcessReceive(SocketAsyncEventArgs e)
+    + void OnConnect(Session session)
+    + void OnDisconnect(Session session)
+    + void OnReceive(Session session, byte[] buff, int bytes)
+    + void OnSend(Session session, byte[] buff, int offset, int bytes)
+    + void RemoveSession(Session session)
+}
+Server --> BaseProtocol : uses
+Server --> Session : manages
+Server --> BufferControl : uses
+@enduml
