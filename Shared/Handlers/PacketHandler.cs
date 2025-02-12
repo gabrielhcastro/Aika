@@ -1,7 +1,7 @@
 using Shared.Handlers.Conversions;
 using System.Text;
 
-namespace Shared.Network.Stream;
+namespace Shared.Network.packet;
 
 public class PacketHandler {
     #region Data
@@ -33,8 +33,8 @@ public class PacketHandler {
         return new PacketHandler(bytes);
     }
 
-    public static implicit operator byte[](PacketHandler stream) {
-        return stream.GetBytes();
+    public static implicit operator byte[](PacketHandler packet) {
+        return packet.GetBytes();
     }
 
     #endregion
@@ -58,16 +58,16 @@ public class PacketHandler {
 
     #region Replace
 
-    public PacketHandler Replace(PacketHandler stream) {
-        return Replace(stream.Buffer, 0, stream.Count);
+    public PacketHandler Replace(PacketHandler packet) {
+        return Replace(packet.Buffer, 0, packet.Count);
     }
 
     public PacketHandler Replace(byte[] bytes) {
         return Replace(bytes, 0, bytes.Length);
     }
 
-    public PacketHandler Replace(PacketHandler stream, int offset, int count) {
-        return Replace(stream.Buffer, offset, count);
+    public PacketHandler Replace(PacketHandler packet, int offset, int count) {
+        return Replace(packet.Buffer, offset, count);
     }
 
     public PacketHandler Replace(byte[] bytes, int offset, int count) {
@@ -183,7 +183,7 @@ public class PacketHandler {
         return Write(buff);
     }
 
-    //public PacketStream Write(BasePacket value) {
+    //public Packetpacket Write(BasePacket value) {
     //    return value.Write(this);
     //}
 

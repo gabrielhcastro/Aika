@@ -13,6 +13,8 @@ public class Session : IDisposable {
     private readonly Dictionary<string, object> _attributes = [];
     private readonly SocketAsyncEventArgs _writeEventArg = new();
     private ConcurrentQueue<byte[]> _packetQueue = new();
+    private readonly object _lock = new();
+    private bool _processing;
     private bool _sending;
     private bool _closed;
     private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
@@ -20,6 +22,9 @@ public class Session : IDisposable {
     public Socket Socket { get; }
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }
+    public DateTime LastActivity { get; set; }
+    public DateTime LastPingTime { get; set; } = DateTime.UtcNow;
+    public DateTime LastPongTime { get; set; } = DateTime.UtcNow;
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;
@@ -28,17 +33,24 @@ public class Session : IDisposable {
         ReadEventArg = readEventArg;
         _writeEventArg.Completed += WriteComplete;
         Ip = RemoteEndPoint.Address;
-        ProccessPackets();
+        ProcessPackets();
     }
 
     public void SendPacket(byte[] packet) {
         if(_packetQueue == null)
             return;
+
         _packetQueue.Enqueue(packet);
+        lock(_lock) {
+            if(!_processing) {
+                _processing = true;
+                Task.Run(ProcessPackets);
+            }
+        }
         _log.Debug($"Sending Packet: {packet}");
         lock(Socket) {
             if(!_sending)
-                ProccessPackets();
+                ProcessPackets();
         }
     }
 
@@ -61,7 +73,7 @@ public class Session : IDisposable {
         return result;
     }
 
-    private void ProccessPackets() {
+    private void ProcessPackets() {
         lock(Socket) {
             _sending = true;
         }
@@ -103,7 +115,7 @@ public class Session : IDisposable {
     private void ProcessSend(SocketAsyncEventArgs e) {
         if(e.SocketError == SocketError.Success) {
             _network.OnSend(this, e.Buffer, e.Offset, e.BytesTransferred);
-            ProccessPackets();
+            ProcessPackets();
         }
         else {
             _log.Error("Error on ProcessSend: {0}", e.SocketError.ToString());

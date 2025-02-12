@@ -1,8 +1,8 @@
 using NLog;
 using Shared.Handlers;
 using Shared.Network.Base;
+using Shared.Network.packet;
 using Shared.Protocol;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -10,12 +10,11 @@ namespace Shared.Network;
 
 public class Server : INetwork {
     private static Logger _log = LogManager.GetCurrentClassLogger();
-
+    private readonly Timer _pingTimer;
     private const int ReceiveBufferSize = 8096;
     private readonly BufferHandler _bufferControl;
     private readonly Socket _listenSocket;
     private readonly Semaphore _maxNumberAcceptedClients;
-    private readonly ConcurrentDictionary<uint, Session> _sessions;
     private readonly BaseProtocol _protocol;
 
     public bool IsStarted { get; private set; }
@@ -27,7 +26,6 @@ public class Server : INetwork {
 
         _bufferControl = new BufferHandler(ReceiveBufferSize * numConnections, ReceiveBufferSize);
         _maxNumberAcceptedClients = new Semaphore(numConnections, numConnections);
-        _sessions = new ConcurrentDictionary<uint, Session>();
         _bufferControl.Init();
 
         _protocol = handler;
@@ -39,8 +37,10 @@ public class Server : INetwork {
     }
 
     public void Stop() {
-        foreach(var session in _sessions.Values)
-            session.Close();
+        foreach(var session in SessionManager.Instance.GetAllSessions()) {
+            SessionManager.Instance.RemoveSession(session);
+        }
+
         IsStarted = false;
         _listenSocket.Close();
     }
@@ -78,7 +78,7 @@ public class Server : INetwork {
         var session = new Session(this, readEventArg, e.AcceptSocket);
         readEventArg.UserToken = session;
 
-        _sessions.TryAdd(session.Id, session);
+        SessionManager.Instance.AddSession(session);
 
         _protocol.OnConnect(session);
 
@@ -123,6 +123,16 @@ public class Server : INetwork {
         }
     }
 
+    private void SendPingToAll(object state) {
+        foreach(var session in SessionManager.Instance.GetAllSessions()) {
+            var packet = new PacketHandler();
+            packet.Write((ushort)0x0001);
+            session.SendPacket(packet.GetBytes());
+
+            session.LastPingTime = DateTime.UtcNow;
+        }
+    }
+
     public void OnConnect(Session session) {
         _protocol.OnConnect(session);
     }
@@ -133,6 +143,7 @@ public class Server : INetwork {
 
     public void OnReceive(Session session, byte[] buff, int bytes) {
         _protocol.OnReceive(session, buff, bytes);
+        SessionManager.Instance.UpdateSessionActivity(session);
     }
 
     public void OnSend(Session session, byte[] buff, int offset, int bytes) {
@@ -142,8 +153,9 @@ public class Server : INetwork {
     public void RemoveSession(Session session) {
         _bufferControl.Empty(session.ReadEventArg);
 
-        _sessions.TryRemove(session.Id, out var val);
-        if(val != null)
+        SessionManager.Instance.RemoveSession(session);
+
+        if(SessionManager.Instance.GetAllSessions() != null)
             _maxNumberAcceptedClients.Release();
     }
 }

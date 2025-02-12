@@ -1,6 +1,6 @@
 ﻿using Shared.Network;
 using Shared.Network.Encryption;
-using Shared.Network.Stream;
+using Shared.Network.packet;
 using Shared.Protocol;
 
 namespace GameServer.Protocol;
@@ -43,25 +43,20 @@ public class GameProtocol : BaseProtocol {
 
             if(opcode != 0x30bf && opcode != 0x3005 && opcode != 0x3006)
                 Console.WriteLine("Received Opcode: (0x{0:x2})", opcode);
+
+            //if(opcode == 0x0001) {
+            //    var response = new PacketHandler();
+            //    response.Write((ushort)0x0002);
+            //    session.SendPacket(response.GetBytes());
+            //}
+            //else if(opcode == 0x0002) {
+            //    Console.WriteLine($"Pong recebido de {session.Ip}");
+            //    session.LastPongTime = DateTime.UtcNow;
+            //}
+
         }
         catch(Exception) {
             Console.WriteLine("Failed to decrypt packet.");
         }
     }
-
-    //private bool AuthenticateUser(string username, string password) {
-    //    return username == "player" && password == "password";
-    //}
-
-    //private void SendLoginSuccess(Session session) {
-    //    var packet = new PacketStream();
-    //    packet.Write((ushort)0x0002);
-    //    session.SendPacket(packet.GetBytes());
-    //}
-
-    //private void SendLoginFailure(Session session) {
-    //    var packet = new PacketStream();
-    //    packet.Write((ushort)0x0003);
-    //    session.SendPacket(packet.GetBytes());
-    //}
 }

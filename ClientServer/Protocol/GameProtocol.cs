@@ -1,6 +1,6 @@
 ﻿using Shared.Network;
 using Shared.Network.Encryption;
-using Shared.Network.Stream;
+using Shared.Network.packet;
 using Shared.Protocol;
 
 namespace ClientServer.Protocol;
@@ -16,6 +16,7 @@ public class GameProtocol : BaseProtocol {
             return;
         }
 
+        //TO-DO: Better way to handle this
         if(buff.Length > 2 && buff[0] == 0x11 && buff[1] == 0xF3) {
             var newBuff = new byte[buff.Length - 4];
             Array.Copy(buff, 4, newBuff, 0, buff.Length - 4);
@@ -35,22 +36,24 @@ public class GameProtocol : BaseProtocol {
             var opcode = packet.ReadUInt16();
             packet.ReadInt32();
 
+            //if(opcode == 0x0001) {
+            //    var response = new PacketHandler();
+            //    response.Write((ushort)0x0002);
+
+            //    session.SendPacket(response.GetBytes());
+
+            //    session.LastPongTime = DateTime.UtcNow;
+            //}
+            //else if(opcode == 0x0002) {
+            //    Console.WriteLine($"Pong recebido de {session.Ip}");
+            //    session.LastPongTime = DateTime.UtcNow;
+            //}
+
             Console.WriteLine($"Opcode Client: {opcode}");
         }
         catch(Exception) {
             Console.WriteLine("Failed to decrypt packet.");
         }
-
-        //if(opcode == 0x0002) {
-        //    Console.WriteLine("Login successful!");
-        //}
-        //else if(opcode == 0x0003) {
-        //    Console.WriteLine("Login failed.");
-        //    session.Close();
-        //}
-        //else {
-        //    Console.WriteLine($"Opcode Desconhecido {opcode}");
-        //}
     }
 
     public override void OnDisconnect(Session session) {
