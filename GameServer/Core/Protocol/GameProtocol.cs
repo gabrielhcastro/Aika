@@ -1,11 +1,10 @@
-﻿using Shared.Base;
-using Shared.Handlers.Builder;
-using Shared.Network;
-using Shared.Network.Encryption;
-using Shared.Network.packet;
+﻿using GameServer.Core.Protocol.Base;
+using GameServer.Handlers.Buffer;
+using GameServer.Handlers.Encryption;
+using GameServer.Network;
 using System.Text;
 
-namespace GameServer.Protocol;
+namespace GameServer.Core.Protocol;
 
 public class GameProtocol : BaseProtocol {
     public override void OnConnect(Session session) {
@@ -99,7 +98,7 @@ public class GameProtocol : BaseProtocol {
         // Preenchendo o tamanho correto do pacote no Header
         ushort packetSize = (ushort)response.Count;
         response.Buffer[0] = (byte)(packetSize & 0xFF);
-        response.Buffer[1] = (byte)((packetSize >> 8) & 0xFF);
+        response.Buffer[1] = (byte)(packetSize >> 8 & 0xFF);
 
         // Enviando o pacote com Header
         byte[] packetData = response.GetBytes();

@@ -1,11 +1,11 @@
+using GameServer.Core.Protocol.Base;
+using GameServer.Handlers.Buffer;
+using GameServer.Handlers.Sessions;
 using NLog;
-using Shared.Base;
-using Shared.Handlers;
-using Shared.Network.packet;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Shared.Network;
+namespace GameServer.Network;
 
 public class Server : INetwork {
     private static Logger _log = LogManager.GetCurrentClassLogger();
@@ -36,8 +36,8 @@ public class Server : INetwork {
     }
 
     public void Stop() {
-        foreach(var session in SessionManager.Instance.GetAllSessions()) {
-            SessionManager.Instance.RemoveSession(session);
+        foreach(var session in SessionHandler.Instance.GetAllSessions()) {
+            SessionHandler.Instance.RemoveSession(session);
         }
 
         IsStarted = false;
@@ -77,7 +77,7 @@ public class Server : INetwork {
         var session = new Session(this, readEventArg, e.AcceptSocket);
         readEventArg.UserToken = session;
 
-        SessionManager.Instance.AddSession(session);
+        SessionHandler.Instance.AddSession(session);
 
         _protocol.OnConnect(session);
 
@@ -123,7 +123,7 @@ public class Server : INetwork {
     }
 
     private void SendPingToAll(object state) {
-        foreach(var session in SessionManager.Instance.GetAllSessions()) {
+        foreach(var session in SessionHandler.Instance.GetAllSessions()) {
             var packet = new PacketHandler();
             packet.Write((ushort)0x0001);
             session.SendPacket(packet.GetBytes());
@@ -142,7 +142,7 @@ public class Server : INetwork {
 
     public void OnReceive(Session session, byte[] buff, int bytes) {
         _protocol.OnReceive(session, buff, bytes);
-        SessionManager.Instance.UpdateSessionActivity(session);
+        SessionHandler.Instance.UpdateSessionActivity(session);
     }
 
     public void OnSend(Session session, byte[] buff, int offset, int bytes) {
@@ -152,9 +152,9 @@ public class Server : INetwork {
     public void RemoveSession(Session session) {
         _bufferControl.Empty(session.ReadEventArg);
 
-        SessionManager.Instance.RemoveSession(session);
+        SessionHandler.Instance.RemoveSession(session);
 
-        if(SessionManager.Instance.GetAllSessions() != null)
+        if(SessionHandler.Instance.GetAllSessions() != null)
             _maxNumberAcceptedClients.Release();
     }
 }

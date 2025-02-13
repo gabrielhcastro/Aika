@@ -1,6 +1,6 @@
-﻿using Shared.Network;
+﻿using GameServer.Network;
 
-namespace Shared.Base;
+namespace GameServer.Core.Protocol.Base;
 
 public interface INetwork {
     void OnConnect(Session session);

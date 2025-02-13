@@ -1,6 +1,6 @@
-using Shared.Network;
+using GameServer.Network;
 
-namespace Shared.Base;
+namespace GameServer.Core.Protocol.Base;
 
 public abstract class BaseProtocol {
     public virtual void OnConnect(Session session) {

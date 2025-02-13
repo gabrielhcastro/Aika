@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Globalization;
 
-namespace Shared.Handlers;
+namespace GameServer.Handlers;
 
 public static class JsonHandler {
     public static void DeserializeFile<T>(string path, out T list) {

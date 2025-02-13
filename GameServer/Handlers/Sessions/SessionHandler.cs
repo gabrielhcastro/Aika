@@ -1,14 +1,14 @@
-﻿using Shared.Handlers.Instance;
-using Shared.Network;
+﻿using GameServer.Handlers.Instance;
+using GameServer.Network;
 using System.Collections.Concurrent;
 
-namespace Shared.Handlers;
-public class SessionManager : Singleton<SessionManager> {
+namespace GameServer.Handlers.Sessions;
+public class SessionHandler : Singleton<SessionHandler> {
     private readonly ConcurrentDictionary<uint, Session> _sessions = new();
     private readonly Timer _sessionCheckTimer;
     private readonly int _timeoutSeconds = 10;
 
-    public SessionManager() {
+    public SessionHandler() {
         //_sessionCheckTimer = new Timer(CheckSessions, null, 10000, 10000);
     }
 

@@ -1,10 +1,10 @@
+using GameServer.Core.Protocol.Base;
 using NLog;
-using Shared.Base;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Shared.Network;
+namespace GameServer.Network;
 
 public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();

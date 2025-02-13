@@ -1,7 +1,7 @@
-using Shared.Handlers.Conversions;
+using GameServer.Handlers.Conversions;
 using System.Text;
 
-namespace Shared.Network.packet;
+namespace GameServer.Handlers.Buffer;
 
 public class PacketHandler {
     #region Data

@@ -1,6 +1,6 @@
-﻿using Shared.Network.packet;
+﻿using GameServer.Handlers.Buffer;
 
-namespace Shared.Handlers.Builder;
+namespace GameServer.Handlers.Builder;
 
 public class PacketBuilder {
     private PacketHandler _packet;
@@ -30,7 +30,7 @@ public class PacketBuilder {
     public byte[] Build() {
         ushort packetSize = (ushort)_packet.Count;
         _packet.Buffer[0] = (byte)(packetSize & 0xFF);
-        _packet.Buffer[1] = (byte)((packetSize >> 8) & 0xFF);
+        _packet.Buffer[1] = (byte)(packetSize >> 8 & 0xFF);
         return _packet.GetBytes();
     }
 }

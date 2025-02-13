@@ -1,4 +1,4 @@
-﻿namespace Shared.Handlers.Conversions;
+﻿namespace GameServer.Handlers.Conversions;
 
 /// <summary>
 /// Equivalent of System.BitConverter, but with either endianness.

@@ -1,5 +1,5 @@
-﻿using GameServer.Protocol;
-using Shared.Network;
+﻿using GameServer.Core.Protocol;
+using GameServer.Network;
 using System.Net;
 
 namespace GameServer;

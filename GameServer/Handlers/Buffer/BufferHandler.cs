@@ -1,7 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace Shared.Handlers;
+namespace GameServer.Handlers.Buffer;
 
 public class BufferHandler {
     private readonly int _byteLenght;
