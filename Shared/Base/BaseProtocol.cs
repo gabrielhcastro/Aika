@@ -1,6 +1,6 @@
 using Shared.Network;
 
-namespace Shared.Protocol;
+namespace Shared.Base;
 
 public abstract class BaseProtocol {
     public virtual void OnConnect(Session session) {

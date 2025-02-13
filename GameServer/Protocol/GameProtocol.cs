@@ -1,7 +1,7 @@
-﻿using Shared.Network;
+﻿using Shared.Base;
+using Shared.Network;
 using Shared.Network.Encryption;
 using Shared.Network.packet;
-using Shared.Protocol;
 
 namespace GameServer.Protocol;
 

@@ -1,4 +1,6 @@
-﻿namespace Shared.Network.Base;
+﻿using Shared.Network;
+
+namespace Shared.Base;
 
 public interface INetwork {
     void OnConnect(Session session);

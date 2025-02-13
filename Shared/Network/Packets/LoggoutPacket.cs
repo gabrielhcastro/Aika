@@ -1,9 +1,8 @@
-﻿using Shared.Handlers.Interface;
-using Shared.Network.packet;
+﻿using Shared.Network.packet;
 
 namespace Shared.Network.Packets;
 
-public class LoginResponsePacket : IPacketHandler {
+public class LoginResponsePacket {
     private readonly PacketHandler _packet;
 
     public LoginResponsePacket(PacketHandler packet) {

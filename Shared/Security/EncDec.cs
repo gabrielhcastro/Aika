@@ -1,41 +1,37 @@
 namespace Shared.Network.Encryption;
 
-public static class EncDec
-{
-    public static void Encrypt(ref byte[] data, int size)
-    {
+public static class EncDec {
+    public static void Encrypt(ref byte[] data, int size) {
         var p = 4;
         var i = 1;
         var sum1 = 0u;
         var sum2 = 0u;
         var rnd = new Random();
-        data[3] = (byte) rnd.Next(0, 255);
+        data[3] = (byte)rnd.Next(0, 255);
         var pos = EncDecKeys[(data[3] & 0xFF) * 2];
-        while (i < size >> 2)
-        {
+        while(i < size >> 2) {
             uint key = EncDecKeys[(pos & 0xFF) * 2 + 1];
             var buffer = BitConverter.ToUInt32(data, p);
             sum1 += buffer;
-            switch (i & 3)
-            {
+            switch(i & 3) {
                 case 0:
-                    buffer += 4 * key;
-                    break;
+                buffer += 4 * key;
+                break;
                 case 1:
-                    buffer -= key >> 1;
-                    break;
+                buffer -= key >> 1;
+                break;
                 case 2:
-                    buffer += 2 * key;
-                    break;
+                buffer += 2 * key;
+                break;
                 case 3:
-                    buffer -= key >> 2;
-                    break;
+                buffer -= key >> 2;
+                break;
             }
 
-            data[p] = (byte) ((buffer >> 00) & 0xFF);
-            data[p + 1] = (byte) ((buffer >> 08) & 0xFF);
-            data[p + 2] = (byte) ((buffer >> 16) & 0xFF);
-            data[p + 3] = (byte) ((buffer >> 24) & 0xFF);
+            data[p] = (byte)((buffer >> 00) & 0xFF);
+            data[p + 1] = (byte)((buffer >> 08) & 0xFF);
+            data[p + 2] = (byte)((buffer >> 16) & 0xFF);
+            data[p + 3] = (byte)((buffer >> 24) & 0xFF);
 
             sum2 += buffer;
             i++;
@@ -48,41 +44,38 @@ public static class EncDec
         var sizeByte = BitConverter.GetBytes(size);
         data[0] = sizeByte[0];
         data[1] = sizeByte[1];
-        data[2] = (byte) ((sum2 - sum1) & 0xFF);
+        data[2] = (byte)((sum2 - sum1) & 0xFF);
     }
 
-    public static bool Decrypt(ref byte[] data, int size)
-    {
+    public static bool Decrypt(ref byte[] data, int size) {
         var p = 4;
         int pos = EncDecKeys[(data[3] & 0xFF) * 2];
         var sum1 = 0u;
         var sum2 = 0u;
         var i = 1;
-        while (i < size >> 2)
-        {
+        while(i < size >> 2) {
             uint key = EncDecKeys[(pos & 0xFF) * 2 + 1];
             var buffer = BitConverter.ToUInt32(data, p);
             sum1 += buffer;
-            switch (i & 3)
-            {
+            switch(i & 3) {
                 case 0:
-                    buffer -= 4 * key;
-                    break;
+                buffer -= 4 * key;
+                break;
                 case 1:
-                    buffer += key >> 1;
-                    break;
+                buffer += key >> 1;
+                break;
                 case 2:
-                    buffer -= 2 * key;
-                    break;
+                buffer -= 2 * key;
+                break;
                 case 3:
-                    buffer += key >> 2;
-                    break;
+                buffer += key >> 2;
+                break;
             }
 
-            data[p] = (byte) ((buffer >> 00) & 0xFF);
-            data[p + 1] = (byte) ((buffer >> 08) & 0xFF);
-            data[p + 2] = (byte) ((buffer >> 16) & 0xFF);
-            data[p + 3] = (byte) ((buffer >> 24) & 0xFF);
+            data[p] = (byte)((buffer >> 00) & 0xFF);
+            data[p + 1] = (byte)((buffer >> 08) & 0xFF);
+            data[p + 2] = (byte)((buffer >> 16) & 0xFF);
+            data[p + 3] = (byte)((buffer >> 24) & 0xFF);
 
             sum2 += buffer;
             i++;

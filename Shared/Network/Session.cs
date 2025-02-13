@@ -1,5 +1,5 @@
 using NLog;
-using Shared.Network.Base;
+using Shared.Base;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;

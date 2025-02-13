@@ -92,7 +92,7 @@ public class PacketHandler {
     }
 
     public void Reserve(int count) {
-        if(Buffer == null)             Buffer = Roundup(count);
+        if(Buffer == null) Buffer = Roundup(count);
         else if(count > Buffer.Length) {
             var newBuffer = Roundup(count);
             System.Buffer.BlockCopy(Buffer, 0, newBuffer, 0, Count);

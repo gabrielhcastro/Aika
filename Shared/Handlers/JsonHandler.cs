@@ -6,7 +6,7 @@ namespace Shared.Handlers;
 
 public static class JsonHandler {
     public static void DeserializeFile<T>(string path, out T list) {
-        if(!File.Exists(path))             throw new Exception($"File not found. {path}");
+        if(!File.Exists(path)) throw new Exception($"File not found. {path}");
 
         string content;
         try {

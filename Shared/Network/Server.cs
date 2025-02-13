@@ -1,8 +1,7 @@
 using NLog;
+using Shared.Base;
 using Shared.Handlers;
-using Shared.Network.Base;
 using Shared.Network.packet;
-using Shared.Protocol;
 using System.Net;
 using System.Net.Sockets;
 
