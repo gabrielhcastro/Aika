@@ -35,6 +35,7 @@ public class GameProtocol : BaseProtocol {
             var newBuffer = packet.Buffer;
             var isDecrypted = EncDec.Decrypt(ref newBuffer, newBuffer.Length);
             Console.WriteLine($"Packet Decriptado: {isDecrypted}");
+            Console.WriteLine($"Pacote recebido: {BitConverter.ToString(buff)}");
             packet.Replace(newBuffer);
             packet.Pos = 0;
 
@@ -43,14 +44,19 @@ public class GameProtocol : BaseProtocol {
             var opcode = packet.ReadUInt16();
             packet.ReadInt32();
 
-            Console.WriteLine($"Sender Recebido: (0x{sender:X})");
-            Console.WriteLine($"Opcode Recebido: (0x{opcode:X})");
-            Console.WriteLine($"Pacote Recebido: {BitConverter.ToString(buff)}");
+            Console.WriteLine($"Sender: 0x{sender:X}, Opcode: 0x{opcode:X}");
 
-            if(opcode == 0x81) {
+            switch(opcode) {
+                case 0x81:
                 HandleLogin(session, packet);
+                break;
+                case 0x685:
+                Console.WriteLine("Chegou no OPCODE: 685");
+                break;
+                default:
+                Console.WriteLine($"Opcode desconhecido: {opcode}");
+                break;
             }
-
         }
         catch(Exception) {
             Console.WriteLine("Failed to decrypt packet.");
@@ -73,35 +79,33 @@ public class GameProtocol : BaseProtocol {
 
         Console.WriteLine($"Usuário tentando login: {username}, Token: {token}");
 
-        bool loginValido = VerificarCredenciais();
+        PacketHandler response = new PacketHandler();
 
-        if(loginValido) {
-            Console.WriteLine("Login bem-sucedido!");
+        Console.WriteLine("Login bem-sucedido!");
 
-            PacketHandler response = new PacketHandler();
+        response.Write((ushort)0);  // Size (preenchido depois)
+        response.Write((byte)0x00); // Key (pode precisar de ajuste)
+        response.Write((byte)0x00); // ChkSum (se necessário, calcule depois)
+        response.Write((ushort)12345); // Index (ID fictício do jogador)
+        response.Write((ushort)0x82);  // Opcode de resposta
+        response.Write((uint)Environment.TickCount); // Timestamp do login
 
-            var loginPacket = new PacketBuilder(0x685)
-                                    .Write((uint)123456) // AccountId
-                                    .Write("admin", 32) // Username
-                                    .Write((uint)Environment.TickCount) // Timestamp
-                                    .WriteBytes(new byte[14]) // MacAddr
-                                    .Write((ushort)304) // Version
-                                    .Write((uint)0) // Null
-                                    .Write(token, 32) // Token
-                                    .WriteBytes(new byte[991]) // Null_1 (padding)
-                                    .Build();
+        // Criando o Corpo do Pacote (TResponseLoginPacket)
+        response.Write((uint)12345); // ID fictício do jogador
+        response.Write((uint)Environment.TickCount); // Timestamp do login
+        response.Write((ushort)1);  // Nação (exemplo)
+        response.Write((uint)0);    // Null_1 (padding)
 
-            session.SendPacket(loginPacket);
+        // Preenchendo o tamanho correto do pacote no Header
+        ushort packetSize = (ushort)response.Count;
+        response.Buffer[0] = (byte)(packetSize & 0xFF);
+        response.Buffer[1] = (byte)((packetSize >> 8) & 0xFF);
 
-            byte[] packetData = response.GetBytes();
-            Console.WriteLine($"Pacote de resposta: {BitConverter.ToString(packetData)}");
+        // Enviando o pacote com Header
+        byte[] packetData = response.GetBytes();
+        Console.WriteLine($"HandleLogin enviado: {BitConverter.ToString(packetData)}");
 
-            session.SendPacket(packetData);
-        }
-        else {
-            Console.WriteLine("Login falhou.");
-            session.Close();
-        }
+        session.SendPacket(packetData);
     }
 
     private static bool VerificarCredenciais() {

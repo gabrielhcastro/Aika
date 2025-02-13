@@ -47,7 +47,7 @@ public class Session : IDisposable {
                 Task.Run(ProcessPackets);
             }
         }
-        _log.Debug($"Sending Packet: {packet}");
+        Console.WriteLine($"Sending Packet: {packet.ToString}");
         lock(Socket) {
             if(!_sending)
                 ProcessPackets();
@@ -56,12 +56,12 @@ public class Session : IDisposable {
 
     public void AddAttribute(string name, object attribute) {
         _attributes.Add(name, attribute);
-        _log.Debug($"Adding Attributes. Key: {name} Value:{attribute}");
+        Console.WriteLine($"Adding Attributes. Key: {name} Value:{attribute}");
     }
 
     public object GetAttribute(string name) {
         _attributes.TryGetValue(name, out var attribute);
-        _log.Debug($"Getting Attributes. Key: {name} Value:{attribute}");
+        Console.WriteLine($"Getting Attributes. Key: {name} Value:{attribute}");
         return attribute;
     }
 
@@ -69,7 +69,7 @@ public class Session : IDisposable {
         if(_packetQueue == null)
             return null;
         _packetQueue.TryDequeue(out var result);
-        _log.Debug($"Getting Next Packet: {result}");
+        Console.WriteLine($"Getting Next Packet: {result}");
         return result;
     }
 
