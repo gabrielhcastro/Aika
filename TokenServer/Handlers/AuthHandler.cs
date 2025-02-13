@@ -6,7 +6,7 @@ using TokenServer.Models.Entities;
 namespace TokenServer.Handlers;
 
 public static class AuthHandlers {
-    private static readonly ILogger _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("AuthHandlers");
+    private static readonly ILogger _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("AuthHandlers ");
 
     public static string GetToken(string id, string pw) {
         try {
@@ -66,9 +66,9 @@ public static class AuthHandlers {
             var charCount = 0; //TO-DO: Recuperar contagem de personagens
 
             var infos = new StringBuilder();
-            infos.AppendLine("CNT " + charCount + " 0 0 0");
-            infos.AppendLine("<br>");
-            infos.AppendLine(account.Nation + " 0 0 0");
+            infos.Append("CNT " + charCount + " 0 0 0 ");
+            infos.Append("<br> ");
+            infos.Append(account.Nation + " 0 0 0 ");
 
             return infos.ToString();
         }
@@ -137,62 +137,62 @@ public static class AuthHandlers {
     public static string GetServerList() {
         var infos = new StringBuilder();
 
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("0");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
-        infos.AppendLine("-1");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("0 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1 ");
+        infos.Append("-1");
 
         return infos.ToString();
     }
