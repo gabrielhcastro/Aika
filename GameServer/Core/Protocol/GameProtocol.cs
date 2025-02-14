@@ -12,7 +12,7 @@ public class GameProtocol : BaseProtocol {
         Console.WriteLine($"Player disconnected from {session.Ip}");
     }
 
-    public override void OnReceive(Session session, byte[] buff, int bytes) {
+    public override async void OnReceive(Session session, byte[] buff, int bytes) {
         if(buff == null || buff.Length < 4) {
             Console.WriteLine("Invalid packet received.");
             return;
@@ -52,12 +52,7 @@ public class GameProtocol : BaseProtocol {
                 }
 
                 if(isDecrypted) {
-                    packet.ReadInt32();
-                    var sender = packet.ReadUInt16();
-                    var opcode = packet.ReadUInt16();
-                    packet.ReadInt32();
-
-                    PacketHandler.HandlePacket(session, opcode);
+                    await PacketHandler.HandlePacket(session, packet);
                 }
                 else {
                     Console.WriteLine("Failed to decrypt packet.");

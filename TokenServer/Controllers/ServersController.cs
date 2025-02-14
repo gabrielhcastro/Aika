@@ -11,7 +11,7 @@ public class ServersController : ControllerBase {
 
     [HttpPost("/servers/serv00.asp")]
     public string Serv00() {
-        return AuthHandlers.GetServerList();
+        return AuthHandlers.GetPlayerCountPerServer();
     }
 
     [HttpPost("/servers/aika_reset_flag.asp")]

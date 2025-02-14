@@ -8,10 +8,10 @@ namespace TokenServer.Handlers;
 public static class AuthHandlers {
     private static readonly ILogger _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("AuthHandlers ");
 
-    public static string GetToken(string id, string pw) {
+    public static string GetToken(string accountId, string passwordHash) {
         try {
-            var username = id;
-            var password = pw;
+            var username = accountId;
+            var _passwordHash = passwordHash;
 
             using var context = new ApplicationDbContext();
             var account = context.Accounts.FirstOrDefault(a => a.Username == username);
@@ -19,7 +19,7 @@ public static class AuthHandlers {
             if(account == null)
                 return "0";
 
-            if(account.Password != password)
+            if(account.PasswordHash != _passwordHash)
                 return "-1";
 
             if(account.AccountStatus == 8) {
@@ -35,7 +35,7 @@ public static class AuthHandlers {
             if(account.AccountStatus == 10)
                 return "-10";
 
-            var token = GenerateToken(password);
+            var token = GenerateToken(_passwordHash);
             account.Token = token;
             account.TokenCreationTime = DateTime.Now;
             context.SaveChanges();
@@ -49,10 +49,10 @@ public static class AuthHandlers {
         }
     }
 
-    public static string GetCharacterCount(string id, string pw) {
+    public static string GetCharacterCount(string accountId, string passwordHash) {
         try {
-            var username = id;
-            var password = pw;
+            var username = accountId;
+            var password = passwordHash;
 
             using var context = new ApplicationDbContext();
             var account = context.Accounts.FirstOrDefault(a => a.Username == username);
@@ -116,7 +116,7 @@ public static class AuthHandlers {
 
             var account = new Account {
                 Username = username,
-                Password = password,
+                PasswordHash = password,
                 AccountType = accountType,
                 TokenCreationTime = DateTime.Now
             };
@@ -134,68 +134,14 @@ public static class AuthHandlers {
     }
 
     //TO-DO: Implementar método para recuperar lista de servidores
-    public static string GetServerList() {
-        var infos = new StringBuilder();
-
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("0 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1 ");
-        infos.Append("-1");
-
-        return infos.ToString();
+    public static string GetPlayerCountPerServer() {
+        var serverList = new string[64];
+        for(int i = 0; i < serverList.Length; i++) {
+            serverList[i] = "0";
+        }
+        return string.Join(" ", serverList);
     }
+
 
     private static string GenerateToken(string password) {
         var md5Byte = MD5.HashData(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));

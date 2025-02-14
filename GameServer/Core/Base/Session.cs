@@ -18,6 +18,8 @@ public class Session : IDisposable {
     private bool _closed;
     private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
     public uint Id { get; }
+    public string Username { get; set; }
+    public string Token { get; set; }
     public Socket Socket { get; }
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }

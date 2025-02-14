@@ -9,7 +9,7 @@ public class NationHandler : Singleton<NationHandler> {
     GameProtocol protocol = new GameProtocol();
 
     public NationHandler() {
-        Servers = new List<Server>();
+        Servers = [];
     }
 
     public void LoadServers(ServersHandle config) {
@@ -20,7 +20,7 @@ public class NationHandler : Singleton<NationHandler> {
 
             if(server.IsStarted) {
                 Servers.Add(server);
-                Console.WriteLine($"Servidor: {server.Name} Index: {server.NationId}");
+                Console.WriteLine($"Servidor: {server.Name}, Index: {server.NationId}");
             }
         }
     }

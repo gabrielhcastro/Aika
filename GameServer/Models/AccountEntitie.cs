@@ -1,6 +1,8 @@
-﻿namespace TokenServer.Models.Entities;
+﻿using GameServer.GameLogic.Account;
 
-public class Account {
+namespace GameServer.Models;
+
+public class AccountEntitie {
     public int Id { get; set; }
     public string Username { get; set; }
     public string PasswordHash { get; set; }
@@ -13,4 +15,5 @@ public class Account {
     public int StorageGold { get; set; }
     public int Cash { get; set; }
     public string PremiumExpiration { get; set; }
+    public ICollection<CharacterEntitie> Characters { get; set; }
 }
