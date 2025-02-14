@@ -1,5 +1,4 @@
-﻿using GameServer.Handlers.Managers.Nation;
-using GameServer.Models;
+﻿using GameServer.Handlers;
 
 namespace GameServer;
 
@@ -7,13 +6,13 @@ class Program {
     static void Main(string[] args) {
         Console.WriteLine("Starting server...");
 
-        ServerConfig config = new ServerConfig("AikaServer.ini");
-        NationManager.Instance.LoadServers(config);
+        ServersHandle config = new ServersHandle("AikaServer.ini");
+        NationHandler.Instance.LoadServers(config);
 
         Console.WriteLine("Press ENTER to stop the server.");
         Console.ReadLine();
 
-        NationManager.Instance.StopServers();
+        NationHandler.Instance.StopServers();
         Console.WriteLine("Server stopped.");
     }
 }

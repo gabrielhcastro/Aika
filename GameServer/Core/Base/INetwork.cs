@@ -1,6 +1,4 @@
-﻿using GameServer.Network;
-
-namespace GameServer.Core.Base;
+﻿namespace GameServer.Core.Base;
 
 public interface INetwork {
     void OnConnect(Session session);

@@ -1,37 +1,26 @@
-﻿using GameServer.Handlers.Buffer;
+﻿using GameServer.Network.Packets;
 
 namespace GameServer.Handlers.Builder;
 
-public class PacketBuilder {
-    private PacketHandler _packet;
+public static class PacketBuilder {
+    public static StreamHandler CreateHeader(ushort opcode, ushort index = 0) {
+        var packet = new StreamHandler();
+        var header = new PacketHeader(opcode, index);
 
-    public PacketBuilder(ushort opcode, ushort index = 0) {
-        _packet = new PacketHandler();
+        packet.Write((ushort)0);
+        packet.Write(header.Key);
+        packet.Write(header.ChkSum);
+        packet.Write(header.Index);
+        packet.Write(header.Code);
+        packet.Write((uint)11981171);
 
-        _packet.Write((ushort)0);
-        _packet.Write((byte)0x00);
-        _packet.Write((byte)0x00);
-        _packet.Write(index);
-        _packet.Write(opcode);
-        _packet.Write((uint)Environment.TickCount);
+        return packet;
     }
 
-    public PacketBuilder Write(byte value) { _packet.Write(value); return this; }
-    public PacketBuilder Write(ushort value) { _packet.Write(value); return this; }
-    public PacketBuilder Write(uint value) { _packet.Write(value); return this; }
-    public PacketBuilder Write(long value) { _packet.Write(value); return this; }
-    public PacketBuilder Write(bool value) { _packet.Write(value ? (byte)1 : (byte)0); return this; }
-    public PacketBuilder Write(string value, int length) {
-        _packet.Write(value, length);
-        return this;
-    }
-    public PacketBuilder WriteBytes(byte[] value) { _packet.Write(value); return this; }
-
-    public byte[] Build() {
-        ushort packetSize = (ushort)_packet.Count;
-        _packet.Buffer[0] = (byte)(packetSize & 0xFF);
-        _packet.Buffer[1] = (byte)(packetSize >> 8 & 0xFF);
-        return _packet.GetBytes();
+    public static void FinalizePacket(StreamHandler packet) {
+        ushort packetSize = (ushort)packet.Count;
+        packet.Buffer[0] = (byte)(packetSize & 0xFF);
+        packet.Buffer[1] = (byte)(packetSize >> 8);
     }
 }
 

@@ -1,5 +1,3 @@
-using GameServer.Network;
-
 namespace GameServer.Core.Base;
 
 public abstract class BaseProtocol {

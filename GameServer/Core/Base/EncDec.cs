@@ -1,4 +1,4 @@
-namespace GameServer.Handlers.Encryption;
+namespace GameServer.Core.Base;
 
 public static class EncDec {
     public static void Encrypt(ref byte[] data, int size) {
@@ -28,10 +28,10 @@ public static class EncDec {
                 break;
             }
 
-            data[p] = (byte)((buffer >> 00) & 0xFF);
-            data[p + 1] = (byte)((buffer >> 08) & 0xFF);
-            data[p + 2] = (byte)((buffer >> 16) & 0xFF);
-            data[p + 3] = (byte)((buffer >> 24) & 0xFF);
+            data[p] = (byte)(buffer >> 00 & 0xFF);
+            data[p + 1] = (byte)(buffer >> 08 & 0xFF);
+            data[p + 2] = (byte)(buffer >> 16 & 0xFF);
+            data[p + 3] = (byte)(buffer >> 24 & 0xFF);
 
             sum2 += buffer;
             i++;
@@ -44,7 +44,7 @@ public static class EncDec {
         var sizeByte = BitConverter.GetBytes(size);
         data[0] = sizeByte[0];
         data[1] = sizeByte[1];
-        data[2] = (byte)((sum2 - sum1) & 0xFF);
+        data[2] = (byte)(sum2 - sum1 & 0xFF);
     }
 
     public static bool Decrypt(ref byte[] data, int size) {
@@ -72,10 +72,10 @@ public static class EncDec {
                 break;
             }
 
-            data[p] = (byte)((buffer >> 00) & 0xFF);
-            data[p + 1] = (byte)((buffer >> 08) & 0xFF);
-            data[p + 2] = (byte)((buffer >> 16) & 0xFF);
-            data[p + 3] = (byte)((buffer >> 24) & 0xFF);
+            data[p] = (byte)(buffer >> 00 & 0xFF);
+            data[p + 1] = (byte)(buffer >> 08 & 0xFF);
+            data[p + 2] = (byte)(buffer >> 16 & 0xFF);
+            data[p + 3] = (byte)(buffer >> 24 & 0xFF);
 
             sum2 += buffer;
             i++;
@@ -85,7 +85,7 @@ public static class EncDec {
 
         sum1 &= 0xFF;
         sum2 &= 0xFF;
-        return data[2] == ((sum1 - sum2) & 0xFF);
+        return data[2] == (sum1 - sum2 & 0xFF);
     }
 
     private static readonly byte[] EncDecKeys =

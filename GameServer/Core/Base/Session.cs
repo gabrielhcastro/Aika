@@ -1,10 +1,9 @@
-using GameServer.Core.Base;
 using NLog;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
-namespace GameServer.Network;
+namespace GameServer.Core.Base;
 
 public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
@@ -23,8 +22,6 @@ public class Session : IDisposable {
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }
     public DateTime LastActivity { get; set; }
-    //public DateTime LastPingTime { get; set; } = DateTime.UtcNow;
-    //public DateTime LastPongTime { get; set; } = DateTime.UtcNow;
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;

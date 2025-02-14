@@ -1,9 +1,9 @@
-﻿namespace GameServer.Handlers.Conversions;
+﻿namespace GameServer.Core.Base.Conversions;
 
 /// <summary>
-/// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
+/// Implementation of EndianBitConverter which converts to/from little-endian byte arrays.
 /// </summary>
-public sealed class BigEndianBitConverter : EndianBitConverter {
+public sealed class LittleEndianBitConverter : EndianBitConverter {
     /// <summary>
     /// Indicates the byte order ("endianess") in which data is converted using this class.
     /// </summary>
@@ -13,12 +13,12 @@ public sealed class BigEndianBitConverter : EndianBitConverter {
     /// most significant byte is on the right end of a word.
     /// </remarks>
     /// <returns>true if this converter is little-endian, false otherwise.</returns>
-    public override bool IsLittleEndian() => false;
+    public override bool IsLittleEndian() => true;
 
     /// <summary>
     /// Indicates the byte order ("endianess") in which data is converted using this class.
     /// </summary>
-    public override Endianness Endianness => Endianness.BigEndian;
+    public override Endianness Endianness => Endianness.LittleEndian;
 
     /// <summary>
     /// Copies the specified number of bytes from value to buffer, starting at index.
@@ -28,9 +28,8 @@ public sealed class BigEndianBitConverter : EndianBitConverter {
     /// <param name="buffer">The buffer to copy the bytes into</param>
     /// <param name="index">The index to start at</param>
     protected override void CopyBytesImpl(long value, int bytes, byte[] buffer, int index) {
-        var endOffset = index + bytes - 1;
         for(var i = 0; i < bytes; i++) {
-            buffer[endOffset - i] = unchecked((byte)(value & 0xff));
+            buffer[i + index] = unchecked((byte)(value & 0xff));
             value = value >> 8;
         }
     }
@@ -44,9 +43,10 @@ public sealed class BigEndianBitConverter : EndianBitConverter {
     /// <param name="bytesToConvert">The number of bytes to use</param>
     /// <returns>The value built from the given bytes</returns>
     protected override long FromBytes(byte[] buffer, int startIndex, int bytesToConvert) {
+        var endOffset = startIndex + bytesToConvert - 1;
         long ret = 0;
         for(var i = 0; i < bytesToConvert; i++)
-            ret = unchecked(ret << 8 | buffer[startIndex + i]);
+            ret = unchecked(ret << 8 | buffer[endOffset - i]);
         return ret;
     }
 }

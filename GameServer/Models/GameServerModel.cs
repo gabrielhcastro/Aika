@@ -8,11 +8,11 @@ public class GameServerModel {
 
     public bool StartServer() {
         if(string.IsNullOrEmpty(IP) || IP == "0.0.0.0") {
-            Console.WriteLine($"Servidor {Name} não iniciado (IP inválido)");
+            Console.WriteLine($"Servidor [{Name}] não iniciado (IP inválido)");
             return false;
         }
 
-        Console.WriteLine($"Servidor {Name} iniciado no IP {IP}, Canal {ChannelId}, Nação {NationID}");
+        Console.WriteLine($"Servidor {Name} iniciado no IP [{IP}], Canal [{ChannelId}], Nação [{NationID}]");
         return true;
     }
 }

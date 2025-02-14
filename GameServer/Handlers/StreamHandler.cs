@@ -1,9 +1,10 @@
-using GameServer.Handlers.Conversions;
+using GameServer.Core.Base.Conversions;
+using System.Net.Sockets;
 using System.Text;
 
-namespace GameServer.Handlers.Buffer;
+namespace GameServer.Handlers;
 
-public class PacketHandler {
+public class StreamHandler {
     #region Data
 
     private const int DefaultSize = 128;
@@ -29,11 +30,11 @@ public class PacketHandler {
         get => Buffer[index];
     }
 
-    public static explicit operator PacketHandler(byte[] bytes) {
-        return new PacketHandler(bytes);
+    public static explicit operator StreamHandler(byte[] bytes) {
+        return new StreamHandler(bytes);
     }
 
-    public static implicit operator byte[](PacketHandler packet) {
+    public static implicit operator byte[](StreamHandler packet) {
         return packet.GetBytes();
     }
 
@@ -41,15 +42,15 @@ public class PacketHandler {
 
     #region Constructor
 
-    public PacketHandler() : this(DefaultSize) {
+    public StreamHandler() : this(DefaultSize) {
     }
 
-    public PacketHandler(int count) {
+    public StreamHandler(int count) {
         IsLittleEndian = true;
         Reserve(count);
     }
 
-    public PacketHandler(byte[] bytes) {
+    public StreamHandler(byte[] bytes) {
         IsLittleEndian = true;
         Replace(bytes);
     }
@@ -58,19 +59,19 @@ public class PacketHandler {
 
     #region Replace
 
-    public PacketHandler Replace(PacketHandler packet) {
+    public StreamHandler Replace(StreamHandler packet) {
         return Replace(packet.Buffer, 0, packet.Count);
     }
 
-    public PacketHandler Replace(byte[] bytes) {
+    public StreamHandler Replace(byte[] bytes) {
         return Replace(bytes, 0, bytes.Length);
     }
 
-    public PacketHandler Replace(PacketHandler packet, int offset, int count) {
+    public StreamHandler Replace(StreamHandler packet, int offset, int count) {
         return Replace(packet.Buffer, offset, count);
     }
 
-    public PacketHandler Replace(byte[] bytes, int offset, int count) {
+    public StreamHandler Replace(byte[] bytes, int offset, int count) {
         Reserve(count);
         var newBuff = new byte[count];
         System.Buffer.BlockCopy(bytes, offset, newBuff, 0, count);
@@ -100,17 +101,17 @@ public class PacketHandler {
         }
     }
 
-    public PacketHandler Insert(int offset, byte[] copyArray) {
+    public StreamHandler Insert(int offset, byte[] copyArray) {
         return Insert(offset, copyArray, 0, copyArray.Length);
     }
 
-    public PacketHandler PushBack(byte b) {
+    public StreamHandler PushBack(byte b) {
         Reserve(Count + 1);
         Buffer[Count++] = b;
         return this;
     }
 
-    public PacketHandler Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
+    public StreamHandler Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
         Reserve(Count + count);
         System.Buffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
         System.Buffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
@@ -132,50 +133,50 @@ public class PacketHandler {
 
     #region Write Types
 
-    public PacketHandler Write(bool value, bool isInt = false) {
+    public StreamHandler Write(bool value, bool isInt = false) {
         return isInt ? Write(value ? 1 : 0) : Write(value ? (byte)1 : (byte)0);
     }
 
-    public PacketHandler Write(byte value) {
+    public StreamHandler Write(byte value) {
         PushBack(value);
         return this;
     }
 
-    public PacketHandler Write(byte[] value, bool appendSize = false) {
+    public StreamHandler Write(byte[] value, bool appendSize = false) {
         if(appendSize)
             Write((ushort)(value.Length + 2));
         return Insert(Count, value);
     }
 
-    public PacketHandler Write(short value) {
+    public StreamHandler Write(short value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(int value) {
+    public StreamHandler Write(int value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(long value) {
+    public StreamHandler Write(long value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(ushort value) {
+    public StreamHandler Write(ushort value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(uint value) {
+    public StreamHandler Write(uint value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(ulong value) {
+    public StreamHandler Write(ulong value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler Write(float value) {
+    public StreamHandler Write(float value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public PacketHandler WriteCc(int count) {
+    public StreamHandler WriteCc(int count) {
         var buff = new byte[count];
         for(var i = 0; i < count; i++)
             buff[i] = 0xCC;
@@ -187,11 +188,11 @@ public class PacketHandler {
     //    return value.Write(this);
     //}
 
-    public PacketHandler Write(PacketHandler value, bool appendSize = false) {
+    public StreamHandler Write(StreamHandler value, bool appendSize = false) {
         return Write(value.GetBytes(), appendSize);
     }
 
-    public PacketHandler Write(string value, int count, bool fillCc = false) {
+    public StreamHandler Write(string value, int count, bool fillCc = false) {
         var tmp = _encoding.GetBytes(fillCc ? value + '\u0000' : value);
         if(tmp.Length > count)
             Array.Resize(ref tmp, count);
@@ -321,10 +322,5 @@ public class PacketHandler {
         var str = ReadBytes(6);
         return BitConverter.ToString(str).Replace("-", ":");
     }
-
-    internal void Write(char[] chars) {
-        throw new NotImplementedException();
-    }
-
     #endregion
 }

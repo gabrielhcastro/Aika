@@ -1,6 +1,5 @@
 ﻿namespace GameServer.Network.Packets;
 public class RequestLoginPacket {
-    public PacketHeader Header;
     public uint AccountId;
     public string Username;
     public uint Time;

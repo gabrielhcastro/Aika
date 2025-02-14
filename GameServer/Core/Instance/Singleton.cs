@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace GameServer.Handlers.Instance;
+namespace GameServer.Core.Instance;
 
 public abstract class Singleton<T> where T : class {
     private static T _instance;
