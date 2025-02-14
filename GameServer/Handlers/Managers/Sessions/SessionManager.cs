@@ -2,13 +2,13 @@
 using GameServer.Network;
 using System.Collections.Concurrent;
 
-namespace GameServer.Handlers.Sessions;
-public class SessionHandler : Singleton<SessionHandler> {
+namespace GameServer.Handlers.Managers.Sessions;
+public class SessionManager : Singleton<SessionManager> {
     private readonly ConcurrentDictionary<uint, Session> _sessions = new();
     private readonly Timer _sessionCheckTimer;
     private readonly int _timeoutSeconds = 10;
 
-    public SessionHandler() {
+    public SessionManager() {
         //_sessionCheckTimer = new Timer(CheckSessions, null, 10000, 10000);
     }
 
@@ -33,13 +33,13 @@ public class SessionHandler : Singleton<SessionHandler> {
         return _sessions.Values.ToList();
     }
 
-    private void CheckSessions(object state) {
-        var now = DateTime.UtcNow;
-        foreach(var session in _sessions.Values.ToList()) {
-            if((now - session.LastPongTime).TotalSeconds > _timeoutSeconds) {
-                Console.WriteLine($"Desconectando sessão inativa: {session.Ip}");
-                RemoveSession(session);
-            }
-        }
-    }
+    //private void CheckSessions(object state) {
+    //    var now = DateTime.UtcNow;
+    //    foreach(var session in _sessions.Values.ToList()) {
+    //        if((now - session.LastPongTime).TotalSeconds > _timeoutSeconds) {
+    //            Console.WriteLine($"Desconectando sessão inativa: {session.Ip}");
+    //            RemoveSession(session);
+    //        }
+    //    }
+    //}
 }

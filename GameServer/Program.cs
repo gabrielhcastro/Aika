@@ -1,22 +1,19 @@
-﻿using GameServer.Core.Protocol;
-using GameServer.Network;
-using System.Net;
+﻿using GameServer.Handlers.Managers.Nation;
+using GameServer.Models;
 
 namespace GameServer;
 
 class Program {
     static void Main(string[] args) {
-        var endpoint = new IPEndPoint(IPAddress.Any, 8831);
-        var protocol = new GameProtocol();
-        var server = new Server(endpoint, 100, protocol);
-
         Console.WriteLine("Starting server...");
-        server.Start();
+
+        ServerConfig config = new ServerConfig("AikaServer.ini");
+        NationManager.Instance.LoadServers(config);
 
         Console.WriteLine("Press ENTER to stop the server.");
         Console.ReadLine();
 
-        server.Stop();
+        NationManager.Instance.StopServers();
         Console.WriteLine("Server stopped.");
     }
 }

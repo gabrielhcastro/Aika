@@ -1,4 +1,4 @@
-﻿using GameServer.Core.Protocol.Base;
+﻿using GameServer.Core.Base;
 using GameServer.Handlers.Buffer;
 using GameServer.Handlers.Encryption;
 using GameServer.Network;
@@ -28,37 +28,69 @@ public class GameProtocol : BaseProtocol {
             buff = newBuff;
         }
 
+        LogPacket("RECEIVED", buff, true);
+
         var packet = new PacketHandler(buff);
 
         try {
-            var newBuffer = packet.Buffer;
-            var isDecrypted = EncDec.Decrypt(ref newBuffer, newBuffer.Length);
-            Console.WriteLine($"Packet Decriptado: {isDecrypted}");
-            Console.WriteLine($"Pacote recebido: {BitConverter.ToString(buff)}");
-            packet.Replace(newBuffer);
-            packet.Pos = 0;
+            if(packet.Count < 12) {
+                Console.WriteLine("Packet too small.");
+                return;
+            }
 
-            packet.ReadInt32();
-            var sender = packet.ReadUInt16();
-            var opcode = packet.ReadUInt16();
-            packet.ReadInt32();
+            var size = packet.ReadUInt16();
 
-            Console.WriteLine($"Sender: 0x{sender:X}, Opcode: 0x{opcode:X}");
+            if(packet.Count >= size) {
+                packet.Replace(packet.Buffer, 0, size);
+                packet.Pos = 0;
 
-            switch(opcode) {
-                case 0x81:
-                HandleLogin(session, packet);
-                break;
-                case 0x685:
-                Console.WriteLine("Chegou no OPCODE: 685");
-                break;
-                default:
-                Console.WriteLine($"Opcode desconhecido: {opcode}");
-                break;
+                var isDecrypted = false;
+                try {
+                    var newBuffer = packet.Buffer;
+                    isDecrypted = EncDec.Decrypt(ref newBuffer, newBuffer.Length);
+                    packet.Replace(newBuffer);
+                    packet.Pos = 0;
+                }
+                catch(Exception e) {
+                    Console.WriteLine($"Failed to decrypt packet: {e.Message}");
+                    return;
+                }
+
+                if(isDecrypted) {
+                    LogPacket("RECEIVED", packet.Buffer, false);
+                    packet.ReadInt32();
+                    var sender = packet.ReadUInt16();
+                    var opcode = packet.ReadUInt16();
+                    packet.ReadInt32();
+
+                    Console.WriteLine($"Sender: 0x{sender:X}, Opcode: 0x{opcode:X}");
+
+                    switch(opcode) {
+                        case 0xF311:
+                        Console.WriteLine("Handshake recebido, aguardando login...");
+                        break;
+                        case 0x81:
+                        HandleLogin(session, packet);
+                        break;
+                        case 0x685:
+                        SendCharList(session);
+                        break;
+                        default:
+                        Console.WriteLine($"Opcode desconhecido: 0x{opcode:X}");
+                        break;
+                    }
+                }
+                else {
+                    Console.WriteLine("Failed to decrypt packet.");
+                }
+            }
+            else {
+                Console.WriteLine($"Packet with wrong size. ({packet.Count} >= {size})");
             }
         }
-        catch(Exception) {
-            Console.WriteLine("Failed to decrypt packet.");
+        catch(Exception e) {
+            Console.WriteLine($"Error processing packet: {e.Message}");
+            session.Close(); // Fecha a sessão em caso de erro
         }
 
         //if(opcode == 0x0001) {
@@ -82,23 +114,26 @@ public class GameProtocol : BaseProtocol {
 
         Console.WriteLine("Login bem-sucedido!");
 
+        //Packet em delphi: ((25, 0, 0, 0, 130, 0), 1, 11981171, None, 0)
+
         response.Write((ushort)0);  // Size (preenchido depois)
         response.Write((byte)0x00); // Key (pode precisar de ajuste)
         response.Write((byte)0x00); // ChkSum (se necessário, calcule depois)
-        response.Write((ushort)12345); // Index (ID fictício do jogador)
+        response.Write((ushort)0x0000); // Index (ID fictício do jogador)
         response.Write((ushort)0x82);  // Opcode de resposta
-        response.Write((uint)Environment.TickCount); // Timestamp do login
+        response.Write((uint)11981171); // Timestamp do login
 
         // Criando o Corpo do Pacote (TResponseLoginPacket)
         response.Write((uint)12345); // ID fictício do jogador
-        response.Write((uint)Environment.TickCount); // Timestamp do login
-        response.Write((ushort)1);  // Nação (exemplo)
+        response.Write((uint)11981171); // Timestamp do login
+        //response.Write((uint)Environment.TickCount); // Timestamp do login
+        response.Write((ushort)0);  // Nação (exemplo)
         response.Write((uint)0);    // Null_1 (padding)
 
         // Preenchendo o tamanho correto do pacote no Header
         ushort packetSize = (ushort)response.Count;
-        response.Buffer[0] = (byte)(packetSize & 0xFF);
-        response.Buffer[1] = (byte)(packetSize >> 8 & 0xFF);
+        response.Buffer[0] = (byte)(0x19);
+        response.Buffer[1] = (byte)(0x00);
 
         // Enviando o pacote com Header
         byte[] packetData = response.GetBytes();
@@ -107,7 +142,77 @@ public class GameProtocol : BaseProtocol {
         session.SendPacket(packetData);
     }
 
-    private static bool VerificarCredenciais() {
-        return true;
+    public void SendCharList(Session session) {
+        // Cria o pacote
+        var packet = new PacketHandler();
+
+        packet.Write((ushort)0);  // Size (preenchido depois)
+        packet.Write((byte)0x00); // Key (pode precisar de ajuste)
+        packet.Write((byte)0x00); // ChkSum (se necessário, calcule depois)
+        packet.Write((ushort)0x0000); // Index (ID fictício do jogador)
+        packet.Write((ushort)0x901);  // Opcode de resposta
+        packet.Write((uint)11981171); // Timestamp do login
+
+        // Dados da conta
+        packet.Write((uint)1); // AccountID (fictício)
+        packet.Write((uint)0); // Campo desconhecido (Unk)
+        packet.Write((uint)0); // Campo não utilizado (NotUse)
+
+        // Dados dos personagens (3 personagens)
+        packet.Write(new byte[16]); // Nome vazio (16 bytes)
+        packet.Write((ushort)0); // Nação
+        packet.Write(new byte[16]); // Equipamentos zerados
+        packet.Write((byte)0); // Refinamento
+
+        // **Atributos zerados**
+        packet.Write(new byte[sizeof(ushort) * 6]); // Str, Agi, Int, Cons, Luck, Status
+
+        packet.Write((byte)0); // Numeric Token
+        packet.Write((byte)0); // Numeric Error
+
+        // **Tamanho padrão (07 77 77)**
+        packet.Write(new byte[] { 0x07, 0x77, 0x77, 0x00 });
+
+        packet.Write((uint)0); // Ouro
+        packet.Write((uint)0); // Exp
+        packet.Write((ushort)0); // Classe
+        packet.Write((ushort)0); // Nível
+        packet.Write((ushort)0); // Equip extra
+        packet.Write((ushort)0);
+        packet.Write((uint)0); // Sem tempo de exclusão
+
+        // Preenche o tamanho correto do pacote no Header
+        ushort packetSize = (ushort)packet.Count;
+        packet.Buffer[0] = (byte)(packetSize & 0xFF); // Byte menos significativo
+        packet.Buffer[1] = (byte)(packetSize >> 8);   // Byte mais significativo
+
+        byte[] packetData = packet.GetBytes();
+        LogPacket("SENT", packetData, false);
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        LogPacket("SENT", packetData, true);
+        session.SendPacket(packetData);
     }
+
+    private void LogPacket(string direction, byte[] rawData, bool isEncrypted) {
+        try {
+            string logDir = "GameServer/Logs";
+            if(!Directory.Exists(logDir))
+                Directory.CreateDirectory(logDir);
+
+            string logPath = Path.Combine(logDir, "packets_log.txt");
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            string encryptedStatus = isEncrypted ? "ENCRYPTED" : "DECRYPTED";
+
+            StringBuilder log = new StringBuilder();
+            log.AppendLine($"[{timestamp}] {direction} - {encryptedStatus}");
+            log.AppendLine(BitConverter.ToString(rawData));
+            log.AppendLine(new string('-', 80));
+
+            File.AppendAllText(logPath, log.ToString());
+        }
+        catch(Exception ex) {
+            Console.WriteLine($"Erro ao salvar log de pacotes: {ex.Message}");
+        }
+    }
+
 }

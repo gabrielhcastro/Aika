@@ -1,6 +1,6 @@
 using GameServer.Network;
 
-namespace GameServer.Core.Protocol.Base;
+namespace GameServer.Core.Base;
 
 public abstract class BaseProtocol {
     public virtual void OnConnect(Session session) {

@@ -322,5 +322,9 @@ public class PacketHandler {
         return BitConverter.ToString(str).Replace("-", ":");
     }
 
+    internal void Write(char[] chars) {
+        throw new NotImplementedException();
+    }
+
     #endregion
 }

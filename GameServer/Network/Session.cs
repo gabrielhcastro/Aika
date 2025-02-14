@@ -1,4 +1,4 @@
-using GameServer.Core.Protocol.Base;
+using GameServer.Core.Base;
 using NLog;
 using System.Collections.Concurrent;
 using System.Net;
@@ -23,8 +23,8 @@ public class Session : IDisposable {
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }
     public DateTime LastActivity { get; set; }
-    public DateTime LastPingTime { get; set; } = DateTime.UtcNow;
-    public DateTime LastPongTime { get; set; } = DateTime.UtcNow;
+    //public DateTime LastPingTime { get; set; } = DateTime.UtcNow;
+    //public DateTime LastPongTime { get; set; } = DateTime.UtcNow;
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;
@@ -47,7 +47,7 @@ public class Session : IDisposable {
                 Task.Run(ProcessPackets);
             }
         }
-        Console.WriteLine($"Sending Packet: {packet.ToString}");
+
         lock(Socket) {
             if(!_sending)
                 ProcessPackets();
@@ -69,7 +69,7 @@ public class Session : IDisposable {
         if(_packetQueue == null)
             return null;
         _packetQueue.TryDequeue(out var result);
-        Console.WriteLine($"Getting Next Packet: {result}");
+        Console.WriteLine($"Getting Next Packet");
         return result;
     }
 
