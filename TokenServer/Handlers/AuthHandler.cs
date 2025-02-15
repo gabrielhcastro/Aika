@@ -1,106 +1,131 @@
 ﻿using MySqlConnector;
 using System.Security.Cryptography;
 using System.Text;
-using TokenServer.Data;
 
 namespace TokenServer.Handlers;
 
 public static class AuthHandlers {
-    private static readonly ILogger _logger = LoggerFactory.Create(builder => builder.AddConsole()).CreateLogger("AuthHandlers ");
-
-    public static string GetToken(string accountId, string passwordHash) {
+    public static async Task<string> GetTokenAsync(string username, string passwordHash) {
         try {
-            var username = accountId;
-            var _passwordHash = passwordHash;
+            await using var connection = await DatabaseHandler.GetConnectionAsync();
 
-            using var context = new ApplicationDbContext();
-            var account = context.Accounts.FirstOrDefault(a => a.Username == username);
+            // Obtém a conta do banco de dados
+            const string query = "SELECT id, passwordHash, accountStatus, banDays, tokenCreationTime FROM accounts WHERE username = @username";
+            await using var command = new MySqlCommand(query, connection);
+            command.Parameters.AddWithValue("@username", username);
 
-            if(account == null)
-                return "0";
+            await using var reader = await command.ExecuteReaderAsync();
+            if(!await reader.ReadAsync())
+                return "0"; // Conta não encontrada
 
-            if(account.PasswordHash != _passwordHash)
-                return "-1";
+            var dbPasswordHash = reader.GetString("passwordHash");
+            if(dbPasswordHash != passwordHash)
+                return "-1"; // Senha incorreta
 
-            if(account.AccountStatus == 8) {
-                if(account.BanDays > 0 && DateTime.Now > account.TokenCreationTime.AddDays(account.BanDays)) {
-                    account.AccountStatus = 0;
-                    account.BanDays = 0;
-                    context.SaveChanges();
-                    return "-22";
+            int accountStatus = reader.GetInt32("accountStatus");
+            int banDays = reader.GetInt32("banDays");
+            DateTime tokenCreationTime = reader.GetDateTime("tokenCreationTime");
+
+            if(accountStatus == 8) {
+                if(banDays > 0 && DateTime.UtcNow > tokenCreationTime.AddDays(banDays)) {
+                    // Remove o banimento
+                    await using var updateCommand = new MySqlCommand(
+                        "UPDATE accounts SET accountStatus = 0, banDays = 0 WHERE username = @username",
+                        connection);
+                    updateCommand.Parameters.AddWithValue("@username", username);
+                    await updateCommand.ExecuteNonQueryAsync();
+                    return "-22"; // Ban expirado
                 }
-                return "-8";
+                return "-8"; // Conta banida
             }
 
-            if(account.AccountStatus == 10)
-                return "-10";
+            if(accountStatus == 10)
+                return "-10"; // Conta suspensa
 
-            var token = GenerateToken(_passwordHash);
-            account.Token = token;
-            account.TokenCreationTime = DateTime.Now;
-            context.SaveChanges();
+            string newToken = GenerateToken();
 
-            _logger.LogInformation("Token [{Token}] criado por {Username}.", token, username);
-            return token;
+            // Atualiza o token no banco
+            await using var updateTokenCommand = new MySqlCommand(
+                "UPDATE accounts SET token = @token, tokenCreationTime = NOW() WHERE username = @username",
+                connection);
+            updateTokenCommand.Parameters.AddWithValue("@token", newToken);
+            updateTokenCommand.Parameters.AddWithValue("@username", username);
+            await updateTokenCommand.ExecuteNonQueryAsync();
+
+            Console.WriteLine("Token [{0}] criado para [{1}].", newToken, username);
+            return newToken;
         }
         catch(Exception ex) {
-            _logger.LogError("Erro ao gerar token: {Message}", ex.Message);
+            Console.WriteLine("Erro ao gerar token: {0}", ex.Message);
             return "-99";
         }
     }
 
-    public static string GetCharacterCount(string accountId, string passwordHash) {
+
+    public static async Task<string> GetCharacterCountAsync(string username, string passwordHash) {
         try {
-            var username = accountId;
-            var password = passwordHash;
+            await using var connection = await DatabaseHandler.GetConnectionAsync();
 
-            using var context = new ApplicationDbContext();
-            var account = context.Accounts.FirstOrDefault(a => a.Username == username);
+            const string accountQuery = "SELECT id, nation FROM accounts WHERE username = @username AND token = @token";
+            await using var accountCommand = new MySqlCommand(accountQuery, connection);
+            accountCommand.Parameters.AddWithValue("@username", username);
+            accountCommand.Parameters.AddWithValue("@token", passwordHash);
 
-            if(account == null)
-                return "0";
+            await using var reader = await accountCommand.ExecuteReaderAsync();
+            if(!await reader.ReadAsync())
+                return "0"; // Conta não encontrada ou token inválido
 
-            if(account.Token != password)
-                return "-1";
+            int accountId = reader.GetInt32("id");
+            int nation = reader.GetInt32("nation");
+            reader.Close();
 
-            var charCount = 0; //TO-DO: Recuperar contagem de personagens
+            // Conta o número de personagens
+            const string charQuery = "SELECT COUNT(*) FROM characters WHERE ownerAccountId = @accountId";
+            await using var charCommand = new MySqlCommand(charQuery, connection);
+            charCommand.Parameters.AddWithValue("@accountId", accountId);
+
+            int charCount = Convert.ToInt32(await charCommand.ExecuteScalarAsync());
 
             var infos = new StringBuilder();
-            infos.Append("CNT " + charCount + " 0 0 0 ");
-            infos.Append("<br> ");
-            infos.Append(account.Nation + " 0 0 0 ");
+            infos.Append($"CNT {charCount} 0 0 0 <br> ");
+            infos.Append($"{nation} 0 0 0");
 
             return infos.ToString();
         }
         catch(Exception ex) {
-            _logger.LogError("Erro ao recuperar contagem de personagens: {Message}", ex.Message);
+            Console.WriteLine("Erro ao recuperar contagem de personagens: {0}", ex.Message);
             return "-99";
         }
     }
 
-    public static string ResetFlag(string id, string token) {
+    public static async Task ResetFlag(string username, string passwordHash) {
         try {
-            var Username = id;
-            var Token = token;
+            var _username = username;
+            var token = passwordHash;
 
-            using var context = new ApplicationDbContext();
-            var account = context.Accounts.FirstOrDefault(a => a.Username == Username);
+            await using var connection = await DatabaseHandler.GetConnectionAsync();
 
-            if(account == null)
-                return "0";
+            const string accountQuery = "SELECT token, tokenCreationTime FROM accounts WHERE username = @username AND token = @token";
+            await using var accountCommand = new MySqlCommand(accountQuery, connection);
+            accountCommand.Parameters.AddWithValue("@username", (object)username);
+            accountCommand.Parameters.AddWithValue("@token", token);
 
-            if(account.Token != Token)
-                return "-1";
+            await using var reader = await accountCommand.ExecuteReaderAsync();
 
-            account.TokenCreationTime = DateTime.Now;
-            context.SaveChanges();
+            string newToken = GenerateToken();
 
-            _logger.LogInformation("Token renovado do usuário: {Username}.", Username);
-            return account.Token;
+            // Atualiza o token no banco
+            await using var updateTokenCommand = new MySqlCommand(
+                "UPDATE accounts SET token = @token, tokenCreationTime = NOW() WHERE username = @username",
+                connection);
+            updateTokenCommand.Parameters.AddWithValue("@token", newToken);
+            updateTokenCommand.Parameters.AddWithValue("@username", username);
+            await updateTokenCommand.ExecuteNonQueryAsync();
+
+            Console.WriteLine("Token [{0}] criado para {1}.", newToken, username);
         }
         catch(Exception ex) {
-            _logger.LogError("Erro ao renovar token: {Message}", ex.Message);
-            return "-99";
+            Console.WriteLine("Erro ao renovar token: {0}", ex.Message);
         }
     }
 
@@ -141,11 +166,11 @@ public static class AuthHandlers {
 
             var accountId = await command.ExecuteScalarAsync();
 
-            _logger.LogInformation("Conta {Username} criada com sucesso. ID: {AccountId}", username, accountId);
+            Console.WriteLine("Conta {0} criada com sucesso. ID: {1}", username, accountId);
             return accountId?.ToString() ?? "-99";
         }
         catch(Exception ex) {
-            _logger.LogError(ex, "Erro ao criar conta {Username}", username);
+            Console.WriteLine("Erro ao criar conta {0}\n{1}", username, ex);
             return "-99";
         }
     }
@@ -160,7 +185,7 @@ public static class AuthHandlers {
     }
 
 
-    private static string GenerateToken(string password) {
+    private static string GenerateToken() {
         var md5Byte = MD5.HashData(Encoding.UTF8.GetBytes(Guid.NewGuid().ToString()));
         var hash = new StringBuilder();
         foreach(var mByte in md5Byte) {

@@ -5,13 +5,12 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TokenServer.Data;
+using TokenServer.Handlers;
 
 #nullable disable
 
-namespace TokenServer.Migrations
-{
-    [DbContext(typeof(ApplicationDbContext))]
+namespace TokenServer.Migrations {
+    [DbContext(typeof(DatabaseHandler))]
     [Migration("20250211211637_InitialCreate")]
     partial class InitialCreate
     {

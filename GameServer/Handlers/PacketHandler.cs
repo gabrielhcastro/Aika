@@ -112,4 +112,6 @@ public static class PacketHandler {
 
         Console.WriteLine($"OK -> ChararactersList");
     }
+
+
 }

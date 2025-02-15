@@ -4,13 +4,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using TokenServer.Data;
+using TokenServer.Handlers;
 
 #nullable disable
 
-namespace TokenServer.Migrations
-{
-    [DbContext(typeof(ApplicationDbContext))]
+namespace TokenServer.Migrations {
+    [DbContext(typeof(DatabaseHandler))]
     partial class ApplicationDbContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)
