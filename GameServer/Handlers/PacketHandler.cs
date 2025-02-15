@@ -1,5 +1,6 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Handlers.Builder;
+using Shared;
 using System.Text;
 
 namespace GameServer.Handlers;
@@ -27,13 +28,11 @@ public static class PacketHandler {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
         string token = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
 
-        var account = await DatabaseHandler.Instance.GetAccountByUsernameAsync(username);
+        var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
             Console.WriteLine("Login falhou: Conta não encontrada.");
             return;
         }
-
-        account.Characters = await DatabaseHandler.Instance.GetCharactersByAccountIdAsync(account.Id);
 
         var packet = PacketBuilder.CreateHeader(0x82);
 
@@ -55,13 +54,13 @@ public static class PacketHandler {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
         _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0'); //TOKEN
 
-        var account = await DatabaseHandler.Instance.GetAccountByUsernameAsync(username);
+        var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
             Console.WriteLine("Login falhou: Conta não encontrada.");
             return;
         }
 
-        account.Characters = await DatabaseHandler.Instance.GetCharactersByAccountIdAsync(account.Id);
+        account.Characters = await DatabaseHandler.GetCharactersByAccountIdAsync(account.Id);
 
         var packet = PacketBuilder.CreateHeader(0x901);
 
@@ -89,7 +88,7 @@ public static class PacketHandler {
             packet.Write((byte)(character != null && !string.IsNullOrEmpty(character.NumericToken) ? 1 : 0)); // NumRegister
             packet.Write((byte)(character?.NumericErrors ?? 0)); // NumError
 
-            packet.Write(new byte[] { 0x07, 0x77, 0x77, 0x00 }); // Altura padrão
+            packet.Write([0x07, 0x77, 0x77, 0x00]); // Altura padrão
 
             packet.Write((uint)(character?.Gold ?? 0)); // Gold
             packet.Write((uint)(character?.Experience ?? 0)); // Exp

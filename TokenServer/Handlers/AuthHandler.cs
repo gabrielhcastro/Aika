@@ -1,4 +1,5 @@
 ﻿using MySqlConnector;
+using Shared;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -25,6 +26,8 @@ public static class AuthHandlers {
             int accountStatus = reader.GetInt32("accountStatus");
             int banDays = reader.GetInt32("banDays");
             DateTime tokenCreationTime = reader.GetDateTime("tokenCreationTime");
+
+            await reader.CloseAsync();
 
             if(accountStatus == 8) {
                 if(banDays > 0 && DateTime.UtcNow > tokenCreationTime.AddDays(banDays)) {
@@ -77,7 +80,7 @@ public static class AuthHandlers {
 
             int accountId = reader.GetInt32("id");
             int nation = reader.GetInt32("nation");
-            reader.Close();
+            await reader.CloseAsync();
 
             // Conta o número de personagens
             const string charQuery = "SELECT COUNT(*) FROM characters WHERE ownerAccountId = @accountId";
@@ -111,6 +114,7 @@ public static class AuthHandlers {
             accountCommand.Parameters.AddWithValue("@token", token);
 
             await using var reader = await accountCommand.ExecuteReaderAsync();
+            await reader.CloseAsync();
 
             string newToken = GenerateToken();
 

@@ -1,4 +1,4 @@
-﻿namespace GameServer.Core.Base.Conversions;
+﻿namespace Shared.Core.Conversions; 
 
 /// <summary>
 /// Endianness of a converter

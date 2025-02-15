@@ -1,12 +1,12 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Core.Instance;
-using GameServer.Models;
+using Shared.Core.Instance;
+using Shared.Models.Account;
 using System.Collections.Concurrent;
 
 namespace GameServer.Handlers;
 public class SessionHandler : Singleton<SessionHandler> {
-    private readonly ConcurrentDictionary<uint, Session> _sessions = new();
-    private static readonly Dictionary<int, AccountEntitie> _onlinePlayers = new();
+    private readonly ConcurrentDictionary<uint, Session> _sessions = [];
+    private static readonly Dictionary<int, AccountEntitie> _onlinePlayers = [];
 
     public SessionHandler() {
     }
@@ -23,12 +23,12 @@ public class SessionHandler : Singleton<SessionHandler> {
         session.Close();
     }
 
-    public void UpdateSessionActivity(Session session) {
+    public static void UpdateSessionActivity(Session session) {
         Console.WriteLine("Session Activity Updated: {0}", session.Id);
         session.LastActivity = DateTime.UtcNow;
     }
 
-    public void AddPlayer(int playerId, AccountEntitie player) {
+    public static void AddPlayer(int playerId, AccountEntitie player) {
         _onlinePlayers[playerId] = player;
     }
 

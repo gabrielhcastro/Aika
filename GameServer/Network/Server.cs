@@ -7,7 +7,7 @@ using System.Net.Sockets;
 namespace GameServer.Network;
 
 public class Server : INetwork {
-    private static Logger _log = LogManager.GetCurrentClassLogger();
+    private static readonly Logger _log = LogManager.GetCurrentClassLogger();
     private const int ReceiveBufferSize = 8096;
     private readonly BufferHandler _bufferControl;
     private readonly Socket _listenSocket;
@@ -136,7 +136,7 @@ public class Server : INetwork {
 
     public void OnReceive(Session session, byte[] buff, int bytes) {
         _protocol.OnReceive(session, buff, bytes);
-        SessionHandler.Instance.UpdateSessionActivity(session);
+        SessionHandler.UpdateSessionActivity(session);
     }
 
     public void OnSend(Session session, byte[] buff, int offset, int bytes) {

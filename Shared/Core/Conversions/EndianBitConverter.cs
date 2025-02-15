@@ -1,5 +1,4 @@
-﻿namespace GameServer.Core.Base.Conversions;
-
+﻿namespace Shared.Core.Conversions; 
 /// <summary>
 /// Equivalent of System.BitConverter, but with either endianness.
 /// </summary>
@@ -26,7 +25,7 @@ public abstract class EndianBitConverter {
 
     #region Factory properties
 
-    private static LittleEndianBitConverter _little = new LittleEndianBitConverter();
+    private static readonly LittleEndianBitConverter _little = new();
 
     /// <summary>
     /// Returns a little-endian bit converter instance. The same instance is
@@ -36,7 +35,7 @@ public abstract class EndianBitConverter {
         get { return _little; }
     }
 
-    private static BigEndianBitConverter _big = new BigEndianBitConverter();
+    private static readonly BigEndianBitConverter _big = new();
 
     /// <summary>
     /// Returns a big-endian bit converter instance. The same instance is

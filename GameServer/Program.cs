@@ -1,15 +1,16 @@
 ﻿using GameServer.Handlers;
+using Shared;
 
 namespace GameServer;
 
 class Program {
 
     static void Main(string[] args) {
+        _ = args;
         Console.WriteLine("Starting server...");
 
-        ServersHandle config = new ServersHandle("AikaServer.ini");
+        ServersHandle config = new("AikaServer.ini");
         NationHandler.Instance.LoadServers(config);
-        DatabaseHandler.Instance.Initialize();
 
         Console.WriteLine("Press ENTER to stop the server.");
         Console.ReadLine();

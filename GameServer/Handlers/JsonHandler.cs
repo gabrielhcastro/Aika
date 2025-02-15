@@ -10,9 +10,8 @@ public static class JsonHandler {
 
         string content;
         try {
-            using(var reader = File.OpenText(path)) {
-                content = reader.ReadToEnd();
-            }
+            using var reader = File.OpenText(path);
+            content = reader.ReadToEnd();
         }
         catch(Exception) {
             throw new Exception($"Could not open the file. {path}");
@@ -21,7 +20,7 @@ public static class JsonHandler {
         list = JsonConvert.DeserializeObject<T>(content, JsonSettings);
     }
 
-    private static readonly JsonSerializerSettings JsonSettings = new JsonSerializerSettings {
+    private static readonly JsonSerializerSettings JsonSettings = new() {
         MetadataPropertyHandling = MetadataPropertyHandling.Ignore,
         DateParseHandling = DateParseHandling.None,
         Converters =

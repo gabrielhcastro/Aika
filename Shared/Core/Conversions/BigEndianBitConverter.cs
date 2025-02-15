@@ -1,4 +1,4 @@
-﻿namespace GameServer.Core.Base.Conversions;
+﻿namespace Shared.Core.Conversions; 
 
 /// <summary>
 /// Implementation of EndianBitConverter which converts to/from big-endian byte arrays.
@@ -31,7 +31,7 @@ public sealed class BigEndianBitConverter : EndianBitConverter {
         var endOffset = index + bytes - 1;
         for(var i = 0; i < bytes; i++) {
             buffer[endOffset - i] = unchecked((byte)(value & 0xff));
-            value = value >> 8;
+            value >>= 8;
         }
     }
 

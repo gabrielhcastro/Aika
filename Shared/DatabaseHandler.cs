@@ -1,29 +1,30 @@
-﻿using GameServer.Core.Instance;
-using GameServer.GameLogic.Account;
-using GameServer.Models;
-using MySqlConnector;
+﻿using MySqlConnector;
+using Shared.Core.Instance;
+using Shared.Models;
+using Shared.Models.Account;
 using System.Data;
 
-namespace GameServer.Handlers;
-
+namespace Shared;
 public class DatabaseHandler : Singleton<DatabaseHandler> {
-    private static readonly string _connectionString = "Server=localhost;Port=3306;Database=aikaria;User=root;Password=Jose2904.;";
-
-    private MySqlConnection _persistentConnection;
-    private MySqlConnection GetConnection() => _persistentConnection;
+    private static readonly string _connectionString = "Server=localhost;Port=3306;Database=aikaria;User=root;Password=Jose2904.;Pooling=true;Min Pool Size=5;Max Pool Size=100;";
 
     public DatabaseHandler() { }
 
-    public void Initialize() {
-        _persistentConnection = new MySqlConnection(_connectionString);
-        _persistentConnection.Open();
+    /// <summary>
+    /// Obtém a conexão MySql de forma assíncrona.
+    /// </summary>
+    public static async Task<MySqlConnection> GetConnectionAsync() {
+        var connection = new MySqlConnection(_connectionString);
+        await connection.OpenAsync();
+        return connection;
     }
 
     /// <summary>
     /// Obtém uma conta pelo nome de usuário.
     /// </summary>
-    public async Task<AccountEntitie> GetAccountByUsernameAsync(string username) {
-        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE username = @username", GetConnection());
+    public static async Task<AccountEntitie> GetAccountByUsernameAsync(string username) {
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE username = @username", connection);
         command.Parameters.AddWithValue("@username", username);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -33,21 +34,17 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     /// <summary>
     /// Obtém os personagens de uma conta pelo id da conta.
     /// </summary>
-    public async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(int accountId) {
-        using var connection = new MySqlConnection(_connectionString);
-        await connection.OpenAsync();
-
-        string query = "SELECT * FROM characters WHERE ownerAccountId = @accountId";
-        using var command = new MySqlCommand(query, connection);
-        command.Parameters.AddWithValue("@accountId", accountId);
-
-        using var reader = await command.ExecuteReaderAsync();
+    public static async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(int accountId) {
         List<CharacterEntitie> characters = [];
 
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("SELECT * FROM characters WHERE ownerAccountId = @accountId", connection);
+        command.Parameters.AddWithValue("@accountId", accountId);
+
+        await using var reader = await command.ExecuteReaderAsync();
         while(await reader.ReadAsync()) {
             characters.Add(MapCharacter(reader));
         }
-
 
         return characters;
     }

@@ -6,8 +6,8 @@ namespace TokenServer.Controllers;
 
 public class MemberController : ControllerBase {
     [HttpPost("/member/Aika_get_token.asp")]
-    public string Aika_get_token(string id, string pw) {
-        return AuthHandlers.GetToken(id, pw);
+    public async Task<string> Aika_get_token(string id, string pw) {
+        return await AuthHandlers.GetTokenAsync(id, pw);
     }
 
     [HttpPost("/member/create_account")]

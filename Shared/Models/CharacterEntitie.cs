@@ -1,5 +1,4 @@
-﻿namespace GameServer.Models;
-
+﻿namespace Shared.Models; 
 public class CharacterEntitie {
     public uint Id { get; set; }
     public uint OwnerAccountId { get; set; }

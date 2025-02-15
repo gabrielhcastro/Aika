@@ -1,5 +1,4 @@
-﻿namespace GameServer.Core.Base.Conversions;
-
+﻿namespace Shared.Core.Conversions; 
 /// <summary>
 /// Implementation of EndianBitConverter which converts to/from little-endian byte arrays.
 /// </summary>
@@ -30,7 +29,7 @@ public sealed class LittleEndianBitConverter : EndianBitConverter {
     protected override void CopyBytesImpl(long value, int bytes, byte[] buffer, int index) {
         for(var i = 0; i < bytes; i++) {
             buffer[i + index] = unchecked((byte)(value & 0xff));
-            value = value >> 8;
+            value >>= 8;
         }
     }
 

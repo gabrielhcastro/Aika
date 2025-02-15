@@ -1,20 +1,21 @@
-﻿using GameServer.Core.Instance;
-using GameServer.Core.Protocol;
+﻿using GameServer.Core.Protocol;
 using GameServer.Network;
+using Shared.Core.Instance;
 
 namespace GameServer.Handlers;
 
 public class NationHandler : Singleton<NationHandler> {
     public List<Server> Servers { get; private set; }
-    GameProtocol protocol = new GameProtocol();
+
+    private readonly GameProtocol protocol = new();
 
     public NationHandler() {
         Servers = [];
     }
 
     public void LoadServers(ServersHandle config) {
-        for(int i = 0; i < config.ServerCount; i++) {
-            var server = new Server(config.ServerIPs[i], 100, protocol, config.ServerNames[i], config.NationIDs[i]);
+        for(int i = 0; i < config.ServersCount; i++) {
+            var server = new Server(config.ServersIP[i], 100, protocol, config.ServersName[i], config.ServersID[i]);
 
             server.Start();
 

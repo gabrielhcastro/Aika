@@ -1,7 +1,4 @@
-﻿using GameServer.GameLogic.Account;
-
-namespace GameServer.Models;
-
+﻿namespace Shared.Models.Account;
 public class AccountEntitie {
     public int Id { get; set; }
     public string Username { get; set; }
