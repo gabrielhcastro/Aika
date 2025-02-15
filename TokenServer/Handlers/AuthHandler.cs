@@ -1,7 +1,7 @@
-﻿using System.Security.Cryptography;
+﻿using MySqlConnector;
+using System.Security.Cryptography;
 using System.Text;
 using TokenServer.Data;
-using TokenServer.Models.Entities;
 
 namespace TokenServer.Handlers;
 
@@ -104,31 +104,48 @@ public static class AuthHandlers {
         }
     }
 
-    public static string CreateAccount(Dictionary<string, string> parameters) {
+    public static async Task<string> CreateAccountAsync(string username, string passwordHash, int accountType) {
+        const string _connectionString = "Server=localhost;Database=aika;User=root;Password=senha;Pooling=true;Min Pool Size=5;Max Pool Size=100";
         try {
-            var username = parameters["id"];
-            var password = parameters["pw"];
-            var accountType = (AccountType)int.Parse(parameters["acctype"]);
+            await using var connection = new MySqlConnection(_connectionString);
+            await connection.OpenAsync();
 
-            using var context = new ApplicationDbContext();
-            if(context.Accounts.Any(a => a.Username == username))
-                return "0";
+            // Verifica se a conta já existe
+            const string checkQuery = "SELECT COUNT(*) FROM accounts WHERE username = @username";
+            await using var checkCommand = new MySqlCommand(checkQuery, connection);
+            checkCommand.Parameters.AddWithValue("@username", username);
 
-            var account = new Account {
-                Username = username,
-                PasswordHash = password,
-                AccountType = accountType,
-                TokenCreationTime = DateTime.Now
-            };
+            var exists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
+            if(exists) return "0"; // Conta já existe
 
-            context.Accounts.Add(account);
-            context.SaveChanges();
+            // Query para inserir nova conta
+            const string insertQuery = @"
+                INSERT INTO accounts (username, password_hash, token, tokenCreationTime, accountStatus, 
+                                     banDays, nation, accountType, storageGold, cash, premiumTime)
+                VALUES (@username, @passwordHash, @token, @tokenCreationTime, @accountStatus, 
+                        @banDays, @nation, @accountType, @storageGold, @cash, @premiumTime);
+                SELECT LAST_INSERT_ID();"; // Retorna o ID da conta criada
 
-            _logger.LogInformation("Conta {Username} criada com sucesso.", username);
-            return account.Id.ToString();
+            await using var command = new MySqlCommand(insertQuery, connection);
+            command.Parameters.AddWithValue("@username", username);
+            command.Parameters.AddWithValue("@passwordHash", passwordHash);
+            command.Parameters.AddWithValue("@token", Guid.NewGuid().ToString()); // Gera um token aleatório
+            command.Parameters.AddWithValue("@tokenCreationTime", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@accountStatus", 1); // Status ativo
+            command.Parameters.AddWithValue("@banDays", 0);
+            command.Parameters.AddWithValue("@nation", 0); // Sem nação no início
+            command.Parameters.AddWithValue("@accountType", accountType);
+            command.Parameters.AddWithValue("@storageGold", 0);
+            command.Parameters.AddWithValue("@cash", 0);
+            command.Parameters.AddWithValue("@premiumTime", DBNull.Value); // Sem premium no início
+
+            var accountId = await command.ExecuteScalarAsync();
+
+            _logger.LogInformation("Conta {Username} criada com sucesso. ID: {AccountId}", username, accountId);
+            return accountId?.ToString() ?? "-99";
         }
         catch(Exception ex) {
-            _logger.LogError("Erro ao criar conta: {Message}", ex.Message);
+            _logger.LogError(ex, "Erro ao criar conta {Username}", username);
             return "-99";
         }
     }

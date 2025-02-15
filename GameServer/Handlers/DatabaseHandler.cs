@@ -7,12 +7,14 @@ using System.Data;
 namespace GameServer.Handlers;
 
 public class DatabaseHandler : Singleton<DatabaseHandler> {
-    private readonly string _connectionString;
-    private readonly MySqlConnection _persistentConnection;
+    private static readonly string _connectionString = "Server=localhost;Port=3306;Database=aikaria;User=root;Password=Jose2904.;";
+
+    private MySqlConnection _persistentConnection;
     private MySqlConnection GetConnection() => _persistentConnection;
 
-    public DatabaseHandler(string connectionString) {
-        _connectionString = connectionString;
+    public DatabaseHandler() { }
+
+    public void Initialize() {
         _persistentConnection = new MySqlConnection(_connectionString);
         _persistentConnection.Open();
     }
@@ -57,7 +59,7 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         return new AccountEntitie {
             Id = reader.GetInt32("id"),
             Username = reader.GetString("username"),
-            PasswordHash = reader.GetString("password_hash"),
+            PasswordHash = reader.GetString("passwordHash"),
             Token = reader.GetString("token"),
             TokenCreationTime = reader.GetDateTime("tokenCreationTime"),
             AccountStatus = reader.GetInt32("accountStatus"),
@@ -66,7 +68,7 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
             AccountType = (AccountType)reader.GetInt32("accountType"),
             StorageGold = reader.IsDBNull("storageGold") ? 0 : reader.GetInt32("storageGold"),
             Cash = reader.IsDBNull("cash") ? 0 : reader.GetInt32("cash"),
-            PremiumExpiration = reader.IsDBNull("premiumTime") ? string.Empty : reader.GetString("premiumTime"),
+            PremiumExpiration = reader.IsDBNull("premiumExpiration") ? string.Empty : reader.GetString("premiumExpiration"),
         };
     }
 

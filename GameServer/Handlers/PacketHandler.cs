@@ -15,7 +15,7 @@ public static class PacketHandler {
             await HandleLogin(session, packet);
             break;
             case 0x685:
-            await SendToCharactersList(session);
+            await SendToCharactersList(session, packet);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
@@ -51,8 +51,11 @@ public static class PacketHandler {
         Console.WriteLine($"Login -> {username} : {token}");
     }
 
-    private static async Task SendToCharactersList(Session session) {
-        var account = await DatabaseHandler.Instance.GetAccountByUsernameAsync(session.Username);
+    private static async Task SendToCharactersList(Session session, StreamHandler stream) {
+        string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
+        _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0'); //TOKEN
+
+        var account = await DatabaseHandler.Instance.GetAccountByUsernameAsync(username);
         if(account == null) {
             Console.WriteLine("Login falhou: Conta não encontrada.");
             return;
@@ -96,7 +99,8 @@ public static class PacketHandler {
             packet.Write((ushort)(character?.PositionY ?? 0)); // Position Y
             packet.Write((uint)0); // Sem tempo de exclusão
 
-            Console.WriteLine($"Character: {character.Name} -> Carregado");
+            if(!string.IsNullOrEmpty(character?.Name))
+                Console.WriteLine($"Character: {character.Name} -> Carregado");
         }
 
         PacketBuilder.FinalizePacket(packet);
