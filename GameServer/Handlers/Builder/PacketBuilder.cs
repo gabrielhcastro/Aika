@@ -12,7 +12,7 @@ public static class PacketBuilder {
         packet.Write(header.ChkSum);
         packet.Write(header.Index);
         packet.Write(header.Code);
-        packet.Write((uint)11981171);
+        packet.Write(header.Time);
 
         return packet;
     }

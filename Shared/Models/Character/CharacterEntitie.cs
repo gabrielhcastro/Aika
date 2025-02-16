@@ -1,4 +1,4 @@
-﻿namespace Shared.Models; 
+﻿namespace Shared.Models.Character;
 public class CharacterEntitie {
     public uint Id { get; set; }
     public uint OwnerAccountId { get; set; }

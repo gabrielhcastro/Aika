@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.Account;
+﻿using Shared.Models.Character;
+
+namespace Shared.Models.Account;
 public class AccountEntitie {
     public int Id { get; set; }
     public string Username { get; set; }
