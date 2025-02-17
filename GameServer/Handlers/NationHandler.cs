@@ -5,29 +5,31 @@ using Shared.Core.Instance;
 namespace GameServer.Handlers;
 
 public class NationHandler : Singleton<NationHandler> {
-    public List<Server> Servers { get; private set; }
+    public List<Server> ServersList { get; private set; }
 
     private readonly GameProtocol protocol = new();
 
     public NationHandler() {
-        Servers = [];
+        ServersList = [];
     }
 
     public void LoadServers(ServersHandle config) {
         for(int i = 0; i < config.ServersCount; i++) {
-            var server = new Server(config.ServersIP[i], 100, protocol, config.ServersName[i], config.ServersID[i]);
+            var server = new Server(config.ServersIP[i], 100, protocol);
 
-            server.Start();
+            server.StartAsync();
 
             if(server.IsStarted) {
-                Servers.Add(server);
-                Console.WriteLine($"Servidor: {server.Name}, Index: {server.NationId}");
+                ServersList.Add(server);
+                server.Name = config.ServersName[i];
+                server.NationId = config.ServersID[i];
+                Console.WriteLine($"Server[{server.NationId}]: [{server.Name}]");
             }
         }
     }
 
     public void StopServers() {
-        foreach(var server in Servers) {
+        foreach(var server in ServersList) {
             server.Stop();
         }
     }

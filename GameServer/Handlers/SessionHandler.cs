@@ -41,7 +41,7 @@ public class SessionHandler : Singleton<SessionHandler> {
         _onlinePlayers.Remove(playerId);
     }
 
-    public int GetAllSessionsValue() => _sessions.Values.Count;
+    public int GetAllSessionsCount() => _sessions.Values.Count;
     public List<Session> GetAllSessions() => [.. _sessions.Values];
     public static int GetAllPlayers() => _onlinePlayers.Values.Count;
 }

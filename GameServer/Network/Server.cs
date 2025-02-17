@@ -19,7 +19,7 @@ public class Server : INetwork {
     public string Name { get; set; }
     public byte NationId { get; set; }
 
-    public Server(EndPoint localEndPoint, int numConnections, BaseProtocol handler, string name, byte nationId) {
+    public Server(EndPoint localEndPoint, int numConnections, BaseProtocol handler) {
         _listenSocket = new Socket(localEndPoint.AddressFamily, SocketType.Stream, ProtocolType.Tcp);
         _listenSocket.Bind(localEndPoint);
         _listenSocket.Listen(100);
@@ -29,14 +29,28 @@ public class Server : INetwork {
         _bufferControl.Init();
 
         _protocol = handler;
-
-        Name = name;
-        NationId = nationId;
     }
 
-    public void Start() {
+    public async void StartAsync() {
         IsStarted = true;
         StartAccept(null);
+        await StartPeriodicRecicle();
+    }
+
+    public async Task StartPeriodicRecicle() {
+        // Reciclagem de buffer (1 hora)
+        await Task.Run(async () => {
+            while(IsStarted) {
+                await Task.Delay(TimeSpan.FromHours(1));
+
+                // Se não houver conexões ativas, recicla buffer
+                if(SessionHandler.Instance.GetAllSessions().Count == 0) {
+                    Console.WriteLine("[BufferHandler] Reciclando buffers...");
+                    _bufferControl.Release();
+                    _bufferControl.Init();
+                }
+            }
+        });
     }
 
     public void Stop() {
@@ -105,9 +119,13 @@ public class Server : INetwork {
     private void ProcessReceive(SocketAsyncEventArgs e) {
         var session = (Session)e.UserToken;
         if(e.BytesTransferred > 0 && e.SocketError == SocketError.Success) {
-            var buffer = new byte[e.BytesTransferred];
-            Buffer.BlockCopy(e.Buffer, e.Offset, buffer, 0, e.BytesTransferred);
-            _protocol.OnReceive(session, buffer, e.BytesTransferred);
+            Span<byte> buffer = e.BytesTransferred <= 128
+                ? stackalloc byte[e.BytesTransferred]  // Pacotes pequenos = stackalloc (zero GC)
+                : new byte[e.BytesTransferred]; // Pacotes grandes = Heap
+
+            e.Buffer.AsSpan(e.Offset, e.BytesTransferred).CopyTo(buffer);
+
+            _protocol.OnReceive(session, buffer.ToArray(), e.BytesTransferred);
 
             try {
                 var willRaiseEvent = session.Socket.ReceiveAsync(e);

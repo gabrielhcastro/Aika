@@ -20,7 +20,7 @@ public class ServersHandle {
 
         LoadServers();
 
-        Console.WriteLine($"Configuração carregada com {ServersCount} servidores.");
+        Console.WriteLine($"{ServersCount} servers config loaded.");
     }
 
     public void LoadServers() {

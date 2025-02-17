@@ -1,11 +1,9 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Handlers.Builder;
 using Shared.Handlers;
-using Shared.Models.Character;
-using System.Runtime.InteropServices;
 using System.Text;
 
-namespace GameServer.Handlers;
+namespace GameServer.Handlers.Packet;
 public static class PacketHandler {
     public static async Task HandlePacket(Session session, StreamHandler packet) {
         packet.ReadInt32();
@@ -20,9 +18,6 @@ public static class PacketHandler {
             case 0x685:
             await SendToCharactersList(session, packet);
             break;
-            //case 0x3E04:
-            //await CreateCharacter(session, packet);
-            //break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
             break;
@@ -42,15 +37,17 @@ public static class PacketHandler {
         var packet = PacketBuilder.CreateHeader(0x82);
 
         packet.Write((uint)account.Id); // ID fictício do jogador
-        packet.Write((uint)Environment.TickCount);
+        packet.Write((uint)session.LastActivity.Ticks); // LoginTime
         packet.Write((ushort)account.Nation); // Nação (exemplo)
         packet.Write((uint)0); // Null_1 (padding)
 
-        packet.Buffer[0] = (byte)(0x19); // size 25 bytes fixo login porta 8831
-        packet.Buffer[1] = (byte)(0x00);
+        packet.Buffer[0] = 0x19; // size 25 bytes fixo login porta 8831
+        packet.Buffer[1] = 0x00;
 
         byte[] packetData = packet.GetBytes();
         session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
 
         Console.WriteLine($"Login -> {username} : {token}");
     }
@@ -67,7 +64,7 @@ public static class PacketHandler {
 
         account.Characters = await DatabaseHandler.GetCharactersByAccountIdAsync(account.Id);
 
-        var packet = PacketBuilder.CreateHeader(0x901, (ushort)account.Id);
+        var packet = PacketBuilder.CreateHeader(0x901);
 
         packet.Write((uint)account.Id); // AccountID (fictício)
         packet.Write((uint)0); // Campo desconhecido (Unk)
@@ -77,7 +74,7 @@ public static class PacketHandler {
             var character = i < account.Characters.Count ? account.Characters.ToList()[i] : null;
 
             // Nome
-            packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16))); 
+            packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
 
             packet.Write((ushort)(account?.Nation ?? 0)); // Nação
             packet.Write((ushort)(character?.ClassInfo ?? 0)); // Classe
@@ -113,7 +110,7 @@ public static class PacketHandler {
 
             packet.Write((uint)0); // Sem tempo de exclusão
             packet.Write((byte)(character?.NumericErrors ?? 0)); // NumError
-            packet.Write((bool)(true)); // NumRegister
+            packet.Write(true); // NumRegister
 
             packet.Write(new byte[6]); // Null
 
@@ -121,28 +118,14 @@ public static class PacketHandler {
                 Console.WriteLine($"Character: {character.Name} -> Carregado");
         }
 
-        Console.WriteLine("Packet Data Decrypted: {0}",BitConverter.ToString(packet));
-        PacketBuilder.FinalizePacket(packet);
-        Console.WriteLine("Packet Data Encrypted: {0}",BitConverter.ToString(packet));
-
-        //Raw Packet
-
         byte[] packetData = packet.GetBytes();
         EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packetData);
 
+        PacketPool.Return(packet);
+
         Console.WriteLine($"OK -> ChararactersList");
     }
 
-    //private static async Task CreateCharacter(Session session, StreamHandler stream) {
-    //    uint accountId = stream.ReadUInt32(); // AccountId
-    //    uint slotId = stream.ReadUInt32(); // SlotId
-    //    string name = Encoding.ASCII.GetString(stream.ReadBytes(16)).PadRight(16, '\0').TrimEnd(); // Name
-    //    ushort classInfo = stream.ReadUInt16(); // ClassInfo
-    //    ushort hair = stream.ReadUInt16();
-    //    byte[] null1 = stream.ReadBytes(12);
-    //    uint local = stream.ReadUInt32();
-
-    //}
 }

@@ -183,10 +183,6 @@ public class StreamHandler {
         return Write(buff);
     }
 
-    //public Packetpacket Write(BasePacket value) {
-    //    return value.Write(this);
-    //}
-
     public StreamHandler Write(StreamHandler value, bool appendSize = false) {
         return Write(value.GetBytes(), appendSize);
     }
@@ -203,6 +199,13 @@ public class StreamHandler {
 
         System.Buffer.BlockCopy(tmp, 0, buff, 0, tmp.Length);
         return Write(buff);
+    }
+
+    public StreamHandler Write(ReadOnlySpan<byte> value) {
+        Reserve(Count + value.Length);
+        value.CopyTo(Buffer.AsSpan(Count, value.Length));
+        Count += value.Length;
+        return this;
     }
 
     #endregion
@@ -322,4 +325,11 @@ public class StreamHandler {
         return BitConverter.ToString(str).Replace("-", ":");
     }
     #endregion
+
+    //Limpa o buffer melhorando o uptime
+    public void Reset() {
+        Array.Clear(Buffer, 0, Count); // Limpa os bytes
+        Count = 0; // Reinicia o tamanho do pacote
+        Pos = 0;   // Reinicia a posição de leitura/escrita
+    }
 }

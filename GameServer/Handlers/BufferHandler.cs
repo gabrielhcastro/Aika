@@ -1,26 +1,29 @@
-﻿using System.Collections.Concurrent;
+﻿using System.Buffers;
+using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace GameServer.Handlers;
 
 public class BufferHandler {
-    private readonly int _byteLenght;
-    private readonly int _bufferLenght;
+    private readonly int _bufferSize;
+    private readonly int _blockSize;
     private readonly ConcurrentStack<int> _freeIndexPool;
     private int _posIndex;
-
     private byte[] _buffer;
 
-    public BufferHandler(int byteLenght, int bufferLenght) {
-        _byteLenght = byteLenght;
-        _bufferLenght = bufferLenght;
-
+    public BufferHandler(int totalBufferSize, int blockSize) {
+        _bufferSize = totalBufferSize;
+        _blockSize = blockSize;
         _freeIndexPool = new ConcurrentStack<int>();
         _posIndex = 0;
     }
 
     public void Init() {
-        _buffer = new byte[_byteLenght];
+        // Usa pool
+        _buffer = ArrayPool<byte>.Shared.Rent(_bufferSize);
+
+        //Aloca dinamicamente
+        //_buffer = new byte[_byteLenght];
     }
 
     public void Empty(SocketAsyncEventArgs args) {
@@ -28,16 +31,23 @@ public class BufferHandler {
     }
 
     public void Set(SocketAsyncEventArgs args) {
-        lock(_freeIndexPool) {
-            if(!_freeIndexPool.IsEmpty) {
-                _freeIndexPool.TryPop(out var offset);
-                args.SetBuffer(_buffer, offset, _bufferLenght);
+        if(_freeIndexPool.TryPop(out var offset)) {
+            args.SetBuffer(_buffer, offset, _blockSize);
+        }
+        else {
+            int newPos = Interlocked.Add(ref _posIndex, _blockSize);
+
+            if(newPos < _bufferSize) {
+                args.SetBuffer(_buffer, newPos, _blockSize);
             }
             else {
-                if(_byteLenght - _bufferLenght < _posIndex) return;
-                args.SetBuffer(_buffer, _posIndex, _bufferLenght);
-                _posIndex += _bufferLenght;
+                // Buffer cheio, usa um buffer temporário (evita travamento)
+                args.SetBuffer(ArrayPool<byte>.Shared.Rent(_blockSize), 0, _blockSize);
             }
         }
+    }
+
+    public void Release() {
+        ArrayPool<byte>.Shared.Return(_buffer);
     }
 }
