@@ -2,7 +2,7 @@
 
 namespace GameServer.Handlers.Builder;
 
-public static class PacketBuilder {
+public static class PacketFactory {
     public static StreamHandler CreateHeader(ushort opcode, ushort index = 0) {
         var packet = PacketPool.Rent();
 

@@ -1,6 +1,7 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Handlers.Builder;
 using Shared.Handlers;
+using System.IO;
 using System.Text;
 
 namespace GameServer.Handlers.Packet;
@@ -11,6 +12,8 @@ public static class PacketHandler {
         var opcode = packet.ReadUInt16();
         packet.ReadInt32();
 
+        Console.WriteLine($"Opcode received: {opcode}, Sender: {sender}");
+
         switch(opcode) {
             case 0x81:
             await HandleLogin(session, packet);
@@ -18,8 +21,16 @@ public static class PacketHandler {
             case 0x685:
             await SendToCharactersList(session, packet);
             break;
+            case 0x39D:
+            Console.WriteLine("OPCODE: 925");
+            Console.WriteLine("Packet Data: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
+            break;
+            case 0xF02:
+            HandleCharacterNumeric(session, packet);
+            break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
+            Console.WriteLine("Packet Data: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
             break;
         }
     }
@@ -34,7 +45,7 @@ public static class PacketHandler {
             return;
         }
 
-        var packet = PacketBuilder.CreateHeader(0x82);
+        var packet = PacketFactory.CreateHeader(0x82);
 
         packet.Write((uint)account.Id); // ID fictício do jogador
         packet.Write((uint)session.LastActivity.Ticks); // LoginTime
@@ -54,7 +65,7 @@ public static class PacketHandler {
 
     private static async Task SendToCharactersList(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
-        _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0'); //TOKEN
+        _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
@@ -64,7 +75,7 @@ public static class PacketHandler {
 
         account.Characters = await DatabaseHandler.GetCharactersByAccountIdAsync(account.Id);
 
-        var packet = PacketBuilder.CreateHeader(0x901);
+        var packet = PacketFactory.CreateHeader(0x901);
 
         packet.Write((uint)account.Id); // AccountID (fictício)
         packet.Write((uint)0); // Campo desconhecido (Unk)
@@ -128,4 +139,85 @@ public static class PacketHandler {
         Console.WriteLine($"OK -> ChararactersList");
     }
 
+    private static void HandleCharacterNumeric(Session session, StreamHandler stream) {
+        var packet = PacketFactory.CreateHeader(0x925, 0x7535);
+
+        packet.Write((uint)1); // AccountSerial
+
+        // Informações básicas do personagem
+        packet.Write((uint)1); // CharIndex
+        packet.Write((byte)0);
+        packet.Write((byte)17); // Algum ID (17 = 0x11)
+        packet.Write(Encoding.ASCII.GetBytes("Vitor".PadRight(16, '\0'))); // Nome
+        packet.Write((ushort)0);
+        packet.Write((byte)31); // Algum valor (0x1F)
+        packet.Write((ushort)0);
+
+        // Status base (igual ao Delphi)
+        packet.Write((byte)8);
+        packet.Write((byte)14);
+        packet.Write((byte)10);
+        packet.Write((byte)12);
+        packet.Write((byte)6);
+        packet.Write((byte)0);
+
+        // Altura e corpo
+        packet.Write((byte)7);
+        packet.Write((byte)119);
+        packet.Write((byte)119);
+        packet.Write((byte)0);
+
+        // HP, Mana
+        packet.Write((uint)468); // Max HP
+        packet.Write((uint)468); // Current HP
+        packet.Write((uint)342); // Max Mana
+        packet.Write((uint)342); // Current Mana
+
+        // Tempo de login
+        packet.Write((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds()); // LoginTime
+        packet.Write((uint)0);
+        packet.Write((uint)0);
+        packet.Write((uint)0);
+
+        // Outros atributos
+        packet.Write((ushort)3);
+        packet.Write((ushort)0);
+
+        // Inventário (igual ao Delphi, preenchido com 0)
+        for(int i = 0; i < 60; i++)
+            packet.Write((ushort)0);
+
+        // Buffs
+        for(int i = 0; i < 20; i++)
+            packet.Write((ushort)0);
+
+        for(int i = 0; i < 20; i++)
+            packet.Write((uint)0);
+
+        // Sistema de Títulos
+        packet.Write((ushort)0);
+        for(int i = 0; i < 12; i++)
+            packet.Write((uint)0);
+
+        for(int i = 0; i < 48; i++)
+            packet.Write((ushort)0);
+
+        packet.Write((ushort)1985); // GuildIndex?
+        packet.Write((ushort)4);
+        packet.Write((ushort)0);
+
+        // Finalizando o pacote
+        PacketFactory.FinalizePacket(packet);
+
+        Console.WriteLine("Packet Decrypt: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine("Packet Encrypt: {0} -> {1}", packet.Count, BitConverter.ToString(packetData));
+        Console.WriteLine($"OK -> ChararactersList");
+    }
 }
