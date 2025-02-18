@@ -1,6 +1,4 @@
-﻿using GameServer.Handlers.Packet;
-
-namespace GameServer.Handlers.Builder;
+﻿namespace GameServer.Handlers.Packet;
 
 public static class PacketFactory {
     public static StreamHandler CreateHeader(ushort opcode, ushort index = 0) {

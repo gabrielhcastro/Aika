@@ -1,5 +1,4 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Handlers.Builder;
 using Shared.Handlers;
 using System.IO;
 using System.Text;
@@ -37,7 +36,6 @@ public static class PacketHandler {
 
     private static async Task HandleLogin(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
-        string token = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
@@ -47,9 +45,9 @@ public static class PacketHandler {
 
         var packet = PacketFactory.CreateHeader(0x82);
 
-        packet.Write((uint)account.Id); // ID fictício do jogador
+        packet.Write((uint)account.Id); // AccountID
         packet.Write((uint)session.LastActivity.Ticks); // LoginTime
-        packet.Write((ushort)account.Nation); // Nação (exemplo)
+        packet.Write((ushort)account.Nation); // Nação
         packet.Write((uint)0); // Null_1 (padding)
 
         packet.Buffer[0] = 0x19; // size 25 bytes fixo login porta 8831
@@ -60,7 +58,7 @@ public static class PacketHandler {
 
         PacketPool.Return(packet);
 
-        Console.WriteLine($"Login -> {username} : {token}");
+        Console.WriteLine($"Login -> {username} : {DateTime.UtcNow}");
     }
 
     private static async Task SendToCharactersList(Session session, StreamHandler stream) {
@@ -90,10 +88,18 @@ public static class PacketHandler {
             packet.Write((ushort)(account?.Nation ?? 0)); // Nação
             packet.Write((ushort)(character?.ClassInfo ?? 0)); // Classe
 
-            packet.Write((byte)7); // Altura
-            packet.Write((byte)119); // Tronco
-            packet.Write((byte)119); // Perna
-            packet.Write((byte)0); // Corpo
+            if(character == null) {
+                packet.Write((byte)7); // Altura
+                packet.Write((byte)119); // Tronco
+                packet.Write((byte)119); // Perna
+                packet.Write((byte)0); // Corpo
+            }
+            else {
+                packet.Write((byte)character.Height); // Altura
+                packet.Write((byte)character.Trunk); // Tronco
+                packet.Write((byte)character.Leg); // Perna
+                packet.Write((byte)character.Body); // Corpo
+            }
 
             for(int k = 0; k < 8; k++) {
                 packet.Write((ushort)0); //Equipamento
@@ -110,7 +116,7 @@ public static class PacketHandler {
             packet.Write((ushort)(character?.Luck ?? 0)); // Luck
             packet.Write((ushort)(character?.Status ?? 0)); // Status
 
-            packet.Write((ushort)(character?.Level ?? 65535)); // Level
+            packet.Write((ushort)(character?.Level ?? 65534)); // Level
 
             packet.Write(new byte[6]); // Null
 
@@ -119,11 +125,16 @@ public static class PacketHandler {
 
             packet.Write(new byte[4]); // Null
 
-            packet.Write((uint)0); // Sem tempo de exclusão
-            packet.Write((byte)(character?.NumericErrors ?? 0)); // NumError
-            packet.Write(true); // NumRegister
+            packet.Write((uint)character.Deleted); // Deleted?
+            packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
 
-            packet.Write(new byte[6]); // Null
+            if(!string.IsNullOrEmpty(character.NumericToken)) {
+                packet.Write(true); // Numeric Registered?
+            } else {
+                packet.Write(false); // Numeric Registered?
+            }
+
+            packet.Write(new byte[6]); // NotUse
 
             if(!string.IsNullOrEmpty(character?.Name))
                 Console.WriteLine($"Character: {character.Name} -> Carregado");

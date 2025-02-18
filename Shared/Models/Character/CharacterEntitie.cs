@@ -20,8 +20,8 @@ public class CharacterEntitie {
     public uint Constitution { get; set; }
     public uint Luck { get; set; }
     public uint Status { get; set; }
-    public uint Altura { get; set; }
-    public uint Tronco { get; set; }
+    public uint Height { get; set; }
+    public uint Trunk { get; set; }
     public uint Leg { get; set; }
     public uint Body { get; set; }
     public uint CurrentHealth { get; set; }
