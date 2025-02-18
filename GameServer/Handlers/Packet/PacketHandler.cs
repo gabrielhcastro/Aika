@@ -75,7 +75,7 @@ public static class PacketHandler {
 
         var packet = PacketFactory.CreateHeader(0x901);
 
-        packet.Write((uint)account.Id); // AccountID (fictício)
+        packet.Write((uint)account.Id); // AccountID
         packet.Write((uint)0); // Campo desconhecido (Unk)
         packet.Write((uint)0); // Campo não utilizado (NotUse)
 
@@ -125,14 +125,16 @@ public static class PacketHandler {
 
             packet.Write(new byte[4]); // Null
 
-            packet.Write((uint)character.Deleted); // Deleted?
+            if(character != null) {
+                packet.Write((uint)character.Deleted); // Deleted?
+            }
+            else {
+                packet.Write((uint)0);
+            }
+
             packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
 
-            if(!string.IsNullOrEmpty(character.NumericToken)) {
-                packet.Write(true); // Numeric Registered?
-            } else {
-                packet.Write(false); // Numeric Registered?
-            }
+            packet.Write(true); // Numeric Registered?
 
             packet.Write(new byte[6]); // NotUse
 
@@ -155,69 +157,150 @@ public static class PacketHandler {
 
         packet.Write((uint)1); // AccountSerial
 
-        // Informações básicas do personagem
-        packet.Write((uint)1); // CharIndex
-        packet.Write((byte)0);
-        packet.Write((byte)17); // Algum ID (17 = 0x11)
-        packet.Write(Encoding.ASCII.GetBytes("Vitor".PadRight(16, '\0'))); // Nome
-        packet.Write((ushort)0);
-        packet.Write((byte)31); // Algum valor (0x1F)
-        packet.Write((ushort)0);
+        packet.Write((uint)1); // AccountId
+        packet.Write((byte)0); // First Login
+        packet.Write((byte)1); // CharacterId
 
-        // Status base (igual ao Delphi)
-        packet.Write((byte)8);
-        packet.Write((byte)14);
-        packet.Write((byte)10);
-        packet.Write((byte)12);
-        packet.Write((byte)6);
-        packet.Write((byte)0);
+        packet.Write(Encoding.ASCII.GetBytes("Vitor".PadRight(16, '\0'))); // Name
 
-        // Altura e corpo
-        packet.Write((byte)7);
-        packet.Write((byte)119);
-        packet.Write((byte)119);
-        packet.Write((byte)0);
+        packet.Write((ushort)0); // Nation
+        packet.Write((byte)10); // Classe
+        packet.Write((ushort)0); // Null_0
 
-        // HP, Mana
+        packet.Write((ushort)8); // Strength
+        packet.Write((ushort)14); // Agility
+        packet.Write((ushort)10); // Intelligence
+        packet.Write((ushort)12); // Constitution
+        packet.Write((ushort)6); // Luck
+        packet.Write((ushort)0); // Status
+
+        packet.Write((byte)7); // Height
+        packet.Write((byte)119); // Trunk
+        packet.Write((byte)119); // Leg
+        packet.Write((byte)0); // Body
+
         packet.Write((uint)468); // Max HP
         packet.Write((uint)468); // Current HP
         packet.Write((uint)342); // Max Mana
         packet.Write((uint)342); // Current Mana
 
-        // Tempo de login
-        packet.Write((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds()); // LoginTime
-        packet.Write((uint)0);
-        packet.Write((uint)0);
-        packet.Write((uint)0);
+        packet.Write((uint)1739944800); // ServerReset
+        packet.Write((uint)0); // Honor
+        packet.Write((uint)0); // KillPoint
+        packet.Write((uint)0); // Infamia
+        packet.Write((ushort)0); // Evil Points
+        packet.Write((ushort)0); // Skill Points
 
-        // Outros atributos
-        packet.Write((ushort)3);
-        packet.Write((ushort)0);
+        packet.Write(new byte[60]); // Inventory
 
-        // Inventário (igual ao Delphi, preenchido com 0)
+        packet.Write((ushort)0); // Unk1
+
+        packet.Write((ushort)0); // Physic Damage
+        packet.Write((ushort)0); // Physic Defense
+        packet.Write((ushort)0); // Magic Damage
+        packet.Write((ushort)0); // Magic Defense
+        packet.Write((ushort)0); // Bonus Damage
+
+        packet.Write(new byte[20]); // Null_1
+
+        packet.Write((ushort)0); // Critical
+        packet.Write((byte)0); // Evasion
+        packet.Write((byte)0); // Accuracy
+
+        packet.Write((ushort)0);     // Null_2
+
+        packet.Write((uint)1985);    // Exp
+        packet.Write((ushort)4);     // Level
+        packet.Write((ushort)0);     // GuildIndex
+
+        packet.Write(new byte[64]);  // Null_3
+
+        for(int i = 0; i < 20; i++)
+            packet.Write((ushort)0); // BuffsId
+
+        for(int i = 0; i < 20; i++)
+            packet.Write((uint)0);   // BuffsDuration
+
+        // Equipamentos (16 slots)
+        for(int i = 0; i < 16; i++) {
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+        }
+
+        packet.Write((ushort)0);  // Null
+
+        // Inventário (64 slots)
+        for(int i = 0; i < 64; i++) {
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+            packet.Write((ushort)0);
+        }
+
+        packet.Write((long)0);  // Gold
+
+        packet.Write(new byte[256]); // UnkBytes0
+        packet.Write(new byte[160]); // UnkBytes1
+        packet.Write((uint)0); // CreationTime
+        packet.Write(new byte[256]); // UnkBytes2
+
+        var numeric = Encoding.ASCII.GetBytes("0000");
+        packet.Write(numeric);
+
+        packet.Write(new byte[256]); // UnkBytes3
+
         for(int i = 0; i < 60; i++)
-            packet.Write((ushort)0);
+            packet.Write((ushort)(i < 4 ? 2 : 0)); // Habilidades iniciais
 
-        // Buffs
-        for(int i = 0; i < 20; i++)
-            packet.Write((ushort)0);
+        // Barra de itens (24 slots)
+        ushort[] itemBar = { 46098, 47634, 46610, 0, 0, 0, 0, 46354 };
+        for(int i = 0; i < 24; i++)
+            packet.Write((ushort)(i < itemBar.Length ? itemBar[i] : 0));
 
-        for(int i = 0; i < 20; i++)
-            packet.Write((uint)0);
+        packet.Write((ushort)0); // NULL_5
 
-        // Sistema de Títulos
-        packet.Write((ushort)0);
+        // Títulos e progresso de título
         for(int i = 0; i < 12; i++)
-            packet.Write((uint)0);
+            packet.Write((uint)0); // TitleCategoryLevel
+
+        packet.Write(new byte[96]); // UNK_8
+        packet.Write((ushort)0);    // ActiveTitle
+        packet.Write((ushort)0);    // NULL_9
 
         for(int i = 0; i < 48; i++)
-            packet.Write((ushort)0);
+            packet.Write((ushort)0); // TitleProgressType8
 
-        packet.Write((ushort)1985); // GuildIndex?
-        packet.Write((ushort)4);
-        packet.Write((ushort)0);
+        packet.Write((ushort)0); // TitleProgressType9[0]
+        packet.Write((ushort)0); // TitleProgressType9[1]
+        packet.Write((ushort)0); // TitleProgressType4
+        packet.Write((ushort)0); // TitleProgressType10
+        packet.Write((ushort)0); // TitleProgressType7
+        packet.Write((ushort)0); // TitleProgressType11
+        packet.Write((ushort)0); // TitleProgressType12
+        packet.Write((ushort)0); // TitleProgressType13
+        packet.Write((ushort)0); // TitleProgressType15
+        packet.Write((ushort)0); // TitleProgressUnk
+        packet.Write(new byte[22]); // TitleProgressType16
+        packet.Write((ushort)0); // TitleProgressType23
 
-        // Finalizando o pacote
+        packet.Write(new byte[200]); // TitleProgress
+        packet.Write((uint)0); // EndDayTime
+
+        // Zerando mais dados desconhecidos
+        packet.Write(new byte[128]); // Null_10
+        packet.Write((uint)0);       // UTC
+        packet.Write((uint)0); // LoginTime
+        packet.Write(new byte[12]);  // UnkBytes6
+
+        // Nomes dos Prans (16 bytes cada)
+        packet.Write(new byte[16]); // PranName[0]
+        packet.Write(new byte[16]); // PranName[1]
+
+        packet.Write((uint)0); // Unknow
+
+
         PacketFactory.FinalizePacket(packet);
 
         Console.WriteLine("Packet Decrypt: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
