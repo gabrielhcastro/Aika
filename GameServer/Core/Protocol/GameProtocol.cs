@@ -19,7 +19,6 @@ public class GameProtocol : BaseProtocol {
             return;
         }
 
-        //TO-DO: Better way to handle this
         if(buff.Length > 2 && buff[0] == 0x11 && buff[1] == 0xF3) {
             var newBuff = new byte[buff.Length - 4];
             Array.Copy(buff, 4, newBuff, 0, buff.Length - 4);

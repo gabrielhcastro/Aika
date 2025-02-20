@@ -1,5 +1,6 @@
 ﻿using GameServer.Core.Base;
 using Shared.Handlers;
+using Shared.Models.Character;
 using System.IO;
 using System.Text;
 
@@ -22,10 +23,20 @@ public static class PacketHandler {
             break;
             case 0x39D:
             Console.WriteLine("OPCODE: 925");
-            Console.WriteLine("Packet Data: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
+            Console.WriteLine(BitConverter.ToString(packet));
+            break;
+            case 0x305:
+            UpdateRotation(session);
             break;
             case 0xF02:
-            HandleCharacterNumeric(session, packet);
+            SendToWorld(session);
+            break;
+            case 0xF0B:
+            SendToWorldSends(session);
+            break;
+            case 0x3E04:
+            Console.WriteLine("Packet Data: {0}", BitConverter.ToString(packet));
+            CreateCharacter(session, packet);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
@@ -152,7 +163,8 @@ public static class PacketHandler {
         Console.WriteLine($"OK -> ChararactersList");
     }
 
-    private static void HandleCharacterNumeric(Session session, StreamHandler stream) {
+    //TO-DO: Mapear Personagem e adicionar na sessão o personagem ativo
+    private static void SendToWorld(Session session) {
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         packet.Write((uint)1); // AccountSerial
@@ -184,7 +196,8 @@ public static class PacketHandler {
         packet.Write((uint)342); // Max Mana
         packet.Write((uint)342); // Current Mana
 
-        packet.Write((uint)1739944800); // ServerReset
+        packet.Write((uint)DateTime.UtcNow.Ticks); // ServerReset
+
         packet.Write((uint)0); // Honor
         packet.Write((uint)0); // KillPoint
         packet.Write((uint)0); // Infamia
@@ -209,8 +222,8 @@ public static class PacketHandler {
 
         packet.Write((ushort)0);     // Null_2
 
-        packet.Write((uint)1985);    // Exp
-        packet.Write((ushort)4);     // Level
+        packet.Write((uint)0);    // Exp
+        packet.Write((ushort)0);     // Level
         packet.Write((ushort)0);     // GuildIndex
 
         packet.Write(new byte[64]);  // Null_3
@@ -243,7 +256,7 @@ public static class PacketHandler {
 
         packet.Write(new byte[256]); // UnkBytes0
         packet.Write(new byte[160]); // UnkBytes1
-        packet.Write((uint)0); // CreationTime
+        packet.Write((uint)DateTime.UtcNow.Ticks); // CreationTime
         packet.Write(new byte[256]); // UnkBytes2
 
         var numeric = Encoding.ASCII.GetBytes("0000");
@@ -286,12 +299,12 @@ public static class PacketHandler {
         packet.Write((ushort)0); // TitleProgressType23
 
         packet.Write(new byte[200]); // TitleProgress
-        packet.Write((uint)0); // EndDayTime
+        packet.Write((uint)24); // EndDayTime
 
         // Zerando mais dados desconhecidos
         packet.Write(new byte[128]); // Null_10
-        packet.Write((uint)0);       // UTC
-        packet.Write((uint)0); // LoginTime
+        packet.Write((uint)DateTime.UtcNow.Ticks);       // UTC
+        packet.Write((uint)DateTime.Now.Ticks); // LoginTime
         packet.Write(new byte[12]);  // UnkBytes6
 
         // Nomes dos Prans (16 bytes cada)
@@ -303,15 +316,99 @@ public static class PacketHandler {
 
         PacketFactory.FinalizePacket(packet);
 
-        Console.WriteLine("Packet Decrypt: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
-
         byte[] packetData = packet.GetBytes();
         EncDec.Encrypt(ref packetData, packetData.Length);
         session.SendPacket(packetData);
 
         PacketPool.Return(packet);
 
-        Console.WriteLine("Packet Encrypt: {0} -> {1}", packet.Count, BitConverter.ToString(packetData));
         Console.WriteLine($"OK -> ChararactersList");
     }
+
+    //TO-DO: Atualizar rotação na entidade do personagem (ou personagem base?!)
+    private static void UpdateRotation(Session session) {
+        SendClientMessage(session, 16, 0, "Request -> UpdateRotation");
+    }
+
+    //TO-DO: Enviar atributos do mundo para o personagem
+    private static void SendToWorldSends(Session session) {
+        SendClientMessage(session, 16, 0, "Request -> SendToWorldSends");
+    }
+
+    private static void SendClientMessage(Session session, byte type1, byte type2, string message) {
+        var packet = PacketFactory.CreateHeader(0x984);
+
+        packet.Write((byte)0); // Null1
+        packet.Write((byte)type1); // Type1
+        packet.Write((byte)type2); // Type2
+        packet.Write((byte)0); // Null2
+        packet.Write(Encoding.ASCII.GetBytes(message?.PadRight(128, '\0')));
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+    }
+
+    private static async Task CreateCharacter(Session session, StreamHandler packet) {
+        CharacterEntitie character = new() {
+            OwnerAccountId = BitConverter.ToUInt32(packet.ReadBytes(4), 0) // accountId
+        };
+
+        var account = await DatabaseHandler.GetAccountByUsernameAsync(character.OwnerAccountId.ToString());
+        if(account == null) {
+            Console.WriteLine("Login falhou: Conta não encontrada.");
+            return;
+        }
+
+        var slot = BitConverter.ToUInt32(packet.ReadBytes(4), 0); // slotIndex
+        if(account.Characters.Count == 3 && slot > 2) {
+            SendClientMessage(session, 16, 0, "SLOT_ERROR ou Você já tem 3 personagens.");
+            return;
+        }
+        else {
+            character.Slot = slot;
+        }
+
+        // TO-DO: Verificar se o nome já existe
+        var name = Encoding.ASCII.GetString(packet.ReadBytes(16)).TrimEnd('\0');
+        if(name.Length > 14) {
+            SendClientMessage(session, 16, 0, "Limitado a 14 caracteres apenas.");
+            return;
+        }
+        else {
+            character.Name = name;
+        }
+
+        var ClassInfo = BitConverter.ToUInt16(packet.ReadBytes(2), 0);
+        if(ClassInfo < 10 && ClassInfo > 69)
+            SendClientMessage(session, 16, 0, "Classe fora dos limites.");
+        else {
+            character.ClassInfo = ClassInfo;
+        }
+
+
+        var hair = BitConverter.ToUInt16(packet.ReadBytes(2), 0);
+        if(hair < 7700 || hair > 7731) // Proteção Criar Itens
+            SendClientMessage(session, 16, 0, "Cabelo fora dos limites.");
+
+        _ = Encoding.ASCII.GetString(packet.ReadBytes(12)).TrimEnd('\0');
+
+        var local = BitConverter.ToUInt32(packet.ReadBytes(4), 0);
+        if(local == 0) { // Regenshien
+            character.PositionX = 3450;
+            character.PositionY = 690;
+        }
+        else if(local == 1) { // Verband
+            character.PositionX = 3470;
+            character.PositionY = 935;
+        }
+
+        Console.WriteLine($"AccountId: {character.Id}, SlotIndex: {character.Slot}, Name: {character.Name}, ClassIndex: {character.ClassInfo}\n" +
+                          $"Hair: {hair}, Local: X -> {character.PositionX} Y -> {character.PositionY}");
+    }
+
 }

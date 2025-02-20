@@ -41,7 +41,7 @@ public class BufferHandler {
                 args.SetBuffer(_buffer, newPos, _blockSize);
             }
             else {
-                // Buffer cheio, usa um buffer temporário (evita travamento)
+                // Buffer cheio, usa um buffer temporário
                 args.SetBuffer(ArrayPool<byte>.Shared.Rent(_blockSize), 0, _blockSize);
             }
         }
