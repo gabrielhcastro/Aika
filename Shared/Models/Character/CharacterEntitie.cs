@@ -1,4 +1,6 @@
-﻿namespace Shared.Models.Character;
+﻿using System.Collections.Concurrent;
+
+namespace Shared.Models.Character;
 public class CharacterEntitie {
     public uint Id { get; set; }
     public uint OwnerAccountId { get; set; }
@@ -25,7 +27,10 @@ public class CharacterEntitie {
     public uint Leg { get; set; }
     public uint Body { get; set; }
     public uint CurrentHealth { get; set; }
+    public uint MaxHealth { get; set; }
     public uint CurrentMana { get; set; }
+    public uint MaxMana { get; set; }
+    public bool Deleting { get; set; }
     public uint Honor { get; set; }
     public uint KillPoint { get; set; }
     public uint Infamia { get; set; }
@@ -45,4 +50,17 @@ public class CharacterEntitie {
     public uint PranEvolutionCount { get; set; }
     public uint SavedPositionX { get; set; }
     public uint SavedPositionY { get; set; }
+    public ushort Critical { get; set; }
+    public uint PhysicDamage { get; set; }
+    public uint MagicDamage { get; set; }
+    public uint PhysicDefense { get; set; }
+    public uint MagicDefense { get; set; }
+    public uint BonusDamage { get; set; }
+    public uint Miss { get; set; }
+    public uint Accuracy { get; set; }
+
+    public ushort[] Skills { get; set; }
+    public Item[] Itens { get; set; }
+    public Item[] Equips { get; set; }
+    public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
 }

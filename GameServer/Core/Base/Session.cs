@@ -22,6 +22,7 @@ public class Session : IDisposable {
     public SocketAsyncEventArgs ReadEventArg { get; }
     public IPAddress Ip { get; }
     public DateTime LastActivity { get; set; }
+    public string Username { get; set; }
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;

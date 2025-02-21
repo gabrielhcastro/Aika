@@ -31,6 +31,15 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         return await reader.ReadAsync() ? MapAccount(reader) : null;
     }
 
+    public static async Task<AccountEntitie> GetAccountByIdAsync(uint id) {
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE id = @id", connection);
+        command.Parameters.AddWithValue("@id", id);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        return await reader.ReadAsync() ? MapAccount(reader) : null;
+    }
+
     /// <summary>
     /// Obtém os personagens de uma conta pelo id da conta.
     /// </summary>
@@ -121,79 +130,45 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         };
     }
 
-    //public static async Task<bool> CreateCharacterAsync(AccountEntitie account) {
-    //    if(!account.VerifyAmount(packet.Name)) {
-    //        account.SendClientMessage("Você já tem 3 personagens.", 16, 0, 1);
-    //        return false;
-    //    }
+    public static async Task<bool> CreateCharacterAsync(CharacterEntitie character,int accountId) {
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand(
+            "INSERT INTO characters (id, ownerAccountId, name, slot, classInfo, positionX, positionY, height, trunk, leg, body, level, experience," +
+            "strength, agility, constitution, intelligence, luck, status, creationTime) " +
+            "VALUES (@id, @ownerAccountId, @name, @slot, @classInfo, @positionX, @positionY, @height, @trunk, @leg, @body, @level, @experience," +
+            "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime);", connection);
 
-    //    if(!Functions.IsLetter(packet.Name)) {
-    //        account.SendClientMessage("Você só pode usar caracteres alfanuméricos.", 16, 0, 1);
-    //        return false;
-    //    }
+        command.Parameters.AddWithValue("@id", character.Id);
+        command.Parameters.AddWithValue("@ownerAccountId", accountId);
+        command.Parameters.AddWithValue("@name", character.Name);
+        command.Parameters.AddWithValue("@slot", character.Slot);
+        command.Parameters.AddWithValue("@classInfo", character.ClassInfo);
 
-    //    if(packet.Name.Length > 14) {
-    //        account.SendClientMessage("Limitado a 14 caracteres apenas.", 16, 0, 1);
-    //        return false;
-    //    }
+        command.Parameters.AddWithValue("@height", 7);
+        command.Parameters.AddWithValue("@trunk", 119);
+        command.Parameters.AddWithValue("@leg", 119);
+        command.Parameters.AddWithValue("@body", 0);
+        
+        command.Parameters.AddWithValue("@level", 0);
+        command.Parameters.AddWithValue("@experience", 0);
 
-    //    if(await account.NameExistsAsync(packet.Name)) {
-    //        account.SendClientMessage("Já existe um personagem com esse nome.", 16, 0, 1);
-    //        return false;
-    //    }
+        command.Parameters.AddWithValue("@strength", 0);
+        command.Parameters.AddWithValue("@agility", 0);
+        command.Parameters.AddWithValue("@constitution", 0);
+        command.Parameters.AddWithValue("@intelligence", 0);
+        command.Parameters.AddWithValue("@luck", 0);
+        command.Parameters.AddWithValue("@status", 0);
+        command.Parameters.AddWithValue("@creationTime", DateTime.UtcNow);
 
-    //    if(packet.SlotIndex > 2) {
-    //        account.SendClientMessage("SLOT_ERROR", 16, 0, 1);
-    //        return false;
-    //    }
 
-    //    if(packet.ClassIndex < 10) {
-    //        account.SendClientMessage("class_id error, try to create your toon again.", 16, 0, 1);
-    //        return false;
-    //    }
+        // Adicionar Item na tabela de itens e associar a conta
+        // command.Parameters.AddWithValue("@hair", character.Hair);
 
-    //    int classeChar = GetClassCategory(10);
+        command.Parameters.AddWithValue("@positionX", character.PositionX);
+        command.Parameters.AddWithValue("@positionY", character.PositionY);
 
-    //    if(packet.Cabelo < 7700 || packet.Cabelo > 7731)
-    //        return false;
-
-    //    // Move atributos iniciais para a database ao criar o personagem
-    //    account.Characters[packet.SlotIndex] = InitialAccounts[classeChar];
-    //    account.Characters[packet.SlotIndex].Base.Equip[0].Index = packet.ClassIndex;
-    //    account.Characters[packet.SlotIndex].Base.Equip[1].Index = packet.Cabelo;
-    //    account.Characters[packet.SlotIndex].Base.Inventory[60].Index = 5300;
-    //    account.Header.Storage.Items[80].Index = 5310;
-
-    //    SetInitialBullets(account, packet.SlotIndex, classeChar);
-
-    //    account.Characters[packet.SlotIndex].Base.CreationTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
-    //    account.Characters[packet.SlotIndex].Base.Name = packet.Name;
-
-    //    SetCharacterPosition(account, packet.SlotIndex, packet.Local);
-
-    //    Logger.Write($"{account.Account.Header.Username} criou um novo personagem [{packet.Name}].", LogType.ConnectionsTraffic);
-
-    //    if(!await account.SaveCreatedCharAsync(packet.Name, packet.SlotIndex)) {
-    //        account.Account.Characters[packet.SlotIndex] = new CharacterEntitie();
-    //        account.SendCharList();
-    //        return false;
-    //    }
-
-    //    await CheckReferralBonusAsync(account);
-
-    //    account.SendCharList();
-    //    return true;
-    //}
-
-    //private static int GetClassCategory(int classIndex) {
-    //    if(classIndex >= 10 && classIndex <= 19) return 0; // Warrior
-    //    if(classIndex >= 20 && classIndex <= 29) return 1; // Templar
-    //    if(classIndex >= 30 && classIndex <= 39) return 2; // Att
-    //    if(classIndex >= 40 && classIndex <= 49) return 3; // Dual
-    //    if(classIndex >= 50 && classIndex <= 59) return 4; // Mage
-    //    if(classIndex >= 60 && classIndex <= 69) return 5; // Cleric
-    //    return -1;
-    //}
+        return await command.ExecuteNonQueryAsync() > 0;
+    }
 
     //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {
     //    if(classCategory == 2) {
@@ -214,17 +189,6 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     //    player.Account.Characters[slotIndex].Base.Inventory[6].Index = bulletId;
     //    player.Account.Characters[slotIndex].Base.Inventory[6].APP = bulletId;
     //    player.Account.Characters[slotIndex].Base.Inventory[6].Refi = 1000;
-    //}
-
-    //private static void SetCharacterPosition(Player player, int slotIndex, int local) {
-    //    switch(local) {
-    //        case 0:
-    //        player.Account.Characters[slotIndex].LastPos = new Position(3450, 690);
-    //        break;
-    //        case 1:
-    //        player.Account.Characters[slotIndex].LastPos = new Position(3470, 935);
-    //        break;
-    //    }
     //}
 
     //private static async Task CheckReferralBonusAsync(Player player) {

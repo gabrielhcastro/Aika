@@ -1,29 +1,32 @@
 ﻿using GameServer.Core.Base;
 using Shared.Handlers;
+using Shared.Models.Account;
 using Shared.Models.Character;
 using System.IO;
 using System.Text;
 
 namespace GameServer.Handlers.Packet;
 public static class PacketHandler {
-    public static async Task HandlePacket(Session session, StreamHandler packet) {
-        packet.ReadInt32();
-        var sender = packet.ReadUInt16();
-        var opcode = packet.ReadUInt16();
-        packet.ReadInt32();
+    public static async Task HandlePacket(Session session, StreamHandler stream) {
+        stream.ReadInt32();
+        var sender = stream.ReadUInt16();
+        var opcode = stream.ReadUInt16();
+        stream.ReadInt32();
 
         Console.WriteLine($"Opcode received: {opcode}, Sender: {sender}");
 
+
         switch(opcode) {
             case 0x81:
-            await HandleLogin(session, packet);
+            await HandleLogin(session, stream);
             break;
             case 0x685:
-            await SendToCharactersList(session, packet);
+            await SendToCharactersList(session, stream);
             break;
+            // TO-DO: VERIFICAR NUMERICA
             case 0x39D:
             Console.WriteLine("OPCODE: 925");
-            Console.WriteLine(BitConverter.ToString(packet));
+            Console.WriteLine(BitConverter.ToString(stream));
             break;
             case 0x305:
             UpdateRotation(session);
@@ -35,12 +38,12 @@ public static class PacketHandler {
             SendToWorldSends(session);
             break;
             case 0x3E04:
-            Console.WriteLine("Packet Data: {0}", BitConverter.ToString(packet));
-            CreateCharacter(session, packet);
+            Console.WriteLine("Packet Data: {0}", BitConverter.ToString(stream));
+            await CreateCharacter(session, stream);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
-            Console.WriteLine("Packet Data: {0} -> {1}", packet.Count, BitConverter.ToString(packet));
+            Console.WriteLine("Packet Data: {0} -> {1}", stream.Count, BitConverter.ToString(stream));
             break;
         }
     }
@@ -74,14 +77,20 @@ public static class PacketHandler {
 
     private static async Task SendToCharactersList(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
-        _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
+        session.Username = username;
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
-            Console.WriteLine("Login falhou: Conta não encontrada.");
+            Console.WriteLine("Conta não encontrada.");
             return;
         }
 
+        await MapCharacters(session, account);
+
+        Console.WriteLine($"OK -> ChararactersList");
+    }
+
+    private static async Task MapCharacters(Session session,AccountEntitie account) {
         account.Characters = await DatabaseHandler.GetCharactersByAccountIdAsync(account.Id);
 
         var packet = PacketFactory.CreateHeader(0x901);
@@ -159,8 +168,6 @@ public static class PacketHandler {
         session.SendPacket(packetData);
 
         PacketPool.Return(packet);
-
-        Console.WriteLine($"OK -> ChararactersList");
     }
 
     //TO-DO: Mapear Personagem e adicionar na sessão o personagem ativo
@@ -353,51 +360,48 @@ public static class PacketHandler {
         PacketPool.Return(packet);
     }
 
-    private static async Task CreateCharacter(Session session, StreamHandler packet) {
+    // TO-DO: Salvar no banco de dados
+    private static async Task CreateCharacter(Session session, StreamHandler stream) {
         CharacterEntitie character = new() {
-            OwnerAccountId = BitConverter.ToUInt32(packet.ReadBytes(4), 0) // accountId
+            OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0) // accountId
         };
 
-        var account = await DatabaseHandler.GetAccountByUsernameAsync(character.OwnerAccountId.ToString());
+        var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
         if(account == null) {
-            Console.WriteLine("Login falhou: Conta não encontrada.");
+            Console.WriteLine("Conta não encontrada.");
             return;
         }
 
-        var slot = BitConverter.ToUInt32(packet.ReadBytes(4), 0); // slotIndex
-        if(account.Characters.Count == 3 && slot > 2) {
+        var slot = BitConverter.ToUInt32(stream.ReadBytes(4), 0); // slotIndex
+        if(account?.Characters?.Count == 3 || slot > 2) {
             SendClientMessage(session, 16, 0, "SLOT_ERROR ou Você já tem 3 personagens.");
             return;
         }
-        else {
-            character.Slot = slot;
-        }
 
-        // TO-DO: Verificar se o nome já existe
-        var name = Encoding.ASCII.GetString(packet.ReadBytes(16)).TrimEnd('\0');
+        character.Slot = slot;
+
+        // TO-DO: Verificar se o nome já existe e se contem caracteres permitidos
+        var name = Encoding.ASCII.GetString(stream.ReadBytes(16)).TrimEnd('\0');
         if(name.Length > 14) {
             SendClientMessage(session, 16, 0, "Limitado a 14 caracteres apenas.");
             return;
         }
-        else {
-            character.Name = name;
-        }
+        
+        character.Name = name;
 
-        var ClassInfo = BitConverter.ToUInt16(packet.ReadBytes(2), 0);
+        var ClassInfo = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
         if(ClassInfo < 10 && ClassInfo > 69)
             SendClientMessage(session, 16, 0, "Classe fora dos limites.");
-        else {
-            character.ClassInfo = ClassInfo;
-        }
+            
+        character.ClassInfo = ClassInfo;
 
-
-        var hair = BitConverter.ToUInt16(packet.ReadBytes(2), 0);
+        var hair = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
         if(hair < 7700 || hair > 7731) // Proteção Criar Itens
             SendClientMessage(session, 16, 0, "Cabelo fora dos limites.");
 
-        _ = Encoding.ASCII.GetString(packet.ReadBytes(12)).TrimEnd('\0');
+        _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
-        var local = BitConverter.ToUInt32(packet.ReadBytes(4), 0);
+        var local = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
         if(local == 0) { // Regenshien
             character.PositionX = 3450;
             character.PositionY = 690;
@@ -407,8 +411,14 @@ public static class PacketHandler {
             character.PositionY = 935;
         }
 
-        Console.WriteLine($"AccountId: {character.Id}, SlotIndex: {character.Slot}, Name: {character.Name}, ClassIndex: {character.ClassInfo}\n" +
-                          $"Hair: {hair}, Local: X -> {character.PositionX} Y -> {character.PositionY}");
-    }
+        bool success = await DatabaseHandler.CreateCharacterAsync(character, account.Id);
+        if(!success) {
+            SendClientMessage(session, 16, 0, "Erro ao criar personagem.");
+            return;
+        }
 
+        Console.WriteLine($"Personagem criado: {character.Name} no slot {character.Slot}");
+
+        await MapCharacters(session, account);
+    }
 }
