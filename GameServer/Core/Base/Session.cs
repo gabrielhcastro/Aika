@@ -1,4 +1,5 @@
 using NLog;
+using Shared.Models.Character;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
@@ -23,6 +24,7 @@ public class Session : IDisposable {
     public IPAddress Ip { get; }
     public DateTime LastActivity { get; set; }
     public string Username { get; set; }
+    public CharacterEntitie Character { get; set; }
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;

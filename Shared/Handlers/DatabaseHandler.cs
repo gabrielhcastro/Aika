@@ -190,17 +190,4 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     //    player.Account.Characters[slotIndex].Base.Inventory[6].APP = bulletId;
     //    player.Account.Characters[slotIndex].Base.Inventory[6].Refi = 1000;
     //}
-
-    //private static async Task CheckReferralBonusAsync(Player player) {
-    //    using var connection = await DatabaseHandler.GetConnectionAsync();
-    //    using var command = new MySqlCommand(
-    //        "SELECT COALESCE(av.referrer, '') FROM account_validate av INNER JOIN accounts a ON a.mail = av.email WHERE a.id = @accountId",
-    //        connection);
-    //    command.Parameters.AddWithValue("@accountId", player.Account.Header.AccountId);
-
-    //    using var reader = await command.ExecuteReaderAsync();
-    //    if(await reader.ReadAsync() && !string.IsNullOrEmpty(reader.GetString(0))) {
-    //        ItemFunctions.PutItemOnEvent(player, 4357, 500);
-    //    }
-    //}
 }

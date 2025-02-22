@@ -20,6 +20,7 @@ public class SessionHandler : Singleton<SessionHandler> {
     public void RemoveSession(Session session) {
         Console.WriteLine("Session Removed: {0}", session.Id);
         _sessions.TryRemove(session.Id, out _);
+        session.Character = null;
         session.Close();
     }
 
