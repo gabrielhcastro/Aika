@@ -3,14 +3,9 @@ using System.Text.Json;
 
 namespace TokenServer.Handlers.Middleware;
 
-public class ExceptionMiddleware {
-    private readonly RequestDelegate _next;
-    private readonly ILogger<ExceptionMiddleware> _logger;
-
-    public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger) {
-        _next = next;
-        _logger = logger;
-    }
+public class ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger) {
+    private readonly RequestDelegate _next = next;
+    private readonly ILogger<ExceptionMiddleware> _logger = logger;
 
     public async Task InvokeAsync(HttpContext context) {
         try {

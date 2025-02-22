@@ -19,6 +19,7 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         return connection;
     }
 
+    // TO-DO: USAR O PASSWORD HASH?
     /// <summary>
     /// Obtém uma conta pelo nome de usuário.
     /// </summary>
@@ -41,7 +42,7 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     }
 
     /// <summary>
-    /// Obtém os personagens de uma conta pelo id da conta.
+    /// Recupera personagens através da ID da conta.
     /// </summary>
     public static async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(int accountId) {
         List<CharacterEntitie> characters = [];
@@ -130,6 +131,9 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         };
     }
 
+    /// <summary>
+    /// Registra o personagem na database.
+    /// </summary>
     public static async Task<bool> CreateCharacterAsync(CharacterEntitie character,int accountId) {
         await using var connection = await GetConnectionAsync();
         await using var command = new MySqlCommand(

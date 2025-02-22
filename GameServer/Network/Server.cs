@@ -38,7 +38,6 @@ public class Server : INetwork {
     }
 
     public async Task StartPeriodicRecicle() {
-        // Reciclagem de buffer (1 hora)
         await Task.Run(async () => {
             while(IsStarted) {
                 await Task.Delay(TimeSpan.FromHours(1));

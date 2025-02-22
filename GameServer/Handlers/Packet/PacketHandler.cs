@@ -29,8 +29,7 @@ public static class PacketHandler {
             case 0x39D:
             break;
             case 0xF02:
-            //await HandleSendToWorld(session, stream);
-            SendClientMessage(session, 16, 0, "Em desenvolvimento.");
+            await HandleSendToWorld(session, stream);
             break;
             case 0xF0B:
             await SendToWorldSends(session);
@@ -77,7 +76,7 @@ public static class PacketHandler {
 
     private static async Task HandleLoginCharactersList(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
-        session.Username = username;
+        _ = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0'); // Password
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(username);
         if(account == null) {
@@ -85,7 +84,9 @@ public static class PacketHandler {
             return;
         }
 
-        await SendToCharacterList(session, account);
+        account.Characters = new();
+
+        SendToCharacterList(session, account);
 
         Console.WriteLine($"OK -> ChararactersList");
     }
@@ -148,11 +149,11 @@ public static class PacketHandler {
 
         Console.WriteLine($"Personagem criado: {character.Name} no slot {character.Slot}");
 
-        await SendToCharacterList(session, account);
+        SendToCharacterList(session, account);
     }
 
-    private static async Task SendToCharacterList(Session session, AccountEntitie account) {
-        account.Characters = await DatabaseHandler.GetCharactersByAccountIdAsync(account.Id);
+    private static void SendToCharacterList(Session session, AccountEntitie account) {
+        account.Characters = DatabaseHandler.GetCharactersByAccountIdAsync(account.Id).Result;
 
         var packet = PacketFactory.CreateHeader(0x901);
 
@@ -206,6 +207,7 @@ public static class PacketHandler {
 
             packet.Write(new byte[4]); // Null
 
+            // TO-DO: LIDAR COM PERSONAGEM APAGANDO
             if(character != null) {
                 packet.Write((uint)character.Deleted); // Deleted?
             }
@@ -215,11 +217,16 @@ public static class PacketHandler {
 
             packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
 
-            packet.Write(true); // Numeric Registered?
+            if(character?.NumericToken?.Length != null) {
+                packet.Write(true); // Numeric Registered?
+            }
+            else {
+                packet.Write(false);
+            }
 
             packet.Write(new byte[6]); // NotUse
 
-            if(!string.IsNullOrEmpty(character?.Name))
+            if(!string.IsNullOrEmpty(character?.Name)) // Assume que o personagem existe se tiver nome (Melhorar?!)
                 Console.WriteLine($"Character: {character.Name} -> Carregado");
         }
 
@@ -227,6 +234,7 @@ public static class PacketHandler {
         EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packetData);
+        session.Username = account.Username;
 
         PacketPool.Return(packet);
     }
@@ -234,8 +242,8 @@ public static class PacketHandler {
     // TO-DO: Mapear Personagem e adicionar na sessão o personagem ativo
     // Tratar registro e troca de numerica
     private static async Task HandleSendToWorld(Session session, StreamHandler stream) {
-        var characterSlot = BitConverter.ToString(stream.ReadBytes(4), 0)[0];
-        var numericRequestChange = BitConverter.ToString(stream.ReadBytes(4), 0)[0];
+        var characterSlot = stream.ReadBytes(4)[0];
+        var numericRequestChange = stream.ReadBytes(4)[0];
         var numeric1 = Encoding.ASCII.GetString(stream.ReadBytes(4));
         var numeric2 = Encoding.ASCII.GetString(stream.ReadBytes(4));
 
@@ -245,10 +253,10 @@ public static class PacketHandler {
             return;
         }
 
-        var character = account.Characters.ToList()[characterSlot];
+        var character = DatabaseHandler.GetCharactersByAccountIdAsync(account.Id).Result[characterSlot];
 
-        //if(charactersList[characterSlot] == null)
-        //    return;
+        if(character == null)
+            return;
 
         if(numericRequestChange == '0' && string.IsNullOrEmpty(character.NumericToken)) {
             // TO-DO: Salvar no banco de dados
@@ -321,14 +329,15 @@ public static class PacketHandler {
         for(int i = 0; i < 10; i++)
             packet.Write((byte)0); // Null_2
 
+        // Calculados dinamicamente?!
         packet.Write((ushort)0); // Critical
         packet.Write((byte)0); // Miss
         packet.Write((byte)0); // Accuracy
 
         packet.Write((ushort)0);     // Null_3
 
-        packet.Write((Int64)1);    // Exp
-        packet.Write((ushort)1);     // Level
+        packet.Write((Int64)character.Experience);    // Exp
+        packet.Write((ushort)character.Level);     // Level
         packet.Write((ushort)0);     // GuildIndex
 
         packet.Write(new byte[32]);  // Null_4
@@ -355,8 +364,6 @@ public static class PacketHandler {
             packet.Write((byte)0); // Max
             packet.Write((ushort)0); // Refine
             packet.Write((ushort)0); // Time
-
-
         }
 
         packet.Write((ushort)0);  // Null_5
@@ -379,7 +386,7 @@ public static class PacketHandler {
             packet.Write((ushort)0); // Time
         }
 
-        packet.Write((Int64)0);  // Gold
+        packet.Write((uint)character.Gold);  // Gold
 
         // Unk_2
         for(int i = 0; i < 192; i++) {
@@ -449,8 +456,9 @@ public static class PacketHandler {
         for(int i = 0; i < 48; i++)
             packet.Write((ushort)0); // TitleProgressType8
 
-        packet.Write((ushort)0); // TitleProgressType9[0]
-        packet.Write((ushort)0); // TitleProgressType9[1]
+        for(int i = 0; i < 2; i++)
+            packet.Write((ushort)0); // TitleProgressType9
+
         packet.Write((ushort)0); // TitleProgressType4
         packet.Write((ushort)0); // TitleProgressType10
         packet.Write((ushort)0); // TitleProgressType7
@@ -500,20 +508,22 @@ public static class PacketHandler {
 
         PacketPool.Return(packet);
 
+        session.ActiveCharacter = character;
+
         Console.WriteLine($"OK -> ChararactersList");
     }
 
     //TO-DO: Enviar atributos do mundo para o personagem
     private static async Task SendToWorldSends(Session session) {
-        //if(session.Character == null) {
-        //    SendClientMessage(session, 16, 0, "Erro ao carregar personagem.");
-        //    return;
-        //}
+        if(session.ActiveCharacter == null) {
+            SendClientMessage(session, 16, 0, "Erro ao carregar personagem.");
+            return;
+        }
 
-        //Console.WriteLine($"Carregando personagem {session.Character.Name}...");
+        Console.WriteLine($"Carregando personagem {session.ActiveCharacter.Name}...");
 
-        // Enviar criação do personagem no mundo
-        //CreateCharacterMob(session, 0, 1);
+        //Enviar criação do personagem no mundo
+        CreateCharacterMob(session, 0, 1);
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -580,7 +590,7 @@ public static class PacketHandler {
 
         var packet = PacketFactory.CreateHeader(0x35E, (ushort)mobId);
 
-        packet.Write(Encoding.ASCII.GetBytes(session?.Character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
+        packet.Write(Encoding.ASCII.GetBytes(session?.ActiveCharacter?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
 
         for(int i = 0; i < 8; i++) {
             packet.Write((ushort)0); // TO-DO: Equips
@@ -591,23 +601,23 @@ public static class PacketHandler {
         }
 
         // Talvez seja assim!?
-        packet.Write((Single)session.Character.PositionX);
-        packet.Write((Single)session.Character.PositionY);
+        packet.Write((Single)session.ActiveCharacter.PositionX);
+        packet.Write((Single)session.ActiveCharacter.PositionY);
 
-        packet.Write((uint)session.Character.Rotation);
-        packet.Write((uint)session.Character.MaxHealth);
-        packet.Write((uint)session.Character.MaxMana);
-        packet.Write((uint)session.Character.CurrentHealth);
-        packet.Write((uint)session.Character.CurrentMana);
+        packet.Write((uint)session.ActiveCharacter.Rotation);
+        packet.Write((uint)session.ActiveCharacter.MaxHealth);
+        packet.Write((uint)session.ActiveCharacter.MaxMana);
+        packet.Write((uint)session.ActiveCharacter.CurrentHealth);
+        packet.Write((uint)session.ActiveCharacter.CurrentMana);
 
         packet.Write((byte)0); // Unk
 
-        packet.Write((byte)session.Character.SpeedMove);
+        packet.Write((byte)session.ActiveCharacter.SpeedMove);
         packet.Write(spawnType); // TO-DO: SpawnType
-        packet.Write((byte)session.Character.Height);
-        packet.Write((byte)session.Character.Trunk);
-        packet.Write((byte)session.Character.Leg);
-        packet.Write((byte)session.Character.Body);
+        packet.Write((byte)session.ActiveCharacter.Height);
+        packet.Write((byte)session.ActiveCharacter.Trunk);
+        packet.Write((byte)session.ActiveCharacter.Leg);
+        packet.Write((byte)session.ActiveCharacter.Body);
         packet.Write(false); // IsService 
 
         packet.Write((ushort)0); // TO-DO: EffectType
@@ -656,15 +666,15 @@ public static class PacketHandler {
             return;
         }
 
-        await SendToCharacterList(session, account);
+        SendToCharacterList(session, account);
     }
 
     //TO-DO: Deixar visivel para todos/proximos
     private static void UpdateRotation(StreamHandler stream, Session session) {
-        if(session.Character.Rotation == stream.ReadUInt32())
+        if(session.ActiveCharacter.Rotation == stream.ReadUInt32())
             return;
 
-        session.Character.Rotation = stream.ReadUInt32();
+        session.ActiveCharacter.Rotation = stream.ReadUInt32();
     }
 
     private static void SendClientMessage(Session session, byte type1, byte type2, string message) {
