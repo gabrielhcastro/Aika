@@ -3,6 +3,8 @@ using Shared.Core.Instance;
 using Shared.Models.Account;
 using Shared.Models.Character;
 using System.Data;
+using System.Reflection.PortableExecutable;
+using System.Xml.Linq;
 
 namespace Shared.Handlers;
 public class DatabaseHandler : Singleton<DatabaseHandler> {
@@ -172,6 +174,15 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         command.Parameters.AddWithValue("@positionY", character.PositionY);
 
         return await command.ExecuteNonQueryAsync() > 0;
+    }
+
+    public static async Task<bool> VerifyIfCharacterNameExistsAsync(string name) {
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("SELECT * FROM characters WHERE name = @name", connection);
+        command.Parameters.AddWithValue("@name", name);
+
+        var result = await command.ExecuteScalarAsync();
+        return Convert.ToInt32(result) > 0;
     }
 
     //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {

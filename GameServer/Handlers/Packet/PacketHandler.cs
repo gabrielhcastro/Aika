@@ -5,6 +5,7 @@ using Shared.Models.Character;
 using System.IO;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace GameServer.Handlers.Packet;
 public static class PacketHandler {
@@ -93,7 +94,6 @@ public static class PacketHandler {
         session.SessionAccount = account;
     }
 
-    // TO-DO: Verificar se o nome já existe e se contem caracteres permitidos
     private static async Task HandleCreateCharacter(Session session, StreamHandler stream) {
         CharacterEntitie character = new() {
             OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0)
@@ -101,13 +101,18 @@ public static class PacketHandler {
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
         if(account == null) {
-            Console.WriteLine("Conta não encontrada.");
+            Console.WriteLine("Conta não encontrada");
             return;
         }
 
         var slot = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
-        if(account?.Characters?.Count == 3 || slot > 2) {
-            SendClientMessage(session, 16, 0, "SLOT_ERROR ou Você já tem 3 personagens.");
+        if(slot > 2) {
+            SendClientMessage(session, 16, 0, "SLOT_ERROR");
+            return;
+        }
+        
+        if(account?.Characters?.Count == 3) {
+            SendClientMessage(session, 16, 0, "Quantidade maxima de personagens");
             return;
         }
 
@@ -115,7 +120,20 @@ public static class PacketHandler {
 
         var name = Encoding.ASCII.GetString(stream.ReadBytes(16)).TrimEnd('\0');
         if(name.Length > 14) {
-            SendClientMessage(session, 16, 0, "Limitado a 14 caracteres apenas.");
+            SendClientMessage(session, 16, 0, "Limite de 14 caracteres");
+            return;
+        }
+
+        var pattern = @"^[A-Za-z][A-Za-z0-9]*$";
+        if(!Regex.IsMatch(name, pattern)) {
+            SendClientMessage(session, 16, 0, "Somente caracters alfanumericos");
+            return;
+        }
+
+        var nameExists = DatabaseHandler.VerifyIfCharacterNameExistsAsync(name).Result;
+
+        if(nameExists) {
+            SendClientMessage(session, 16, 0, "Nome em uso");
             return;
         }
 
@@ -123,13 +141,13 @@ public static class PacketHandler {
 
         var ClassInfo = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
         if(ClassInfo < 10 && ClassInfo > 69)
-            SendClientMessage(session, 16, 0, "Classe fora dos limites.");
+            SendClientMessage(session, 16, 0, "Classe fora dos limites");
 
         character.ClassInfo = ClassInfo;
 
         var hair = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
         if(hair < 7700 || hair > 7731) // Proteção Criar Itens
-            SendClientMessage(session, 16, 0, "Cabelo fora dos limites.");
+            SendClientMessage(session, 16, 0, "Cabelo fora dos limites");
 
         _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
@@ -145,7 +163,7 @@ public static class PacketHandler {
 
         bool success = await DatabaseHandler.CreateCharacterAsync(character, account.Id);
         if(!success) {
-            SendClientMessage(session, 16, 0, "Erro ao criar personagem.");
+            SendClientMessage(session, 16, 0, "Erro ao criar personagem");
             return;
         }
 
@@ -514,7 +532,7 @@ public static class PacketHandler {
     //TO-DO: Enviar atributos do mundo para o personagem
     private static void SendToWorldSends(Session session) {
         if(session.ActiveCharacter == null) {
-            SendClientMessage(session, 16, 0, "Erro ao carregar personagem.");
+            SendClientMessage(session, 16, 0, "Erro ao carregar personagem");
             return;
         }
 
