@@ -27,16 +27,19 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     /// </summary>
     public static async Task<AccountEntitie> GetAccountByUsernameAsync(string username) {
         await using var connection = await GetConnectionAsync();
-        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE username = @username", connection);
+        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE username = @username LIMIT 1", connection);
         command.Parameters.AddWithValue("@username", username);
 
         await using var reader = await command.ExecuteReaderAsync();
         return await reader.ReadAsync() ? MapAccount(reader) : null;
     }
 
+    /// <summary>
+    /// Deixa ai vai que um dia precisa né...
+    /// </summary>
     public static async Task<AccountEntitie> GetAccountByIdAsync(uint id) {
         await using var connection = await GetConnectionAsync();
-        await using var command = new MySqlCommand("SELECT * FROM accounts WHERE id = @id", connection);
+        await using var command = new MySqlCommand("SELECT 1 FROM accounts WHERE id = @id LIMIT 1", connection);
         command.Parameters.AddWithValue("@id", id);
 
         await using var reader = await command.ExecuteReaderAsync();
@@ -134,7 +137,7 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     }
 
     /// <summary>
-    /// Registra o personagem na database.
+    /// Registra o personagem.
     /// </summary>
     public static async Task<bool> CreateCharacterAsync(CharacterEntitie character,int accountId) {
         await using var connection = await GetConnectionAsync();
@@ -176,13 +179,28 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         return await command.ExecuteNonQueryAsync() > 0;
     }
 
+    /// <summary>
+    /// Verifica se o nome do personagem já existe.
+    /// </summary>
     public static async Task<bool> VerifyIfCharacterNameExistsAsync(string name) {
         await using var connection = await GetConnectionAsync();
-        await using var command = new MySqlCommand("SELECT * FROM characters WHERE name = @name", connection);
+        await using var command = new MySqlCommand("SELECT 1 FROM characters WHERE name = @name LIMIT 1", connection);
         command.Parameters.AddWithValue("@name", name);
 
         var result = await command.ExecuteScalarAsync();
         return Convert.ToInt32(result) > 0;
+    }
+
+    /// <summary>
+    /// Salva ou atualiza a numérica do personagem.
+    /// </summary>
+    public static async Task<bool> SaveCharacterNumeric(string characterName, string numeric, int numericErrors) {
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("UPDATE characters SET numericToken = @numericToken, numericErrors = @numericErrors WHERE name = @name", connection);
+        command.Parameters.AddWithValue("@numericToken", numeric);
+        command.Parameters.AddWithValue("@numericErrors", numericErrors);
+        command.Parameters.AddWithValue("@name", characterName);
+        return await command.ExecuteNonQueryAsync() > 0;
     }
 
     //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {

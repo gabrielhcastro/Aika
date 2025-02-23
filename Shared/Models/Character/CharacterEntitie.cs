@@ -1,4 +1,6 @@
-﻿using System.Collections.Concurrent;
+﻿using Shared.Models.Item;
+using Shared.Models.World;
+using System.Collections.Concurrent;
 
 namespace Shared.Models.Character;
 public class CharacterEntitie {
@@ -12,7 +14,6 @@ public class CharacterEntitie {
     public uint SpeedMove { get; set; }
     public uint Rotation { get; set; }
     public string LastLogin { get; set; }
-    public uint LoggedTime { get; set; }
     public byte PlayerKill { get; set; }
     public uint ClassInfo { get; set; }
     public uint FirstLogin { get; set; }
@@ -60,7 +61,8 @@ public class CharacterEntitie {
     public uint Accuracy { get; set; }
 
     public ushort[] Skills { get; set; }
-    public Item[] Itens { get; set; }
-    public Item[] Equips { get; set; }
+    public ItemEntitie[] Itens { get; set; }
+    public ItemEntitie[] Equips { get; set; }
     public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
+    public Position Position { get; set; }
 }

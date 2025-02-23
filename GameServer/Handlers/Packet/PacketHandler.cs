@@ -2,8 +2,6 @@
 using Shared.Handlers;
 using Shared.Models.Account;
 using Shared.Models.Character;
-using System.IO;
-using System.Reflection.PortableExecutable;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -85,7 +83,7 @@ public static class PacketHandler {
             return;
         }
 
-        account.Characters = new();
+        account.Characters = [];
 
         SendToCharacterList(session, account);
 
@@ -236,15 +234,16 @@ public static class PacketHandler {
             }
 
             packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
+            //packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
 
-            if(character?.NumericToken?.Length != null) {
+            if(!string.IsNullOrEmpty(character?.NumericToken)) {
                 packet.Write(true); // Numeric Registered?
             }
             else {
                 packet.Write(false);
             }
 
-            packet.Write(new byte[6]); // NotUse
+            packet.Write(new byte[6]); // NotUse (Possivelmente Delet Remain Time?!)
 
             if(!string.IsNullOrEmpty(character?.Name)) // Assume que o personagem existe se tiver nome (Melhorar?!)
                 Console.WriteLine($"Character: {character.Name} -> Carregado");
@@ -259,8 +258,8 @@ public static class PacketHandler {
         PacketPool.Return(packet);
     }
 
-    // TO-DO: Mapear Personagem e adicionar na sessão o personagem ativo
-    // Tratar registro e troca de numerica
+    // TO-DO: Mapear Personagem (Item, Buffs...)
+    // Tratar erro de numericas
     private static void HandleSendToWorld(Session session, StreamHandler stream) {
         var characterSlot = stream.ReadBytes(4)[0];
         var numericRequestChange = stream.ReadBytes(4)[0];
@@ -274,19 +273,36 @@ public static class PacketHandler {
         if(character == null)
             return;
 
-        if(numericRequestChange == '0' && string.IsNullOrEmpty(character.NumericToken)) {
-            // TO-DO: Salvar no banco de dados
+        if(numericRequestChange == 0 && string.IsNullOrEmpty(character?.NumericToken)) {
             character.NumericToken = numeric1;
             character.NumericErrors = 0;
+            var numericSaved = DatabaseHandler.SaveCharacterNumeric(character.Name, numeric1, (int)character.NumericErrors).Result;
+
+            if(!numericSaved)
+                Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
+            
+            Console.WriteLine($"{character.Name} -> Numérica Registrada!");
         }
-        else if(numericRequestChange == '1' && character.NumericToken == numeric1) {
-            // Verificando a numerica
+        else if(numericRequestChange == 1 && character.NumericToken == numeric1) {
             // TO-DO: Mapear e enviar para o mundo
+            Console.WriteLine($"{character.Name} -> Numérica Correta!");
         }
-        else if(numericRequestChange == '2' && character.NumericToken == numeric2) {
-            // TO-DO: Salvar no banco de dados
+        else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
             character.NumericErrors = 0;
+            var numericaSaved = DatabaseHandler.SaveCharacterNumeric(character.Name, numeric1, (int)character.NumericErrors).Result;
+
+            if(!numericaSaved)
+                Console.WriteLine($"{character.Name} -> Erro ao trocar numérica!");
+
+            Console.WriteLine($"{character.Name} -> Numérica Alterada!");
+        }
+        else {
+            Console.WriteLine($"{character.Name} -> Numérica errada!");
+            SendToCharacterList(session, account);
+            SendClientMessage(session, 16, 0, "Numerica incorreta");
+            character.NumericErrors++;
+            return;
         }
 
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
@@ -297,7 +313,7 @@ public static class PacketHandler {
         packet.Write((byte)character.FirstLogin); // First Login
         packet.Write((uint)character.Id); // CharacterId
 
-        packet.Write(Encoding.ASCII.GetBytes("Vitor".PadRight(16, '\0'))); // Name
+        packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0'))); // Name
 
         packet.Write((byte)account.Nation); // Nation
         packet.Write((byte)character.ClassInfo); // Classe
@@ -527,6 +543,32 @@ public static class PacketHandler {
         session.ActiveCharacter = character;
 
         Console.WriteLine($"OK -> HandleSendToWorld");
+
+        Teleport(session, character.PositionX, character.PositionY);
+    }
+
+    private static void Teleport(Session session, uint positionX, uint positionY) {
+        var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveCharacter.OwnerAccountId);
+
+        packet.Write((Single)positionX);
+        packet.Write((Single)positionY);
+
+        for(int i = 0;i < 6;i++)
+            packet.Write((byte)0);
+            
+        packet.Write((byte)1); // Move Type
+        packet.Write((byte)0); // Speed 
+        packet.Write((uint)0); // Unk_0
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine($"OK -> Teleport x: {positionX} y: {positionY}");
     }
 
     //TO-DO: Enviar atributos do mundo para o personagem
