@@ -2,8 +2,11 @@
 using Shared.Core.Instance;
 using Shared.Models.Account;
 using Shared.Models.Character;
+using Shared.Models.Item;
 using System.Data;
+using System.Data.Common;
 using System.Reflection.PortableExecutable;
+using System.Transactions;
 using System.Xml.Linq;
 
 namespace Shared.Handlers;
@@ -58,11 +61,43 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
 
         await using var reader = await command.ExecuteReaderAsync();
         while(await reader.ReadAsync()) {
-            characters.Add(MapCharacter(reader));
+            var character = MapCharacter(reader);
+
+            character.Equips = await GetCharacterEquips(character.Id);
+
+            characters.Add(character);
         }
 
         return characters;
     }
+
+    public static async Task<List<ItemEntitie>> GetCharacterEquips(uint characterId) {
+        List<ItemEntitie> equips = new();
+
+        await using var connection = await GetConnectionAsync();
+        await using var command = new MySqlCommand("SELECT * FROM itens WHERE ownerId = @characterId AND slotType = 1", connection);
+        command.Parameters.AddWithValue("@characterId", characterId);
+
+        await using var reader = await command.ExecuteReaderAsync();
+        while(await reader.ReadAsync()) {
+            ItemEntitie equip = new() {
+                OwnerId = reader.GetUInt32("ownerId"),
+                Slot = reader.GetByte("slot"),
+                SlotType = reader.GetByte("slotType"),
+                Id = reader.GetUInt32("itemId"),
+                App = reader.GetUInt32("app"),
+                MinimalValue = reader.GetUInt32("minimalItemValue"),
+                MaxValue = reader.GetUInt32("maxItemValue"),
+                Refine = reader.GetUInt16("refine"),
+                Time = reader.GetUInt32("time")
+            };
+
+            equips.Add(equip);
+        }
+
+        return equips;
+    }
+
 
     /// <summary>
     /// Mapeia a conta.
@@ -139,47 +174,107 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
     /// <summary>
     /// Registra o personagem.
     /// </summary>
-    public static async Task<bool> CreateCharacterAsync(CharacterEntitie character,int accountId) {
+    public static async Task<bool> CreateCharacterAsync(CharacterEntitie character, int accountId) {
         await using var connection = await GetConnectionAsync();
-        await using var command = new MySqlCommand(
-            "INSERT INTO characters (id, ownerAccountId, name, slot, classInfo, positionX, positionY, height, trunk, leg, body, level, experience," +
-            "strength, agility, constitution, intelligence, luck, status, creationTime, numericErrors, speedMove, firstLogin) " +
-            "VALUES (@id, @ownerAccountId, @name, @slot, @classInfo, @positionX, @positionY, @height, @trunk, @leg, @body, @level, @experience," +
-            "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime, @numericErrors, @speedMove, @firstLogin);", connection);
+        await using var transaction = await connection.BeginTransactionAsync();
 
-        command.Parameters.AddWithValue("@id", character.Id);
-        command.Parameters.AddWithValue("@ownerAccountId", accountId);
-        command.Parameters.AddWithValue("@name", character.Name);
-        command.Parameters.AddWithValue("@slot", character.Slot);
-        command.Parameters.AddWithValue("@classInfo", character.ClassInfo);
-        command.Parameters.AddWithValue("@numericErrors", character.NumericErrors);
-        command.Parameters.AddWithValue("@speedMove", character.SpeedMove);
-        command.Parameters.AddWithValue("@firstLogin", character.FirstLogin);
+        try {
+            await using var command = new MySqlCommand(
+                "INSERT INTO characters (ownerAccountId, name, slot, classInfo, positionX, positionY, height, trunk, leg, body, level, experience," +
+                "strength, agility, constitution, intelligence, luck, status, creationTime, numericErrors, speedMove, firstLogin) " +
+                "VALUES (@ownerAccountId, @name, @slot, @classInfo, @positionX, @positionY, @height, @trunk, @leg, @body, @level, @experience," +
+                "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime, @numericErrors, @speedMove, @firstLogin); " +
+                "SELECT LAST_INSERT_ID();",
+                connection, transaction
+            );
 
-        command.Parameters.AddWithValue("@height", 7);
-        command.Parameters.AddWithValue("@trunk", 119);
-        command.Parameters.AddWithValue("@leg", 119);
-        command.Parameters.AddWithValue("@body", 0);
-        
-        command.Parameters.AddWithValue("@level", 0);
-        command.Parameters.AddWithValue("@experience", 0);
+            command.Parameters.AddWithValue("@ownerAccountId", accountId);
+            command.Parameters.AddWithValue("@name", character.Name);
+            command.Parameters.AddWithValue("@slot", character.Slot);
+            command.Parameters.AddWithValue("@classInfo", character.ClassInfo);
+            command.Parameters.AddWithValue("@positionX", character.PositionX);
+            command.Parameters.AddWithValue("@positionY", character.PositionY);
+            command.Parameters.AddWithValue("@height", 7);
+            command.Parameters.AddWithValue("@trunk", 119);
+            command.Parameters.AddWithValue("@leg", 119);
+            command.Parameters.AddWithValue("@body", 0);
+            command.Parameters.AddWithValue("@level", 0);
+            command.Parameters.AddWithValue("@experience", 0);
+            command.Parameters.AddWithValue("@strength", 0);
+            command.Parameters.AddWithValue("@agility", 0);
+            command.Parameters.AddWithValue("@constitution", 0);
+            command.Parameters.AddWithValue("@intelligence", 0);
+            command.Parameters.AddWithValue("@luck", 0);
+            command.Parameters.AddWithValue("@status", 0);
+            command.Parameters.AddWithValue("@creationTime", DateTime.UtcNow);
+            command.Parameters.AddWithValue("@numericErrors", character.NumericErrors);
+            command.Parameters.AddWithValue("@speedMove", character.SpeedMove);
+            command.Parameters.AddWithValue("@firstLogin", character.FirstLogin);
 
-        command.Parameters.AddWithValue("@strength", 0);
-        command.Parameters.AddWithValue("@agility", 0);
-        command.Parameters.AddWithValue("@constitution", 0);
-        command.Parameters.AddWithValue("@intelligence", 0);
-        command.Parameters.AddWithValue("@luck", 0);
-        command.Parameters.AddWithValue("@status", 0);
-        command.Parameters.AddWithValue("@creationTime", DateTime.UtcNow);
+            var characterId = Convert.ToInt32(await command.ExecuteScalarAsync());
+            if(characterId <= 0) throw new Exception("Erro ao inserir personagem.");
 
+            foreach(var equip in character.Equips.Where(e => e.Id > 0)) {
+                await using var equipCommand = new MySqlCommand(
+                    "INSERT INTO itens (ownerId, slotType, slot, itemId, app, identification, effectIndex1, effectValue1, effectIndex2, effectValue2, effectIndex3, effectValue3, minimalItemValue, maxItemValue, refine, `time`) " +
+                    "VALUES (@ownerId, @slotType, @slot, @itemId, @app, @identification, @effectIndex1, @effectValue1, @effectIndex2, @effectValue2, @effectIndex3, @effectValue3, @minimalItemValue, @maxItemValue, @refine, @time);",
+                    connection, transaction
+                );
 
-        // Adicionar Item na tabela de itens e associar a conta
-        // command.Parameters.AddWithValue("@hair", character.Hair);
+                equipCommand.Parameters.AddWithValue("@ownerId", characterId);
+                equipCommand.Parameters.AddWithValue("@slot", equip.Slot);
+                equipCommand.Parameters.AddWithValue("@slotType", 1);
+                equipCommand.Parameters.AddWithValue("@itemId", equip.Id);
+                equipCommand.Parameters.AddWithValue("@app", equip.App);
+                equipCommand.Parameters.AddWithValue("@identification", equip.Identification);
+                equipCommand.Parameters.AddWithValue("@effectIndex1", 0);
+                equipCommand.Parameters.AddWithValue("@effectValue1", 0);
+                equipCommand.Parameters.AddWithValue("@effectIndex2", 0);
+                equipCommand.Parameters.AddWithValue("@effectValue2", 0);
+                equipCommand.Parameters.AddWithValue("@effectIndex3", 0);
+                equipCommand.Parameters.AddWithValue("@effectValue3", 0);
+                equipCommand.Parameters.AddWithValue("@minimalItemValue", equip.MinimalValue);
+                equipCommand.Parameters.AddWithValue("@maxItemValue", equip.MaxValue);
+                equipCommand.Parameters.AddWithValue("@refine", equip.Refine);
+                equipCommand.Parameters.AddWithValue("@time", equip.Time);
 
-        command.Parameters.AddWithValue("@positionX", character.PositionX);
-        command.Parameters.AddWithValue("@positionY", character.PositionY);
+                await equipCommand.ExecuteNonQueryAsync();
+            }
 
-        return await command.ExecuteNonQueryAsync() > 0;
+            foreach(var item in character.Itens.Where(i => i.Id > 0)) {
+                await using var itemCommand = new MySqlCommand(
+                    "INSERT INTO itens (ownerId, slotType, slot, itemId, app, identification, effectIndex1, effectValue1, effectIndex2, effectValue2, effectIndex3, effectValue3, minimalItemValue, maxItemValue, refine, `time`) " +
+                    "VALUES (@ownerId, @slotType, @slot, @itemId, @app, @identification, @effectIndex1, @effectValue1, @effectIndex2, @effectValue2, @effectIndex3, @effectValue3, @minimalItemValue, @maxItemValue, @refine, @time);",
+                    connection, transaction
+                );
+
+                itemCommand.Parameters.AddWithValue("@ownerId", characterId);
+                itemCommand.Parameters.AddWithValue("@slot", item.Slot);
+                itemCommand.Parameters.AddWithValue("@slotType", 2);
+                itemCommand.Parameters.AddWithValue("@itemId", item.Id);
+                itemCommand.Parameters.AddWithValue("@app", item.App);
+                itemCommand.Parameters.AddWithValue("@identification", item.Identification);
+                itemCommand.Parameters.AddWithValue("@effectIndex1", 0);
+                itemCommand.Parameters.AddWithValue("@effectValue1", 0);
+                itemCommand.Parameters.AddWithValue("@effectIndex2", 0);
+                itemCommand.Parameters.AddWithValue("@effectValue2", 0);
+                itemCommand.Parameters.AddWithValue("@effectIndex3", 0);
+                itemCommand.Parameters.AddWithValue("@effectValue3", 0);
+                itemCommand.Parameters.AddWithValue("@minimalItemValue", item.MinimalValue);
+                itemCommand.Parameters.AddWithValue("@maxItemValue", item.MaxValue);
+                itemCommand.Parameters.AddWithValue("@refine", item.Refine);
+                itemCommand.Parameters.AddWithValue("@time", item.Time);
+
+                await itemCommand.ExecuteNonQueryAsync();
+            }
+
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch {
+            await transaction.RollbackAsync();
+            return false;
+        }
     }
 
     /// <summary>

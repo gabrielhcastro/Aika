@@ -86,7 +86,7 @@ public static class PacketHandler {
 
         account.Characters = [];
 
-        SendToCharacterList(session, account);
+        SendToCharactersList(session, account);
 
         Console.WriteLine($"OK -> ChararactersList");
 
@@ -96,8 +96,8 @@ public static class PacketHandler {
     private static async Task HandleCreateCharacter(Session session, StreamHandler stream) {
         CharacterEntitie character = new() {
             OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
-            Itens = new List<ItemEntitie>(new ItemEntitie[60]),
-            Equips = new List<ItemEntitie>(new ItemEntitie[8])
+            Itens = Enumerable.Range(0, 60).Select(_ => new ItemEntitie()).ToList(),
+            Equips = Enumerable.Range(0, 8).Select(_ => new ItemEntitie()).ToList()
         };
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
@@ -473,7 +473,7 @@ public static class PacketHandler {
 
         Console.WriteLine($"Personagem criado: {character.Name} no slot {character.Slot}");
 
-        SendToCharacterList(session, account);
+        SendToCharactersList(session, account);
     }
 
     private static void EquipCharacter(CharacterEntitie character, ItemEntitie item) {
@@ -487,7 +487,7 @@ public static class PacketHandler {
         character.Equips[item.Slot].App = item.App;
     }
 
-    private static void SendToCharacterList(Session session, AccountEntitie account) {
+    private static void SendToCharactersList(Session session, AccountEntitie account) {
         account.Characters = DatabaseHandler.GetCharactersByAccountIdAsync(account.Id).Result;
 
         var packet = PacketFactory.CreateHeader(0x901);
@@ -516,10 +516,16 @@ public static class PacketHandler {
                 packet.Write((byte)character.Trunk); // Tronco
                 packet.Write((byte)character.Leg); // Perna
                 packet.Write((byte)character.Body); // Corpo
-            }
 
-            for(int k = 0; k < 8; k++) {
-                packet.Write((ushort)0); //Equipamento
+                // CHEGA NULO
+                for(int k = 0; k < 8; k++) {
+                    if(character?.Equips != null && character.Equips.Count > k) {
+                        packet.Write((ushort)character.Equips[k].App);
+                    }
+                    else {
+                        packet.Write((ushort)0);
+                    }
+                }
             }
 
             for(int k = 0; k < 12; k++) {
@@ -621,7 +627,7 @@ public static class PacketHandler {
         }
         else {
             Console.WriteLine($"{character.Name} -> Numérica errada!");
-            SendToCharacterList(session, account);
+            SendToCharactersList(session, account);
             SendClientMessage(session, 16, 0, "Numerica incorreta");
             character.NumericErrors += 1;
             return;
@@ -1115,7 +1121,7 @@ public static class PacketHandler {
             return;
         }
 
-        SendToCharacterList(session, account);
+        SendToCharactersList(session, account);
     }
 
     //TO-DO: Deixar visivel para todos/proximos
