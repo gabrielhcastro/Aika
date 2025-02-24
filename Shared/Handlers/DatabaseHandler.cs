@@ -143,15 +143,18 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
         await using var connection = await GetConnectionAsync();
         await using var command = new MySqlCommand(
             "INSERT INTO characters (id, ownerAccountId, name, slot, classInfo, positionX, positionY, height, trunk, leg, body, level, experience," +
-            "strength, agility, constitution, intelligence, luck, status, creationTime) " +
+            "strength, agility, constitution, intelligence, luck, status, creationTime, numericErrors, speedMove, firstLogin) " +
             "VALUES (@id, @ownerAccountId, @name, @slot, @classInfo, @positionX, @positionY, @height, @trunk, @leg, @body, @level, @experience," +
-            "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime);", connection);
+            "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime, @numericErrors, @speedMove, @firstLogin);", connection);
 
         command.Parameters.AddWithValue("@id", character.Id);
         command.Parameters.AddWithValue("@ownerAccountId", accountId);
         command.Parameters.AddWithValue("@name", character.Name);
         command.Parameters.AddWithValue("@slot", character.Slot);
         command.Parameters.AddWithValue("@classInfo", character.ClassInfo);
+        command.Parameters.AddWithValue("@numericErrors", character.NumericErrors);
+        command.Parameters.AddWithValue("@speedMove", character.SpeedMove);
+        command.Parameters.AddWithValue("@firstLogin", character.FirstLogin);
 
         command.Parameters.AddWithValue("@height", 7);
         command.Parameters.AddWithValue("@trunk", 119);

@@ -2,6 +2,7 @@
 using Shared.Handlers;
 using Shared.Models.Account;
 using Shared.Models.Character;
+using Shared.Models.Item;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -94,7 +95,9 @@ public static class PacketHandler {
 
     private static async Task HandleCreateCharacter(Session session, StreamHandler stream) {
         CharacterEntitie character = new() {
-            OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0)
+            OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
+            Itens = new List<ItemEntitie>(new ItemEntitie[60]),
+            Equips = new List<ItemEntitie>(new ItemEntitie[8])
         };
 
         var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
@@ -137,15 +140,318 @@ public static class PacketHandler {
 
         character.Name = name;
 
-        var ClassInfo = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
-        if(ClassInfo < 10 && ClassInfo > 69)
+        var ClassValue = stream.ReadBytes(2)[0];
+
+        if(ClassValue < 10 && ClassValue > 69)
             SendClientMessage(session, 16, 0, "Classe fora dos limites");
 
-        character.ClassInfo = ClassInfo;
+        ushort classInfo = 0;
+
+        if(ClassValue >= 10 && ClassValue <= 19) classInfo = 0; // Warrior
+        else if(ClassValue >= 20 && ClassValue <= 29) classInfo = 1; // Templar
+        else if(ClassValue >= 30 && ClassValue <= 39) classInfo = 2; // Att
+        else if(ClassValue >= 40 && ClassValue <= 49) classInfo = 3; // Dual
+        else if(ClassValue >= 50 && ClassValue <= 59) classInfo = 4; // Mage
+        else if(classInfo >= 60 && classInfo <= 69) classInfo = 5; // Cleric
+
+        character.ClassInfo = ClassValue;
+
+        switch(classInfo) {
+            case 0: // Warrior
+            character.Strength = 15;
+            character.Intelligence = 5;
+            character.Agility = 9;
+            character.Constitution = 16;
+
+            ItemEntitie itemWarrior1 = new() {
+                Slot = 3,
+                Id = 1719,
+                App = 1719,
+                MinimalValue = 100,
+                MaxValue = 100
+            };
+
+            ItemEntitie itemWarrior2 = new() {
+                Slot = 5,
+                Id = 1779,
+                App = 1779,
+                MinimalValue = 100,
+                MaxValue = 100
+            };
+
+            ItemEntitie itemWarrior3 = new() {
+                Slot = 6,
+                Id = 1069,
+                App = 1069,
+                MinimalValue = 160,
+                MaxValue = 160
+            };
+
+            EquipCharacter(character, itemWarrior1);
+            EquipCharacter(character, itemWarrior2);
+            EquipCharacter(character, itemWarrior3);
+
+            //character.Base.ItemBar[3] = SkillFunctions.GetSkillIndexOnBar(character.Skills.Basics[3].Index);
+            character.ClassInfo = 1;
+            break;
+
+            case 1: // Templaria
+            character.Strength = 14;
+            character.Intelligence = 6;
+            character.Agility = 10;
+            character.Constitution = 14;
+
+            ItemEntitie itemTemplar1 = new() {
+                Slot = 3,
+                Id = 1839,
+                App = 1839,
+                MinimalValue = 120,
+                MaxValue = 120
+            };
+
+            ItemEntitie itemTemplar2 = new() {
+                Slot = 5,
+                Id = 1899,
+                App = 1899,
+                MinimalValue = 120,
+                MaxValue = 120
+            };
+
+            ItemEntitie itemTemplar3 = new() {
+                Slot = 6,
+                Id = 1034,
+                App = 1034,
+                MinimalValue = 140,
+                MaxValue = 140
+            };
+
+            ItemEntitie itemTemplar4 = new() {
+                Slot = 7,
+                Id = 1309,
+                App = 1309,
+                MinimalValue = 120,
+                MaxValue = 120
+            };
+
+            EquipCharacter(character, itemTemplar1);
+            EquipCharacter(character, itemTemplar2);
+            EquipCharacter(character, itemTemplar3);
+            EquipCharacter(character, itemTemplar4);
+
+            character.ClassInfo = 11;
+            break;
+
+            case 2: // Atirador
+            character.Strength = 8;
+            character.Intelligence = 9;
+            character.Agility = 16;
+            character.Constitution = 12;
+            character.Luck = 5;
+
+            ItemEntitie itemSniper1 = new() {
+                Slot = 3,
+                Id = 1959,
+                App = 1959,
+                MinimalValue = 80,
+                MaxValue = 80
+            };
+
+            ItemEntitie itemSniper2 = new() {
+                Slot = 5,
+                Id = 2019,
+                App = 2019,
+                MinimalValue = 80,
+                MaxValue = 80
+            };
+
+            ItemEntitie itemSniper3 = new() {
+                Slot = 6,
+                Id = 1209,
+                App = 1209,
+                MinimalValue = 160,
+                MaxValue = 160
+            };
+
+            EquipCharacter(character, itemSniper1);
+            EquipCharacter(character, itemSniper2);
+            EquipCharacter(character, itemSniper3);
+
+            character.ClassInfo = 21;
+            break;
+
+            case 3: // Pistoleira
+            character.Strength = 8;
+            character.Intelligence = 10;
+            character.Agility = 14;
+            character.Constitution = 12;
+            character.Luck = 6;
+
+            ItemEntitie itemDual1 = new() {
+                Slot = 3,
+                Id = 2079,
+                App = 2079,
+                MinimalValue = 80,
+                MaxValue = 80
+            };
+
+            ItemEntitie itemDual2 = new() {
+                Slot = 5,
+                Id = 2139,
+                App = 2139,
+                MinimalValue = 80,
+                MaxValue = 80
+            };
+
+            ItemEntitie itemDual3 = new() {
+                Slot = 6,
+                Id = 1174,
+                App = 1174,
+                MinimalValue = 140,
+                MaxValue = 140
+            };
+
+            EquipCharacter(character, itemDual1);
+            EquipCharacter(character, itemDual2);
+            EquipCharacter(character, itemDual3);
+
+            character.ClassInfo = 31;
+            break;
+
+            case 4: // Feiticeiro
+            character.Strength = 7;
+            character.Intelligence = 16;
+            character.Agility = 9;
+            character.Constitution = 8;
+            character.Luck = 10;
+
+            ItemEntitie itemMagician1 = new() {
+                Slot = 3,
+                Id = 2199,
+                App = 2199,
+                MinimalValue = 60,
+                MaxValue = 60
+            };
+
+            ItemEntitie itemMagician2 = new() {
+                Slot = 5,
+                Id = 2259,
+                App = 2259,
+                MinimalValue = 60,
+                MaxValue = 60
+            };
+
+            ItemEntitie itemMagician3 = new() {
+                Slot = 6,
+                Id = 1279,
+                App = 1279,
+                MinimalValue = 160,
+                MaxValue = 160
+            };
+
+            EquipCharacter(character, itemMagician1);
+            EquipCharacter(character, itemMagician2);
+            EquipCharacter(character, itemMagician3);
+
+            character.ClassInfo = 41;
+            break;
+
+            case 5: // Clériga
+            character.Strength = 7;
+            character.Intelligence = 15;
+            character.Agility = 10;
+            character.Constitution = 9;
+            character.Luck = 9;
+
+            ItemEntitie itemCleric1 = new() {
+                Slot = 3,
+                Id = 2319,
+                App = 2319,
+                MinimalValue = 60,
+                MaxValue = 60
+            };
+
+            ItemEntitie itemCleric2 = new() {
+                Slot = 5,
+                Id = 2379,
+                App = 2379,
+                MinimalValue = 60,
+                MaxValue = 60
+            };
+
+            ItemEntitie itemCleric3 = new() {
+                Slot = 6,
+                Id = 1244,
+                App = 1244,
+                MinimalValue = 140,
+                MaxValue = 140
+            };
+
+            EquipCharacter(character, itemCleric1);
+            EquipCharacter(character, itemCleric2);
+            EquipCharacter(character, itemCleric3);
+
+            //character.Base.ItemBar[3] = SkillFunctions.GetSkillIndexOnBar(character.Skills.Basics[3].Index);
+            character.ClassInfo = 51;
+            break;
+
+            default:
+            Console.WriteLine("Classe inválida.");
+            return;
+        }
 
         var hair = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
         if(hair < 7700 || hair > 7731) // Proteção Criar Itens
             SendClientMessage(session, 16, 0, "Cabelo fora dos limites");
+
+        //BAGS?
+        ItemEntitie itemBag0 = new() {
+            Slot = 0,
+            Id = 4350,
+            App = 4350,
+            Refine = 10
+        };
+
+        ItemEntitie itemBag1 = new() {
+            Slot = 1,
+            Id = 4390,
+            App = 4390,
+            Refine = 10
+        };
+
+        ItemEntitie itemBag2 = new() {
+            Slot = 2,
+            Id = 10044,
+            App = 10044,
+            Refine = 1
+        };
+
+        ItemEntitie itemBag3 = new() {
+            Slot = 3,
+            Id = 5284,
+            App = 5284,
+            Refine = 1
+        };
+
+        character.Itens[0] = itemBag0;
+        character.Itens[1] = itemBag1;
+        character.Itens[2] = itemBag2;
+        character.Itens[3] = itemBag3;
+
+        // ??
+        ItemEntitie itemClassInfo = new() {
+            Slot = 0,
+            Id = classInfo,
+        };
+
+        ItemEntitie itemHair = new() {
+            Slot = 1,
+            Id = hair,
+        };
+
+        character.Equips[0] = itemClassInfo;
+        character.Equips[1] = itemHair;
+
+        character.SpeedMove = 40;
 
         _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
@@ -168,6 +474,17 @@ public static class PacketHandler {
         Console.WriteLine($"Personagem criado: {character.Name} no slot {character.Slot}");
 
         SendToCharacterList(session, account);
+    }
+
+    private static void EquipCharacter(CharacterEntitie character, ItemEntitie item) {
+        if(character.Equips[item.Slot] == null) {
+            character.Equips[item.Slot] = new ItemEntitie();
+        }
+
+        character.Equips[item.Slot].Id = item.Id;
+        character.Equips[item.Slot].MinimalValue = item.MinimalValue;
+        character.Equips[item.Slot].MaxValue = item.MaxValue;
+        character.Equips[item.Slot].App = item.App;
     }
 
     private static void SendToCharacterList(Session session, AccountEntitie account) {
@@ -282,10 +599,15 @@ public static class PacketHandler {
                 Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
             
             Console.WriteLine($"{character.Name} -> Numérica Registrada!");
+            character.FirstLogin = 0;
         }
         else if(numericRequestChange == 1 && character.NumericToken == numeric1) {
             // TO-DO: Mapear e enviar para o mundo
             Console.WriteLine($"{character.Name} -> Numérica Correta!");
+
+            if(character.FirstLogin == 0) {
+                character.FirstLogin = 1;
+            }
         }
         else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
@@ -301,7 +623,7 @@ public static class PacketHandler {
             Console.WriteLine($"{character.Name} -> Numérica errada!");
             SendToCharacterList(session, account);
             SendClientMessage(session, 16, 0, "Numerica incorreta");
-            character.NumericErrors++;
+            character.NumericErrors += 1;
             return;
         }
 

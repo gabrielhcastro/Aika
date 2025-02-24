@@ -61,8 +61,8 @@ public class CharacterEntitie {
     public uint Accuracy { get; set; }
 
     public ushort[] Skills { get; set; }
-    public ItemEntitie[] Itens { get; set; }
-    public ItemEntitie[] Equips { get; set; }
+    public List<ItemEntitie> Itens { get; set; }
+    public List<ItemEntitie> Equips { get; set; }
     public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
     public Position Position { get; set; }
 }
