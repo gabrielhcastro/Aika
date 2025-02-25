@@ -7,26 +7,26 @@ public class CharacterEntitie {
     public uint Id { get; set; }
     public uint OwnerAccountId { get; set; }
     public string Name { get; set; }
-    public uint Slot { get; set; }
+    public byte Slot { get; set; }
     public string NumericToken { get; set; }
-    public uint NumericErrors { get; set; }
+    public byte NumericErrors { get; set; }
     public byte Deleted { get; set; }
-    public uint SpeedMove { get; set; }
-    public uint Rotation { get; set; }
+    public byte SpeedMove { get; set; }
+    public ushort Rotation { get; set; }
     public string LastLogin { get; set; }
     public byte PlayerKill { get; set; }
-    public uint ClassInfo { get; set; }
-    public uint FirstLogin { get; set; }
+    public byte ClassInfo { get; set; }
+    public byte FirstLogin { get; set; }
     public uint Strength { get; set; }
     public uint Agility { get; set; }
     public uint Intelligence { get; set; }
     public uint Constitution { get; set; }
     public uint Luck { get; set; }
     public uint Status { get; set; }
-    public uint Height { get; set; }
-    public uint Trunk { get; set; }
-    public uint Leg { get; set; }
-    public uint Body { get; set; }
+    public byte Height { get; set; }
+    public byte Trunk { get; set; }
+    public byte Leg { get; set; }
+    public byte Body { get; set; }
     public uint CurrentHealth { get; set; }
     public uint MaxHealth { get; set; }
     public uint CurrentMana { get; set; }
@@ -34,10 +34,10 @@ public class CharacterEntitie {
     public bool Deleting { get; set; }
     public uint Honor { get; set; }
     public uint KillPoint { get; set; }
-    public uint Infamia { get; set; }
+    public byte Infamia { get; set; }
     public uint SkillPoint { get; set; }
     public ulong Experience { get; set; }
-    public uint Level { get; set; }
+    public byte Level { get; set; }
     public uint GuildIndex { get; set; }
     public uint Gold { get; set; }
     public uint PositionX { get; set; }
