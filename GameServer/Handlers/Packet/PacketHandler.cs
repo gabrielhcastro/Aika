@@ -90,7 +90,7 @@ public static class PacketHandler {
 
         Console.WriteLine($"OK -> ChararactersList");
 
-        session.SessionAccount = account;
+        session.ActiveAccount = account;
     }
 
     private static async Task HandleCreateCharacter(Session session, StreamHandler stream) {
@@ -100,7 +100,7 @@ public static class PacketHandler {
             Equips = Enumerable.Range(0, 8).Select(_ => new ItemEntitie()).ToList()
         };
 
-        var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
+        var account = session.ActiveAccount;
         if(account == null) {
             Console.WriteLine("Conta não encontrada");
             return;
@@ -111,7 +111,7 @@ public static class PacketHandler {
             SendClientMessage(session, 16, 0, "SLOT_ERROR");
             return;
         }
-        
+
         if(account?.Characters?.Count == 3) {
             SendClientMessage(session, 16, 0, "Quantidade maxima de personagens");
             return;
@@ -140,261 +140,17 @@ public static class PacketHandler {
 
         character.Name = name;
 
-        var ClassValue = stream.ReadBytes(2)[0];
+        var classValue = stream.ReadBytes(2)[0];
 
-        if(ClassValue < 10 && ClassValue > 69)
+        if(classValue < 10 && classValue > 69)
             SendClientMessage(session, 16, 0, "Classe fora dos limites");
 
-        ushort classInfo = 0;
+        ushort classInfo = GetClassInfo(classValue);
 
-        if(ClassValue >= 10 && ClassValue <= 19) classInfo = 0; // Warrior
-        else if(ClassValue >= 20 && ClassValue <= 29) classInfo = 1; // Templar
-        else if(ClassValue >= 30 && ClassValue <= 39) classInfo = 2; // Att
-        else if(ClassValue >= 40 && ClassValue <= 49) classInfo = 3; // Dual
-        else if(ClassValue >= 50 && ClassValue <= 59) classInfo = 4; // Mage
-        else if(classInfo >= 60 && classInfo <= 69) classInfo = 5; // Cleric
-
-        character.ClassInfo = ClassValue;
-
-        switch(classInfo) {
-            case 0: // Warrior
-            character.Strength = 15;
-            character.Intelligence = 5;
-            character.Agility = 9;
-            character.Constitution = 16;
-
-            ItemEntitie itemWarrior1 = new() {
-                Slot = 3,
-                Id = 1719,
-                App = 1719,
-                MinimalValue = 100,
-                MaxValue = 100
-            };
-
-            ItemEntitie itemWarrior2 = new() {
-                Slot = 5,
-                Id = 1779,
-                App = 1779,
-                MinimalValue = 100,
-                MaxValue = 100
-            };
-
-            ItemEntitie itemWarrior3 = new() {
-                Slot = 6,
-                Id = 1069,
-                App = 1069,
-                MinimalValue = 160,
-                MaxValue = 160
-            };
-
-            EquipCharacter(character, itemWarrior1);
-            EquipCharacter(character, itemWarrior2);
-            EquipCharacter(character, itemWarrior3);
-
-            //character.Base.ItemBar[3] = SkillFunctions.GetSkillIndexOnBar(character.Skills.Basics[3].Index);
-            character.ClassInfo = 1;
-            break;
-
-            case 1: // Templaria
-            character.Strength = 14;
-            character.Intelligence = 6;
-            character.Agility = 10;
-            character.Constitution = 14;
-
-            ItemEntitie itemTemplar1 = new() {
-                Slot = 3,
-                Id = 1839,
-                App = 1839,
-                MinimalValue = 120,
-                MaxValue = 120
-            };
-
-            ItemEntitie itemTemplar2 = new() {
-                Slot = 5,
-                Id = 1899,
-                App = 1899,
-                MinimalValue = 120,
-                MaxValue = 120
-            };
-
-            ItemEntitie itemTemplar3 = new() {
-                Slot = 6,
-                Id = 1034,
-                App = 1034,
-                MinimalValue = 140,
-                MaxValue = 140
-            };
-
-            ItemEntitie itemTemplar4 = new() {
-                Slot = 7,
-                Id = 1309,
-                App = 1309,
-                MinimalValue = 120,
-                MaxValue = 120
-            };
-
-            EquipCharacter(character, itemTemplar1);
-            EquipCharacter(character, itemTemplar2);
-            EquipCharacter(character, itemTemplar3);
-            EquipCharacter(character, itemTemplar4);
-
-            character.ClassInfo = 11;
-            break;
-
-            case 2: // Atirador
-            character.Strength = 8;
-            character.Intelligence = 9;
-            character.Agility = 16;
-            character.Constitution = 12;
-            character.Luck = 5;
-
-            ItemEntitie itemSniper1 = new() {
-                Slot = 3,
-                Id = 1959,
-                App = 1959,
-                MinimalValue = 80,
-                MaxValue = 80
-            };
-
-            ItemEntitie itemSniper2 = new() {
-                Slot = 5,
-                Id = 2019,
-                App = 2019,
-                MinimalValue = 80,
-                MaxValue = 80
-            };
-
-            ItemEntitie itemSniper3 = new() {
-                Slot = 6,
-                Id = 1209,
-                App = 1209,
-                MinimalValue = 160,
-                MaxValue = 160
-            };
-
-            EquipCharacter(character, itemSniper1);
-            EquipCharacter(character, itemSniper2);
-            EquipCharacter(character, itemSniper3);
-
-            character.ClassInfo = 21;
-            break;
-
-            case 3: // Pistoleira
-            character.Strength = 8;
-            character.Intelligence = 10;
-            character.Agility = 14;
-            character.Constitution = 12;
-            character.Luck = 6;
-
-            ItemEntitie itemDual1 = new() {
-                Slot = 3,
-                Id = 2079,
-                App = 2079,
-                MinimalValue = 80,
-                MaxValue = 80
-            };
-
-            ItemEntitie itemDual2 = new() {
-                Slot = 5,
-                Id = 2139,
-                App = 2139,
-                MinimalValue = 80,
-                MaxValue = 80
-            };
-
-            ItemEntitie itemDual3 = new() {
-                Slot = 6,
-                Id = 1174,
-                App = 1174,
-                MinimalValue = 140,
-                MaxValue = 140
-            };
-
-            EquipCharacter(character, itemDual1);
-            EquipCharacter(character, itemDual2);
-            EquipCharacter(character, itemDual3);
-
-            character.ClassInfo = 31;
-            break;
-
-            case 4: // Feiticeiro
-            character.Strength = 7;
-            character.Intelligence = 16;
-            character.Agility = 9;
-            character.Constitution = 8;
-            character.Luck = 10;
-
-            ItemEntitie itemMagician1 = new() {
-                Slot = 3,
-                Id = 2199,
-                App = 2199,
-                MinimalValue = 60,
-                MaxValue = 60
-            };
-
-            ItemEntitie itemMagician2 = new() {
-                Slot = 5,
-                Id = 2259,
-                App = 2259,
-                MinimalValue = 60,
-                MaxValue = 60
-            };
-
-            ItemEntitie itemMagician3 = new() {
-                Slot = 6,
-                Id = 1279,
-                App = 1279,
-                MinimalValue = 160,
-                MaxValue = 160
-            };
-
-            EquipCharacter(character, itemMagician1);
-            EquipCharacter(character, itemMagician2);
-            EquipCharacter(character, itemMagician3);
-
-            character.ClassInfo = 41;
-            break;
-
-            case 5: // Clériga
-            character.Strength = 7;
-            character.Intelligence = 15;
-            character.Agility = 10;
-            character.Constitution = 9;
-            character.Luck = 9;
-
-            ItemEntitie itemCleric1 = new() {
-                Slot = 3,
-                Id = 2319,
-                App = 2319,
-                MinimalValue = 60,
-                MaxValue = 60
-            };
-
-            ItemEntitie itemCleric2 = new() {
-                Slot = 5,
-                Id = 2379,
-                App = 2379,
-                MinimalValue = 60,
-                MaxValue = 60
-            };
-
-            ItemEntitie itemCleric3 = new() {
-                Slot = 6,
-                Id = 1244,
-                App = 1244,
-                MinimalValue = 140,
-                MaxValue = 140
-            };
-
-            EquipCharacter(character, itemCleric1);
-            EquipCharacter(character, itemCleric2);
-            EquipCharacter(character, itemCleric3);
-
-            //character.Base.ItemBar[3] = SkillFunctions.GetSkillIndexOnBar(character.Skills.Basics[3].Index);
-            character.ClassInfo = 51;
-            break;
-
-            default:
+        if(InitialCharacterStatus.TryGetValue(classInfo, out var classConfig)) {
+            ApplyInitialCharacterStatus(character, classConfig);
+        }
+        else {
             Console.WriteLine("Classe inválida.");
             return;
         }
@@ -403,49 +159,42 @@ public static class PacketHandler {
         if(hair < 7700 || hair > 7731) // Proteção Criar Itens
             SendClientMessage(session, 16, 0, "Cabelo fora dos limites");
 
-        //BAGS?
-        ItemEntitie itemBag0 = new() {
-            Slot = 0,
-            Id = 4350,
-            App = 4350,
-            Refine = 10
-        };
-
-        ItemEntitie itemBag1 = new() {
-            Slot = 1,
-            Id = 4390,
-            App = 4390,
-            Refine = 10
-        };
-
-        ItemEntitie itemBag2 = new() {
-            Slot = 2,
-            Id = 10044,
-            App = 10044,
-            Refine = 1
-        };
-
-        ItemEntitie itemBag3 = new() {
-            Slot = 3,
-            Id = 5284,
-            App = 5284,
-            Refine = 1
-        };
-
-        character.Itens[0] = itemBag0;
-        character.Itens[1] = itemBag1;
-        character.Itens[2] = itemBag2;
-        character.Itens[3] = itemBag3;
-
-        // ??
         ItemEntitie itemClassInfo = new() {
             Slot = 0,
-            Id = classInfo,
+            SlotType = 0,
         };
 
+        switch(classInfo) {
+            case 0:
+            itemClassInfo.ItemId = 10;
+            character.ClassInfo = 1;
+            break;
+            case 1:
+            itemClassInfo.ItemId = 20;
+            character.ClassInfo = 11;
+            break;
+            case 2:
+            itemClassInfo.ItemId = 30;
+            character.ClassInfo = 21;
+            break;
+            case 3:
+            itemClassInfo.ItemId = 40;
+            character.ClassInfo = 31;
+            break;
+            case 4:
+            itemClassInfo.ItemId = 50;
+            character.ClassInfo = 41;
+            break;
+            case 5:
+            itemClassInfo.ItemId = 60;
+            character.ClassInfo = 51;
+            break;
+        }
+
         ItemEntitie itemHair = new() {
-            Slot = 1,
-            Id = hair,
+            Slot = 0,
+            SlotType = 1,
+            ItemId = hair,
         };
 
         character.Equips[0] = itemClassInfo;
@@ -456,16 +205,9 @@ public static class PacketHandler {
         _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
         var local = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
-        if(local == 0) { // Regenshien
-            character.PositionX = 3450;
-            character.PositionY = 690;
-        }
-        else if(local == 1) { // Verband
-            character.PositionX = 3470;
-            character.PositionY = 935;
-        }
+        SetCharacterPosition(character, local);
 
-        bool success = await DatabaseHandler.CreateCharacterAsync(character, account.Id);
+        bool success = await DatabaseHandler.CreateCharacterAsync(character, account);
         if(!success) {
             SendClientMessage(session, 16, 0, "Erro ao criar personagem");
             return;
@@ -476,15 +218,102 @@ public static class PacketHandler {
         SendToCharactersList(session, account);
     }
 
+    private static readonly Dictionary<ushort, (int Strength, int Intelligence, int Agility, int Constitution, int Luck,
+    List<ItemEntitie> Items)> InitialCharacterStatus = new() {
+        // Warrior
+        [0] = (15, 5, 9, 16, 0, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 1719, App = 1719, MinimalValue = 100, MaxValue = 100 },
+            new() { Slot = 0, SlotType = 5, ItemId = 1779, App = 1779, MinimalValue = 100, MaxValue = 100 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1069, App = 1069, MinimalValue = 160, MaxValue = 160 }
+        }),
+
+        // Templaria
+        [1] = (14, 6, 10, 14, 0, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 1839, App = 1839, MinimalValue = 120, MaxValue = 120 },
+            new() { Slot = 0, SlotType = 5, ItemId = 1899, App = 1899, MinimalValue = 120, MaxValue = 120 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1034, App = 1034, MinimalValue = 140, MaxValue = 140 },
+            new() { Slot = 0, SlotType = 7, ItemId = 1309, App = 1309, MinimalValue = 120, MaxValue = 120 }
+        }),
+
+        // Atirador
+        [2] = (8, 9, 16, 12, 5, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 1959, App = 1959, MinimalValue = 80, MaxValue = 80 },
+            new() { Slot = 0, SlotType = 5, ItemId = 2019, App = 2019, MinimalValue = 80, MaxValue = 80 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1209, App = 1209, MinimalValue = 160, MaxValue = 160 }
+        }),
+
+        // Pistoleira
+        [3] = (8, 10, 14, 12, 6, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 2079, App = 2079, MinimalValue = 80, MaxValue = 80 },
+            new() { Slot = 0, SlotType = 5, ItemId = 2139, App = 2139, MinimalValue = 80, MaxValue = 80 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1174, App = 1174, MinimalValue = 140, MaxValue = 140 }
+        }),
+
+        // Feiticeiro
+        [4] = (7, 16, 9, 8, 10, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 2199, App = 2199, MinimalValue = 60, MaxValue = 60 },
+            new() { Slot = 0, SlotType = 5, ItemId = 2259, App = 2259, MinimalValue = 60, MaxValue = 60 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1279, App = 1279, MinimalValue = 160, MaxValue = 160 }
+        }),
+
+        // Clériga
+        [5] = (7, 15, 10, 9, 9, new List<ItemEntitie> {
+            new() { Slot = 0, SlotType = 3, ItemId = 2319, App = 2319, MinimalValue = 60, MaxValue = 60 },
+            new() { Slot = 0, SlotType = 5, ItemId = 2379, App = 2379, MinimalValue = 60, MaxValue = 60 },
+            new() { Slot = 0, SlotType = 6, ItemId = 1244, App = 1244, MinimalValue = 140, MaxValue = 140 }
+        })
+    };
+
+    private static ushort GetClassInfo(byte classValue) {
+        return classValue switch {
+            >= 1 and <= 19 => 0,
+            >= 20 and <= 29 => 1,
+            >= 30 and <= 39 => 2,
+            >= 40 and <= 49 => 3,
+            >= 50 and <= 59 => 4,
+            >= 60 and <= 69 => 5,
+            _ => throw new ArgumentException("Classe inválida")
+        };
+    }
+
+    private static void ApplyInitialCharacterStatus(CharacterEntitie character, (int Strength, int Intelligence, int Agility, int Constitution, int Luck, List<ItemEntitie> Items) config) {
+        character.Strength = (uint)config.Strength;
+        character.Intelligence = (uint)config.Intelligence;
+        character.Agility = (uint)config.Agility;
+        character.Constitution = (uint)config.Constitution;
+        character.Luck = (uint)config.Luck;
+
+        foreach(var item in config.Items) {
+            EquipCharacter(character, item);
+        }
+    }
+
+    private static void SetCharacterPosition(CharacterEntitie character, uint local) {
+        if(local == 0) { // Regenshien
+            character.PositionX = 3450;
+            character.PositionY = 690;
+        }
+        else if(local == 1) { // Verband
+            character.PositionX = 3470;
+            character.PositionY = 935;
+        }
+    }
+
     private static void EquipCharacter(CharacterEntitie character, ItemEntitie item) {
         if(character.Equips[item.Slot] == null) {
             character.Equips[item.Slot] = new ItemEntitie();
         }
 
-        character.Equips[item.Slot].Id = item.Id;
+        character.Equips[item.Slot].OwnerId = character.OwnerAccountId;
+        character.Equips[item.Slot].ItemId = item.ItemId;
+        character.Equips[item.Slot].Slot = item.Slot;
+        character.Equips[item.Slot].SlotType = item.SlotType;
+        character.Equips[item.Slot].App = item.App;
+        character.Equips[item.Slot].Identification = item.Identification;
         character.Equips[item.Slot].MinimalValue = item.MinimalValue;
         character.Equips[item.Slot].MaxValue = item.MaxValue;
-        character.Equips[item.Slot].App = item.App;
+        character.Equips[item.Slot].Refine = item.Refine;
+        character.Equips[item.Slot].Time = item.Time;
     }
 
     private static void SendToCharactersList(Session session, AccountEntitie account) {
@@ -512,13 +341,16 @@ public static class PacketHandler {
                 packet.Write((byte)0); // Corpo
             }
             else {
-                packet.Write((byte)character.Height); // Altura
-                packet.Write((byte)character.Trunk); // Tronco
-                packet.Write((byte)character.Leg); // Perna
-                packet.Write((byte)character.Body); // Corpo
+                packet.Write((byte)(character?.Height ?? 0)); // Altura
+                packet.Write((byte)(character?.Trunk ?? 0)); // Tronco
+                packet.Write((byte)(character?.Leg ?? 0)); // Perna
+                packet.Write((byte)(character?.Body ?? 0)); // Corpo
+
+                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(0)?.ItemId ?? (ushort)0));
+                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(1)?.ItemId ?? (ushort)0));
 
                 // CHEGA NULO
-                for(int k = 0; k < 8; k++) {
+                for(int k = 2; k < 8; k++) {
                     if(character?.Equips != null && character.Equips.Count > k) {
                         packet.Write((ushort)character.Equips[k].App);
                     }
@@ -576,7 +408,6 @@ public static class PacketHandler {
         EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packetData);
-        session.Username = account.Username;
 
         PacketPool.Return(packet);
     }
@@ -589,7 +420,7 @@ public static class PacketHandler {
         var numeric1 = Encoding.ASCII.GetString(stream.ReadBytes(4));
         var numeric2 = Encoding.ASCII.GetString(stream.ReadBytes(4));
 
-        var account = session.SessionAccount;
+        var account = session.ActiveAccount;
 
         var character = DatabaseHandler.GetCharactersByAccountIdAsync(account.Id).Result[characterSlot];
 
@@ -603,7 +434,7 @@ public static class PacketHandler {
 
             if(!numericSaved)
                 Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
-            
+
             Console.WriteLine($"{character.Name} -> Numérica Registrada!");
             character.FirstLogin = 0;
         }
@@ -881,9 +712,9 @@ public static class PacketHandler {
         packet.Write((Single)positionX);
         packet.Write((Single)positionY);
 
-        for(int i = 0;i < 6;i++)
+        for(int i = 0; i < 6; i++)
             packet.Write((byte)0);
-            
+
         packet.Write((byte)1); // Move Type
         packet.Write((byte)0); // Speed 
         packet.Write((uint)0); // Unk_0
@@ -972,7 +803,7 @@ public static class PacketHandler {
             return;
         }
 
-        var account = session.SessionAccount;
+        var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
         SpawnCharacter(session, account, character);
@@ -1064,7 +895,7 @@ public static class PacketHandler {
 
         packet.Write((Single)character.PositionX);
         packet.Write((Single)character.PositionY);
-        
+
         packet.Write((ushort)character.Rotation);
 
         packet.Write((uint)character.MaxHealth);
@@ -1077,7 +908,7 @@ public static class PacketHandler {
         packet.Write((ushort)character.Level); // Level
 
         packet.Write((ushort)character.Level); // Null_0
-        
+
         packet.Write((ushort)0); // IsService
 
         for(int i = 0; i < 4; i++) {

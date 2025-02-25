@@ -14,5 +14,5 @@ public class AccountEntitie {
     public int StorageGold { get; set; }
     public int Cash { get; set; }
     public string PremiumExpiration { get; set; }
-    public List<CharacterEntitie> Characters { get; set; }
+    public List<CharacterEntitie> Characters { get; set; } = [];
 }

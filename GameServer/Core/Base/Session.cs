@@ -26,7 +26,7 @@ public class Session : IDisposable {
     public DateTime LastActivity { get; set; }
     public string Username { get; set; }
     public CharacterEntitie ActiveCharacter { get; set; }
-    public AccountEntitie SessionAccount { get; set; }
+    public AccountEntitie ActiveAccount { get; set; }
 
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;
