@@ -1,6 +1,6 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Handlers;
-using GameServer.Handlers.Packet;
+using GameServer.Core.Handlers;
+using GameServer.Network;
 
 namespace GameServer.Core.Protocol;
 

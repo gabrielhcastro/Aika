@@ -1,11 +1,9 @@
 ﻿using GameServer.Core.Base;
-using Shared.Core.Instance;
-using Shared.Models.Account;
-using Shared.Models.Character;
+using GameServer.Model.Character;
+using Shared.Core;
 using System.Collections.Concurrent;
-using System.Reflection.PortableExecutable;
 
-namespace GameServer.Handlers;
+namespace GameServer.Core.Handlers;
 public class SessionHandler : Singleton<SessionHandler> {
     private readonly ConcurrentDictionary<uint, Session> _sessions = [];
     private static readonly Dictionary<int, CharacterEntitie> _characters = [];

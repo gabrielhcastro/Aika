@@ -1,8 +1,8 @@
-﻿using Shared.Models.Item;
-using Shared.Models.World;
+﻿using GameServer.Model.Item;
+using GameServer.Model.World;
 using System.Collections.Concurrent;
 
-namespace Shared.Models.Character;
+namespace GameServer.Model.Character;
 public class CharacterEntitie {
     public uint Id { get; set; }
     public uint OwnerAccountId { get; set; }

@@ -1,5 +1,6 @@
-﻿namespace GameServer.Handlers.Packet;
+﻿using GameServer.Core.Handlers;
 
+namespace GameServer.Network;
 public static class PacketFactory {
     public static StreamHandler CreateHeader(ushort opcode, ushort index = 0) {
         var packet = PacketPool.Rent();
@@ -25,4 +26,3 @@ public static class PacketFactory {
         packet.Buffer[1] = (byte)(packetSize >> 8);
     }
 }
-

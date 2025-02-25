@@ -1,12 +1,11 @@
 ﻿using System.Net;
 
-namespace GameServer.Handlers;
-
+namespace GameServer.Core.Handlers; 
 public class ServersHandle {
     public int ServersCount { get; private set; }
-    public List<string> ServersName { get; private set; }
-    public List<IPEndPoint> ServersIP { get; private set; }
-    public List<byte> ServersID { get; private set; }
+    public List<string> ServersName { get; private set; } = [];
+    public List<IPEndPoint> ServersIP { get; private set; } = [];
+    public List<byte> ServersID { get; private set; } = [];
 
     //TO-DO: Load from database
     public ServersHandle(string configPath) {

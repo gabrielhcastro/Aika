@@ -1,4 +1,4 @@
-﻿namespace GameServer.Handlers.Packet;
+﻿namespace GameServer.Network;
 
 public struct PacketHeader(ushort opcode, ushort index = 0x0000) {
     public byte Key = 0x00;

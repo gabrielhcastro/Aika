@@ -1,13 +1,10 @@
-﻿using MySqlConnector;
-using Shared.Core.Instance;
+﻿using GameServer.Model.Account;
+using GameServer.Model.Character;
+using GameServer.Model.Item;
+using MySqlConnector;
+using Shared.Core;
 using Shared.Models.Account;
-using Shared.Models.Character;
-using Shared.Models.Item;
 using System.Data;
-using System.Data.Common;
-using System.Reflection.PortableExecutable;
-using System.Transactions;
-using System.Xml.Linq;
 
 namespace Shared.Handlers;
 public class DatabaseHandler : Singleton<DatabaseHandler> {

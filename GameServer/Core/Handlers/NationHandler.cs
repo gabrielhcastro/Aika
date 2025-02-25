@@ -1,9 +1,8 @@
 ﻿using GameServer.Core.Protocol;
 using GameServer.Network;
-using Shared.Core.Instance;
+using Shared.Core;
 
-namespace GameServer.Handlers;
-
+namespace GameServer.Core.Handlers;
 public class NationHandler : Singleton<NationHandler> {
     public List<Server> ServersList { get; private set; }
 

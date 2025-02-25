@@ -1,4 +1,4 @@
-namespace GameServer.Core.Base;
+namespace GameServer.Network;
 
 public static class EncDec {
     public static void Encrypt(ref byte[] data, int size) {

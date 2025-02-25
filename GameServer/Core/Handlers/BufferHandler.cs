@@ -2,8 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace GameServer.Handlers;
-
+namespace GameServer.Core.Handlers;
 public class BufferHandler {
     private readonly int _bufferSize;
     private readonly int _blockSize;
@@ -31,15 +30,11 @@ public class BufferHandler {
     }
 
     public void Set(SocketAsyncEventArgs args) {
-        if(_freeIndexPool.TryPop(out var offset)) {
-            args.SetBuffer(_buffer, offset, _blockSize);
-        }
+        if(_freeIndexPool.TryPop(out var offset)) args.SetBuffer(_buffer, offset, _blockSize);
         else {
             int newPos = Interlocked.Add(ref _posIndex, _blockSize);
 
-            if(newPos < _bufferSize) {
-                args.SetBuffer(_buffer, newPos, _blockSize);
-            }
+            if(newPos < _bufferSize) args.SetBuffer(_buffer, newPos, _blockSize);
             else {
                 // Buffer cheio, usa um buffer temporário
                 args.SetBuffer(ArrayPool<byte>.Shared.Rent(_blockSize), 0, _blockSize);

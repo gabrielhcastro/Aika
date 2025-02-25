@@ -1,6 +1,7 @@
+using GameServer.Model.Account;
+using GameServer.Model.Character;
 using NLog;
 using Shared.Models.Account;
-using Shared.Models.Character;
 using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;

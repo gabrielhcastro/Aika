@@ -1,12 +1,14 @@
 ﻿using GameServer.Core.Base;
+using GameServer.Model.Account;
+using GameServer.Model.Character;
+using GameServer.Model.Item;
+using GameServer.Network;
 using Shared.Handlers;
 using Shared.Models.Account;
-using Shared.Models.Character;
-using Shared.Models.Item;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace GameServer.Handlers.Packet;
+namespace GameServer.Core.Handlers;
 public static class PacketHandler {
     public static async Task HandlePacket(Session session, StreamHandler stream) {
         stream.ReadInt32();
@@ -35,7 +37,7 @@ public static class PacketHandler {
             SendToWorldSends(session);
             break;
             case 0x668:
-            await ChangeCharacterRequest(session);
+            ChangeCharacterRequest(session);
             break;
             case 0x305:
             UpdateRotation(stream, session);
@@ -147,9 +149,7 @@ public static class PacketHandler {
 
         ushort classInfo = GetClassInfo(classValue);
 
-        if(InitialCharacterStatus.TryGetValue(classInfo, out var classConfig)) {
-            ApplyInitialCharacterStatus(character, classConfig);
-        }
+        if(InitialCharacterStatus.TryGetValue(classInfo, out var classConfig)) ApplyInitialCharacterStatus(character, classConfig);
         else {
             Console.WriteLine("Classe inválida.");
             return;
@@ -222,45 +222,45 @@ public static class PacketHandler {
     List<ItemEntitie> Items)> InitialCharacterStatus = new() {
         // Warrior
         [0] = (15, 5, 9, 16, 0, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 1719, App = 1719, MinimalValue = 100, MaxValue = 100 },
-            new() { Slot = 0, SlotType = 5, ItemId = 1779, App = 1779, MinimalValue = 100, MaxValue = 100 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1069, App = 1069, MinimalValue = 160, MaxValue = 160 }
+        new() { Slot = 0, SlotType = 3, ItemId = 1719, App = 1719, MinimalValue = 100, MaxValue = 100 },
+        new() { Slot = 0, SlotType = 5, ItemId = 1779, App = 1779, MinimalValue = 100, MaxValue = 100 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1069, App = 1069, MinimalValue = 160, MaxValue = 160 }
         }),
 
         // Templaria
         [1] = (14, 6, 10, 14, 0, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 1839, App = 1839, MinimalValue = 120, MaxValue = 120 },
-            new() { Slot = 0, SlotType = 5, ItemId = 1899, App = 1899, MinimalValue = 120, MaxValue = 120 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1034, App = 1034, MinimalValue = 140, MaxValue = 140 },
-            new() { Slot = 0, SlotType = 7, ItemId = 1309, App = 1309, MinimalValue = 120, MaxValue = 120 }
+        new() { Slot = 0, SlotType = 3, ItemId = 1839, App = 1839, MinimalValue = 120, MaxValue = 120 },
+        new() { Slot = 0, SlotType = 5, ItemId = 1899, App = 1899, MinimalValue = 120, MaxValue = 120 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1034, App = 1034, MinimalValue = 140, MaxValue = 140 },
+        new() { Slot = 0, SlotType = 7, ItemId = 1309, App = 1309, MinimalValue = 120, MaxValue = 120 }
         }),
 
         // Atirador
         [2] = (8, 9, 16, 12, 5, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 1959, App = 1959, MinimalValue = 80, MaxValue = 80 },
-            new() { Slot = 0, SlotType = 5, ItemId = 2019, App = 2019, MinimalValue = 80, MaxValue = 80 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1209, App = 1209, MinimalValue = 160, MaxValue = 160 }
+        new() { Slot = 0, SlotType = 3, ItemId = 1959, App = 1959, MinimalValue = 80, MaxValue = 80 },
+        new() { Slot = 0, SlotType = 5, ItemId = 2019, App = 2019, MinimalValue = 80, MaxValue = 80 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1209, App = 1209, MinimalValue = 160, MaxValue = 160 }
         }),
 
         // Pistoleira
         [3] = (8, 10, 14, 12, 6, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 2079, App = 2079, MinimalValue = 80, MaxValue = 80 },
-            new() { Slot = 0, SlotType = 5, ItemId = 2139, App = 2139, MinimalValue = 80, MaxValue = 80 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1174, App = 1174, MinimalValue = 140, MaxValue = 140 }
+        new() { Slot = 0, SlotType = 3, ItemId = 2079, App = 2079, MinimalValue = 80, MaxValue = 80 },
+        new() { Slot = 0, SlotType = 5, ItemId = 2139, App = 2139, MinimalValue = 80, MaxValue = 80 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1174, App = 1174, MinimalValue = 140, MaxValue = 140 }
         }),
 
         // Feiticeiro
         [4] = (7, 16, 9, 8, 10, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 2199, App = 2199, MinimalValue = 60, MaxValue = 60 },
-            new() { Slot = 0, SlotType = 5, ItemId = 2259, App = 2259, MinimalValue = 60, MaxValue = 60 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1279, App = 1279, MinimalValue = 160, MaxValue = 160 }
+        new() { Slot = 0, SlotType = 3, ItemId = 2199, App = 2199, MinimalValue = 60, MaxValue = 60 },
+        new() { Slot = 0, SlotType = 5, ItemId = 2259, App = 2259, MinimalValue = 60, MaxValue = 60 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1279, App = 1279, MinimalValue = 160, MaxValue = 160 }
         }),
 
         // Clériga
         [5] = (7, 15, 10, 9, 9, new List<ItemEntitie> {
-            new() { Slot = 0, SlotType = 3, ItemId = 2319, App = 2319, MinimalValue = 60, MaxValue = 60 },
-            new() { Slot = 0, SlotType = 5, ItemId = 2379, App = 2379, MinimalValue = 60, MaxValue = 60 },
-            new() { Slot = 0, SlotType = 6, ItemId = 1244, App = 1244, MinimalValue = 140, MaxValue = 140 }
+        new() { Slot = 0, SlotType = 3, ItemId = 2319, App = 2319, MinimalValue = 60, MaxValue = 60 },
+        new() { Slot = 0, SlotType = 5, ItemId = 2379, App = 2379, MinimalValue = 60, MaxValue = 60 },
+        new() { Slot = 0, SlotType = 6, ItemId = 1244, App = 1244, MinimalValue = 140, MaxValue = 140 }
         })
     };
 
@@ -300,9 +300,7 @@ public static class PacketHandler {
     }
 
     private static void EquipCharacter(CharacterEntitie character, ItemEntitie item) {
-        if(character.Equips[item.Slot] == null) {
-            character.Equips[item.Slot] = new ItemEntitie();
-        }
+        if(character.Equips[item.Slot] == null) character.Equips[item.Slot] = new ItemEntitie();
 
         character.Equips[item.Slot].OwnerId = character.OwnerAccountId;
         character.Equips[item.Slot].ItemId = item.ItemId;
@@ -346,14 +344,12 @@ public static class PacketHandler {
                 packet.Write((byte)(character?.Leg ?? 0)); // Perna
                 packet.Write((byte)(character?.Body ?? 0)); // Corpo
 
-                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(0)?.ItemId ?? (ushort)0));
-                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(1)?.ItemId ?? (ushort)0));
+                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(0)?.ItemId ?? 0));
+                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(1)?.ItemId ?? 0));
 
                 // CHEGA NULO
                 for(int k = 2; k < 8; k++) {
-                    if(character?.Equips != null && character.Equips.Count > k) {
-                        packet.Write((ushort)character.Equips[k].App);
-                    }
+                    if(character?.Equips != null && character.Equips.Count > k) packet.Write((ushort)character.Equips[k].App);
                     else {
                         packet.Write((ushort)0);
                     }
@@ -381,19 +377,15 @@ public static class PacketHandler {
             packet.Write(new byte[4]); // Null
 
             // TO-DO: LIDAR COM PERSONAGEM APAGANDO
-            if(character != null) {
-                packet.Write((uint)character.Deleted); // Deleted?
-            }
+            if(character != null) packet.Write((uint)character.Deleted); // Deleted?
             else {
                 packet.Write((uint)0);
             }
 
             packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
-            //packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
+                                                                 //packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
 
-            if(!string.IsNullOrEmpty(character?.NumericToken)) {
-                packet.Write(true); // Numeric Registered?
-            }
+            if(!string.IsNullOrEmpty(character?.NumericToken)) packet.Write(true); // Numeric Registered?
             else {
                 packet.Write(false);
             }
@@ -442,9 +434,7 @@ public static class PacketHandler {
             // TO-DO: Mapear e enviar para o mundo
             Console.WriteLine($"{character.Name} -> Numérica Correta!");
 
-            if(character.FirstLogin == 0) {
-                character.FirstLogin = 1;
-            }
+            if(character.FirstLogin == 0) character.FirstLogin = 1;
         }
         else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
@@ -470,7 +460,7 @@ public static class PacketHandler {
 
         packet.Write((uint)1); // AccountId
         packet.Write((byte)character.FirstLogin); // First Login
-        packet.Write((uint)character.Id); // CharacterId
+        packet.Write(character.Id); // CharacterId
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0'))); // Name
 
@@ -491,16 +481,16 @@ public static class PacketHandler {
         packet.Write((byte)character.Leg); // Leg
         packet.Write((byte)character.Body); // Body
 
-        packet.Write((uint)character.MaxHealth); // Max HP
-        packet.Write((uint)character.CurrentHealth); // Current HP
-        packet.Write((uint)character.MaxMana); // Max Mana
-        packet.Write((uint)character.CurrentMana); // Current Mana
+        packet.Write(character.MaxHealth); // Max HP
+        packet.Write(character.CurrentHealth); // Current HP
+        packet.Write(character.MaxMana); // Max Mana
+        packet.Write(character.CurrentMana); // Current Mana
 
         packet.Write((uint)DateTime.UtcNow.AddDays(1).Ticks); // TO-DO: Server reset time
 
-        packet.Write((uint)character.Honor); // Honor
-        packet.Write((uint)character.KillPoint); // KillPoint
-        packet.Write((uint)character.Infamia); // Infamia
+        packet.Write(character.Honor); // Honor
+        packet.Write(character.KillPoint); // KillPoint
+        packet.Write(character.Infamia); // Infamia
         packet.Write((ushort)0); // TO-DO: Evil Points
         packet.Write((ushort)0); // TO-DO: Skill Points
 
@@ -527,7 +517,7 @@ public static class PacketHandler {
 
         packet.Write((ushort)0);     // Null_3
 
-        packet.Write((Int64)character.Experience);    // Exp
+        packet.Write((long)character.Experience);    // Exp
         packet.Write((ushort)character.Level);     // Level
         packet.Write((ushort)0);     // GuildIndex
 
@@ -577,7 +567,7 @@ public static class PacketHandler {
             packet.Write((ushort)0); // Time
         }
 
-        packet.Write((uint)character.Gold);  // Gold
+        packet.Write(character.Gold);  // Gold
 
         // Unk_2
         for(int i = 0; i < 192; i++) {
@@ -640,9 +630,9 @@ public static class PacketHandler {
             packet.Write((byte)0);
         }
 
-        packet.Write((ushort)(0)); // Active Title
+        packet.Write((ushort)0); // Active Title
 
-        packet.Write((uint)(0)); // Null_8
+        packet.Write((uint)0); // Null_8
 
         for(int i = 0; i < 48; i++)
             packet.Write((ushort)0); // TitleProgressType8
@@ -709,8 +699,8 @@ public static class PacketHandler {
     private static void Teleport(Session session, uint positionX, uint positionY) {
         var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveCharacter.OwnerAccountId);
 
-        packet.Write((Single)positionX);
-        packet.Write((Single)positionY);
+        packet.Write((float)positionX);
+        packet.Write((float)positionY);
 
         for(int i = 0; i < 6; i++)
             packet.Write((byte)0);
@@ -799,9 +789,7 @@ public static class PacketHandler {
     }
 
     private static void CreateCharacterMob(Session session, byte spawnType) {
-        if(session == null) {
-            return;
-        }
+        if(session == null) return;
 
         var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
@@ -821,14 +809,14 @@ public static class PacketHandler {
         }
 
         // Talvez seja assim!?
-        packet.Write((Single)character.PositionX);
-        packet.Write((Single)character.PositionY);
+        packet.Write((float)character.PositionX);
+        packet.Write((float)character.PositionY);
 
-        packet.Write((uint)character.Rotation);
-        packet.Write((uint)character.MaxHealth);
-        packet.Write((uint)character.MaxMana);
-        packet.Write((uint)character.CurrentHealth);
-        packet.Write((uint)character.CurrentMana);
+        packet.Write(character.Rotation);
+        packet.Write(character.MaxHealth);
+        packet.Write(character.MaxMana);
+        packet.Write(character.CurrentHealth);
+        packet.Write(character.CurrentMana);
 
         packet.Write((byte)0x0A); // Unk
 
@@ -856,9 +844,7 @@ public static class PacketHandler {
         packet.Write((ushort)account.Nation * 4096); // TO-DO: Guild Index and Nation Index
 
         for(int i = 0; i < 4; i++) {
-            if(i == 1) {
-                packet.Write((ushort)0x1D); // Sei lá o que diabos é isto
-            }
+            if(i == 1) packet.Write((ushort)0x1D); // Sei lá o que diabos é isto
             else {
                 packet.Write((ushort)0); // TO-DO: Effects?
             }
@@ -893,15 +879,15 @@ public static class PacketHandler {
             packet.Write((ushort)0); // TO-DO: Equips
         }
 
-        packet.Write((Single)character.PositionX);
-        packet.Write((Single)character.PositionY);
+        packet.Write((float)character.PositionX);
+        packet.Write((float)character.PositionY);
 
         packet.Write((ushort)character.Rotation);
 
-        packet.Write((uint)character.MaxHealth);
-        packet.Write((uint)character.MaxMana);
-        packet.Write((uint)character.CurrentHealth);
-        packet.Write((uint)character.CurrentMana);
+        packet.Write(character.MaxHealth);
+        packet.Write(character.MaxMana);
+        packet.Write(character.CurrentHealth);
+        packet.Write(character.CurrentMana);
 
         packet.Write((ushort)0); // Unk_0
 
@@ -944,8 +930,8 @@ public static class PacketHandler {
         Console.WriteLine("OK -> SpawnCharacter");
     }
 
-    private static async Task ChangeCharacterRequest(Session session) {
-        var account = await DatabaseHandler.GetAccountByUsernameAsync(session.Username);
+    private static void ChangeCharacterRequest(Session session) {
+        var account = session.ActiveAccount;
 
         if(account == null) {
             Console.WriteLine("Conta não encontrada.");
@@ -969,8 +955,8 @@ public static class PacketHandler {
         var packet = PacketFactory.CreateHeader(0x984);
 
         packet.Write((byte)0); // Null1
-        packet.Write((byte)type1); // Type1
-        packet.Write((byte)type2); // Type2
+        packet.Write(type1); // Type1
+        packet.Write(type2); // Type2
         packet.Write((byte)0); // Null2
         packet.Write(Encoding.ASCII.GetBytes(message?.PadRight(128, '\0')));
 

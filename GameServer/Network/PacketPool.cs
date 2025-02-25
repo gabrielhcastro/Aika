@@ -1,6 +1,7 @@
-﻿using System.Collections.Concurrent;
+﻿using GameServer.Core.Handlers;
+using System.Collections.Concurrent;
 
-namespace GameServer.Handlers.Packet;
+namespace GameServer.Network;
 
 public static class PacketPool {
     private static readonly ConcurrentBag<StreamHandler> _packetPool = [];

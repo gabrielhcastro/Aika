@@ -2,8 +2,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Globalization;
 
-namespace GameServer.Handlers;
-
+namespace GameServer.Core.Handlers;
 public static class JsonHandler {
     public static void DeserializeFile<T>(string path, out T list) {
         if(!File.Exists(path)) throw new Exception($"File not found. {path}");
@@ -25,7 +24,7 @@ public static class JsonHandler {
         DateParseHandling = DateParseHandling.None,
         Converters =
         {
-            new IsoDateTimeConverter {DateTimeStyles = DateTimeStyles.AssumeUniversal}
-        },
+        new IsoDateTimeConverter {DateTimeStyles = DateTimeStyles.AssumeUniversal}
+    },
     };
 }

@@ -1,8 +1,7 @@
 using Shared.Core.Conversions;
 using System.Text;
 
-namespace GameServer.Handlers;
-
+namespace GameServer.Core.Handlers;
 public class StreamHandler {
     #region Data
 

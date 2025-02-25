@@ -1,5 +1,4 @@
-﻿namespace Shared.Models.Item;
-
+﻿namespace GameServer.Model.Item;
 public class ItemEntitie {
     public uint OwnerId { get; set; }
     public uint ItemId { get; set; }

@@ -1,6 +1,6 @@
 using System.Reflection;
 
-namespace Shared.Core.Instance;
+namespace Shared.Core;
 public abstract class Singleton<T> where T : class {
     private static T _instance;
 
