@@ -20,9 +20,9 @@ public static class PacketFactory {
         return packet;
     }
 
-    public static void FinalizePacket(StreamHandler packet) {
-        ushort packetSize = (ushort)packet.Count;
-        packet.Buffer[0] = (byte)(packetSize & 0xFF);
-        packet.Buffer[1] = (byte)(packetSize >> 8);
+    public static void FinalizePacket(StreamHandler stream) {
+        ushort packetSize = (ushort)stream.Count;
+        stream.Buffer[0] = (byte)(packetSize & 0xFF);
+        stream.Buffer[1] = (byte)(packetSize >> 8);
     }
 }

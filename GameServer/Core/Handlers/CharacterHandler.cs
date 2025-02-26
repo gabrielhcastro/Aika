@@ -124,11 +124,12 @@ public static class CharacterHandler {
     private static void SendCurrentHpMp(Session session) {
         var packet = PacketFactory.CreateHeader(0x103, (ushort)session.ActiveAccount.Id);
 
+
         packet.Write((uint)session.ActiveCharacter.CurrentHealth);
         packet.Write((uint)session.ActiveCharacter.CurrentHealth);
-        packet.Write((uint)session.ActiveCharacter.CurrentMana);
-        packet.Write((uint)session.ActiveCharacter.CurrentMana);
         //packet.Write((uint)session.ActiveCharacter.MaxHealth);
+        packet.Write((uint)session.ActiveCharacter.CurrentMana);
+        packet.Write((uint)session.ActiveCharacter.CurrentMana);
         //packet.Write((uint)session.ActiveCharacter.MaxMana);
         packet.Write((uint)0); // Null
 
@@ -450,6 +451,8 @@ public static class CharacterHandler {
         SendCurrentHpMp(session);
         CreateCharacterMob(session);
         SpawnCharacter(session);
+        SendStatus(session);
+        SendCurrentLevel(session);
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -507,6 +510,60 @@ public static class CharacterHandler {
         //}
 
         Console.WriteLine($"OK -> SendToWorldSends!");
+    }
+
+    private static void SendCurrentLevel(Session session) {
+        var character = session.ActiveCharacter;
+        var account = session.ActiveAccount;
+
+        var packet = PacketFactory.CreateHeader(0x108, (ushort)account.Id);
+
+        packet.Write((ushort)character.Level);
+        packet.Write((ushort)0xCC); // Unk
+        packet.Write((long)character.Experience); // Exp
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine("OK -> SendCurrentLevel");
+    }
+
+    private static void SendStatus(Session session) {
+        var packet = PacketFactory.CreateHeader(0x10A, 0x7535);
+
+        packet.Write((ushort)100); // Dano Fisico
+        packet.Write((ushort)100); // Def Fisica
+        packet.Write((ushort)100); // Dano Magico
+        packet.Write((ushort)100); // Def Magica
+
+        packet.Write(new byte[6]); // Null_0
+
+        packet.Write((ushort)60); // Speed Move
+
+        packet.Write((ushort)0); // Atack Ability?
+
+        packet.Write(new byte[6]); // Null_1
+
+        packet.Write((ushort)20); // Critical
+        packet.Write((byte)20); // Esquiva
+        packet.Write((byte)20); // Acerto
+        packet.Write((ushort)20); // Double
+        packet.Write((ushort)20); // Resist
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine("OK -> SendStatus");
     }
 
     public static async Task SelectedNation(Session session, StreamHandler stream) {
