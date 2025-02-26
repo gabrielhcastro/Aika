@@ -16,8 +16,8 @@ public static class CharacterService {
         };
 
         ItemEntitie hairItem = new() {
-            Slot = 0,
-            SlotType = 1,
+            Slot = 1,
+            SlotType = 0,
             ItemId = hair,
         };
 
@@ -72,6 +72,7 @@ public static class CharacterService {
             character.Luck = (uint)classConfig.Luck;
 
             foreach(var item in classConfig.Items) {
+                Console.WriteLine($"Adicionando item inicial -> Slot: {item.Slot}, ItemId: {item.ItemId}");
                 EquipCharacter(character, item);
             }
         }
@@ -94,7 +95,7 @@ public static class CharacterService {
         character.Equips[item.Slot] = item;
     }
 
-    public static CharacterEntitie ParseCharacterData(Session session, StreamHandler stream) {
+    public static CharacterEntitie GenerateInitialCharacter(Session session, StreamHandler stream) {
         try {
             var character = new CharacterEntitie {
                 OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
@@ -116,7 +117,7 @@ public static class CharacterService {
             character.Slot = slot;
 
             var name = Encoding.ASCII.GetString(stream.ReadBytes(16)).Trim('\0'); ;
-            if(character.Name.Length > 14 || !Regex.IsMatch(character.Name, @"^[A-Za-z][A-Za-z0-9]*$")) {
+            if(name.Length > 14 || !Regex.IsMatch(name, @"^[A-Za-z][A-Za-z0-9]*$")) {
                 CharacterHandler.GameMessage(session, 16, 0, "SOMENTE ALFANUMERICOS!");
                 return null;
             }

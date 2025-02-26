@@ -23,6 +23,7 @@ public static class PacketHandler {
             break;
             case 0x685:
             await CharacterHandler.SelectedChannel(session, stream);
+            Console.WriteLine("CharacterList Data: {0}", BitConverter.ToString(stream));
             break;
             case 0x3E04:
             await CharacterHandler.CreateCharacter(session, stream);

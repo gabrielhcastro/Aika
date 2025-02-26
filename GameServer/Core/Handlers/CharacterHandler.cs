@@ -1,6 +1,7 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Data.Repositories;
 using GameServer.Model.Account;
+using GameServer.Model.Item;
 using GameServer.Network;
 using GameServer.Service;
 using System.Text;
@@ -25,28 +26,25 @@ public static class CharacterHandler {
             packet.Write((ushort)(account?.Nation ?? 0)); // Nação
             packet.Write((ushort)(character?.ClassInfo ?? 0)); // Classe
 
-            if(character == null) {
-                packet.Write((byte)0); // Altura
-                packet.Write((byte)0); // Tronco
-                packet.Write((byte)0); // Perna
-                packet.Write((byte)0); // Corpo
+            packet.Write((byte)(character?.Height ?? 7)); // Altura
+            packet.Write((byte)(character?.Trunk ?? 119)); // Tronco
+            packet.Write((byte)(character?.Leg ?? 119)); // Perna
+            packet.Write((byte)(character?.Body ?? 119)); // Corpo
+
+            var orderedEquips = new Dictionary<int, ushort>();
+
+            for(int j = 0; j < 8; j++) {
+                orderedEquips[j] = 0;
             }
-            else {
-                packet.Write((byte)(character?.Height ?? 0)); // Altura
-                packet.Write((byte)(character?.Trunk ?? 0)); // Tronco
-                packet.Write((byte)(character?.Leg ?? 0)); // Perna
-                packet.Write((byte)(character?.Body ?? 0)); // Corpo
 
-                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(0)?.ItemId ?? 0));
-                packet.Write((ushort)(character?.Equips?.ElementAtOrDefault(1)?.ItemId ?? 0));
-
-                // CHEGA NULO
-                for(int k = 2; k < 8; k++) {
-                    if(character?.Equips != null && character.Equips.Count > k) packet.Write((ushort)character.Equips[k].App);
-                    else {
-                        packet.Write((ushort)0);
-                    }
+            foreach(var equip in character?.Equips ?? new List<ItemEntitie>()) {
+                if(equip.Slot >= 0 && equip.Slot < 8) {
+                    orderedEquips[equip.Slot] = (ushort)equip.ItemId;
                 }
+            }
+
+            for(int j = 0; j < 8; j++) {
+                packet.Write(orderedEquips[j]);
             }
 
             for(int k = 0; k < 12; k++) {
@@ -60,7 +58,7 @@ public static class CharacterHandler {
             packet.Write((ushort)(character?.Luck ?? 0)); // Luck
             packet.Write((ushort)(character?.Status ?? 0)); // Status
 
-            packet.Write((ushort)(character?.Level ?? 65534)); // Level
+            packet.Write((ushort)(character?.Level ?? 0)); // Level
 
             packet.Write(new byte[6]); // Null
 
@@ -70,7 +68,8 @@ public static class CharacterHandler {
             packet.Write(new byte[4]); // Null
 
             // TO-DO: LIDAR COM PERSONAGEM APAGANDO
-            if(character != null) packet.Write((uint)character.Deleted); // Deleted?
+            if(character != null)
+                packet.Write((uint)character.Deleted); // Deleted?
             else {
                 packet.Write((uint)0);
             }
@@ -499,8 +498,8 @@ public static class CharacterHandler {
     }
 
     public static async Task CreateCharacter(Session session, StreamHandler stream) {
-        var characterData = CharacterService.ParseCharacterData(session, stream);
-        if(string.IsNullOrWhiteSpace(characterData.Name)) {
+        var character = CharacterService.GenerateInitialCharacter(session, stream);
+        if(string.IsNullOrWhiteSpace(character.Name)) {
             GameMessage(session, 16, 0, "PERSONAGEM INVALIDO");
             return;
         }
@@ -511,13 +510,13 @@ public static class CharacterHandler {
             return;
         }
 
-        var success = await CharacterService.CreateCharacterAsync(characterData, account);
+        var success = await CharacterService.CreateCharacterAsync(character, account);
         if(!success) {
             GameMessage(session, 16, 0, "ERRO: CRIAR PERSONAGEM");
             return;
         }
 
-        Console.WriteLine($"Personagem criado: {characterData.Name}");
+        Console.WriteLine($"Personagem criado: {character.Name}");
 
         await SendToCharactersList(session, account);
     }
