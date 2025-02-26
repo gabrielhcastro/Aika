@@ -22,6 +22,7 @@ public class AccountHandler{
     public static async Task AccountLogin(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
         string password = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
+        Console.WriteLine($"Username: {username}");
         Console.WriteLine($"Password: {password}");
 
         var account = await AccountRepository.GetAccountByUsernameAsync(username);

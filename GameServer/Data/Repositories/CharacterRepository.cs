@@ -124,7 +124,7 @@ public static class CharacterRepository {
         try {
             await using var command = new MySqlCommand(
                 "INSERT INTO characters (ownerAccountId, name, slot, classInfo, positionX, positionY, height, trunk, leg, body, level, experience," +
-                "strength, agility, constitution, intelligence, luck, status, creationTime, numericErrors, speedMove, firstLogin) " +
+                "strength, agility, constitution, intelligence, luck, status, creationTime, numericErrors, speedMove, firstLogin, currentHealth, currentMana) " +
                 "VALUES (@ownerAccountId, @name, @slot, @classInfo, @positionX, @positionY, @height, @trunk, @leg, @body, @level, @experience," +
                 "@strength, @agility, @constitution, @intelligence, @luck, @status, @creationTime, @numericErrors, @speedMove, @firstLogin); " +
                 "SELECT LAST_INSERT_ID();",
@@ -153,6 +153,9 @@ public static class CharacterRepository {
             command.Parameters.AddWithValue("@numericErrors", character.NumericErrors);
             command.Parameters.AddWithValue("@speedMove", character.SpeedMove);
             command.Parameters.AddWithValue("@firstLogin", character.FirstLogin);
+            command.Parameters.AddWithValue("@firstLogin", character.FirstLogin);
+            command.Parameters.AddWithValue("@currentHealth", character.CurrentHealth);
+            command.Parameters.AddWithValue("@currentMana", character.CurrentMana);
 
             var characterId = Convert.ToInt32(await command.ExecuteScalarAsync());
             if(characterId <= 0) throw new Exception("Erro ao inserir personagem.");

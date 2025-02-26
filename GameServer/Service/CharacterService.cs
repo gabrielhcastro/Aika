@@ -145,6 +145,9 @@ public static class CharacterService {
             var local = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
             SetInitialPosition(character, local);
 
+            character.CurrentHealth = 120;
+            character.CurrentMana = 120;
+
             return character;
         }
         catch {
