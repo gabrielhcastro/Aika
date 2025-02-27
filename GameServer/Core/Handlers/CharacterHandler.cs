@@ -448,11 +448,12 @@ public static class CharacterHandler {
             return;
         }
 
-        SendCurrentHpMp(session);
         CreateCharacterMob(session);
         SpawnCharacter(session);
-        SendStatus(session);
         SendCurrentLevel(session);
+        SendStatus(session);
+        SendCurrentHpMp(session);
+        SendAttributes(session);
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -510,6 +511,33 @@ public static class CharacterHandler {
         //}
 
         Console.WriteLine($"OK -> SendToWorldSends!");
+    }
+
+    private static void SendAttributes(Session session) {
+        var character = session.ActiveCharacter;
+        var account = session.ActiveAccount;
+
+        var packet = PacketFactory.CreateHeader(0x109, 0x7535);
+
+        packet.Write((ushort)character.Strength);
+        packet.Write((ushort)character.Agility);
+        packet.Write((ushort)character.Intelligence);
+        packet.Write((ushort)character.Constitution);
+        packet.Write((ushort)character.Luck);
+        packet.Write((ushort)character.Status);
+        packet.Write((ushort)20); // Status Point
+        packet.Write((ushort)20); // Skill Point
+
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine("OK -> SendCurrentLevel");
     }
 
     private static void SendCurrentLevel(Session session) {
