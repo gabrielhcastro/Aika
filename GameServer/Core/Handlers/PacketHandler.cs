@@ -1,11 +1,4 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Data;
-using GameServer.Model.Account;
-using GameServer.Model.Character;
-using GameServer.Model.Item;
-using GameServer.Network;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace GameServer.Core.Handlers;
 public static class PacketHandler {
@@ -23,6 +16,9 @@ public static class PacketHandler {
             break;
             case 0x685:
             await CharacterHandler.SelectedNation(session, stream);
+            break;
+            case 0x769:
+            Console.WriteLine("Opcode 0x769 Data: {0}", BitConverter.ToString(stream));
             break;
             case 0x3E04:
             await CharacterHandler.CreateCharacter(session, stream);

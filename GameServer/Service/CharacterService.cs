@@ -9,7 +9,7 @@ using System.Text.RegularExpressions;
 
 namespace GameServer.Service;
 public static class CharacterService {
-    private static void SetAppearance(CharacterEntitie character, byte classInfo, uint hair) {
+    private static void SetCharAppearance(CharacterEntitie character, byte classInfo, uint hair) {
         ItemEntitie classInfoItem = new() {
             Slot = 0,
             SlotType = 0,
@@ -52,7 +52,7 @@ public static class CharacterService {
         character.Equips[1] = hairItem;
     }
 
-    private static void SetInitialPosition(CharacterEntitie character, uint local) {
+    private static void SetCharInitPosition(CharacterEntitie character, uint local) {
         if(local == 0) { // Regenshien
             character.PositionX = 3450;
             character.PositionY = 690;
@@ -63,7 +63,7 @@ public static class CharacterService {
         }
     }
 
-    private static void SetInitialAttributesAndItens(CharacterEntitie character, byte classInfo) {
+    private static void SetCharInitAttributesAndItens(CharacterEntitie character, byte classInfo) {
         if(CharacterRepository.InitialClassItensAndStatus.TryGetValue(classInfo, out var classConfig)) {
             character.Strength = (uint)classConfig.Strength;
             character.Intelligence = (uint)classConfig.Intelligence;
@@ -73,13 +73,12 @@ public static class CharacterService {
 
             foreach(var item in classConfig.Items) {
                 Console.WriteLine($"Adicionando item inicial -> Slot: {item.Slot}, ItemId: {item.ItemId}");
-                EquipCharacter(character, item);
+                EquipSingleCharacterEquip(character, item);
             }
         }
     }
 
-    // SE ALGO DER ERRADO COM APARENCIA DO PERSONAGEM FOI PQ EU MEXI AQUI
-    private static byte GetClassInfo(byte value) {
+    private static byte GetCharClassInfo(byte value) {
         return value switch {
             >= 10 and <= 19 => 0,
             >= 20 and <= 29 => 1,
@@ -91,11 +90,11 @@ public static class CharacterService {
         };
     }
 
-    private static void EquipCharacter(CharacterEntitie character, ItemEntitie item) {
+    private static void EquipSingleCharacterEquip(CharacterEntitie character, ItemEntitie item) {
         character.Equips[item.Slot] = item;
     }
 
-    public static CharacterEntitie GenerateInitialCharacter(Session session, StreamHandler stream) {
+    public static CharacterEntitie GenerateInitCharacter(Session session, StreamHandler stream) {
         try {
             var character = new CharacterEntitie {
                 OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
@@ -130,20 +129,20 @@ public static class CharacterService {
                 return null;
             }
 
-            var classInfo = GetClassInfo(classInfoValue);
+            var classInfo = GetCharClassInfo(classInfoValue);
 
-            SetInitialAttributesAndItens(character, classInfo);
+            SetCharInitAttributesAndItens(character, classInfo);
 
             var hair = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
             if(hair < 7700 || hair > 7731)
                 CharacterHandler.GameMessage(session, 16, 0, "Cabelo fora dos limites");
 
-            SetAppearance(character, classInfo, hair);
+            SetCharAppearance(character, classInfo, hair);
             
             _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
             var local = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
-            SetInitialPosition(character, local);
+            SetCharInitPosition(character, local);
 
             character.CurrentHealth = 120;
             character.CurrentMana = 120;
@@ -155,7 +154,55 @@ public static class CharacterService {
         }
     }
 
-    public static async Task<bool> CreateCharacterAsync(CharacterEntitie character, AccountEntitie account) {
+    public static async Task<bool> CreateCharAsync(CharacterEntitie character, AccountEntitie account) {
         return await CharacterRepository.CreateCharacterAsync(character, account);
+    }
+
+    public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedEquips = GetCharOrderedEquips(character.Equips);
+
+        for(int i = 0; i < 8; i++) {
+            stream.Write((ushort)orderedEquips[i].ItemId);
+        }
+    }
+
+    public static void CharItensOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedInventory = GetCharOrderedItens(character.Itens);
+
+        for(int i = 0; i < 64; i++) {
+            stream.Write((ushort)orderedInventory[i].ItemId);
+        }
+    }
+
+    public static Dictionary<int, ItemEntitie> GetCharOrderedEquips(List<ItemEntitie> equips) {
+        var orderedEquips = new Dictionary<int, ItemEntitie>();
+
+        for(int i = 0; i < 8; i++) {
+            orderedEquips[i] = new ItemEntitie();
+        }
+
+        foreach(var equip in equips ?? []) {
+            if(equip.Slot >= 0 && equip.Slot < 8) {
+                orderedEquips[equip.Slot] = equip;
+            }
+        }
+
+        return orderedEquips;
+    }
+
+    public static Dictionary<int, ItemEntitie> GetCharOrderedItens(List<ItemEntitie> itens) {
+        var orderedInventory = new Dictionary<int, ItemEntitie>();
+
+        for(int i = 0; i < 64; i++) {
+            orderedInventory[i] = new ItemEntitie();
+        }
+
+        foreach(var item in itens ?? []) {
+            if(item.Slot >= 0 && item.Slot < 64) {
+                orderedInventory[item.Slot] = item;
+            }
+        }
+
+        return orderedInventory;
     }
 }

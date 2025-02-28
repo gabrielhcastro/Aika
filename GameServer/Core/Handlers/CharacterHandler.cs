@@ -5,7 +5,7 @@ using GameServer.Model.Character;
 using GameServer.Model.Item;
 using GameServer.Network;
 using GameServer.Service;
-using System.IO;
+using System.Net.Sockets;
 using System.Text;
 
 namespace GameServer.Core.Handlers;
@@ -33,21 +33,7 @@ public static class CharacterHandler {
             packet.Write((byte)(character?.Leg ?? 119)); // Perna
             packet.Write((byte)(character?.Body ?? 119)); // Corpo
 
-            var orderedEquips = new Dictionary<int, ushort>();
-
-            for(int j = 0; j < 8; j++) {
-                orderedEquips[j] = 0;
-            }
-
-            foreach(var equip in character?.Equips ?? new List<ItemEntitie>()) {
-                if(equip.Slot >= 0 && equip.Slot < 8) {
-                    orderedEquips[equip.Slot] = (ushort)equip.ItemId;
-                }
-            }
-
-            for(int j = 0; j < 8; j++) {
-                packet.Write(orderedEquips[j]);
-            }
+            CharacterService.SetCharEquipsOrdered(character, packet);
 
             for(int k = 0; k < 12; k++) {
                 packet.Write((byte)0); //Refine?
@@ -162,7 +148,7 @@ public static class CharacterHandler {
         if(numericRequestChange == 0 && string.IsNullOrEmpty(character?.NumericToken)) {
             character.NumericToken = numeric1;
             character.NumericErrors = 0;
-            var numericSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, (int)character.NumericErrors).Result;
+            var numericSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
 
             if(!numericSaved)
                 Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
@@ -179,7 +165,7 @@ public static class CharacterHandler {
         else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
             character.NumericErrors = 0;
-            var numericaSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, (int)character.NumericErrors).Result;
+            var numericaSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
 
             if(!numericaSaved)
                 Console.WriteLine($"{character.Name} -> Erro ao trocar numérica!");
@@ -200,13 +186,13 @@ public static class CharacterHandler {
         packet.Write((uint)account.Id);
 
         packet.Write((uint)account.Id); // AccountId
-        packet.Write((byte)character.FirstLogin); // First Login
+        packet.Write(character.FirstLogin); // First Login
         packet.Write(character.Id); // CharacterId
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0'))); // Name
 
         packet.Write((byte)account.Nation); // Nation
-        packet.Write((byte)character.ClassInfo); // Classe
+        packet.Write(character.ClassInfo); // Classe
 
         packet.Write((ushort)0); // Null_0
 
@@ -217,10 +203,10 @@ public static class CharacterHandler {
         packet.Write((ushort)character.Luck); // Luck
         packet.Write((ushort)character.Status); // Status
 
-        packet.Write((byte)character.Height); // Height
-        packet.Write((byte)character.Trunk); // Trunk
-        packet.Write((byte)character.Leg); // Leg
-        packet.Write((byte)character.Body); // Body
+        packet.Write(character.Height); // Height
+        packet.Write(character.Trunk); // Trunk
+        packet.Write(character.Leg); // Leg
+        packet.Write(character.Body); // Body
 
         packet.Write(character.MaxHealth); // Max HP
         packet.Write(character.CurrentHealth); // Current HP
@@ -427,8 +413,6 @@ public static class CharacterHandler {
 
         byte[] packetData = packet.GetBytes();
 
-        Console.WriteLine($"SendToWorld Packet Data: {BitConverter.ToString(stream)}");
-
         EncDec.Encrypt(ref packetData, packetData.Length);
         session.SendPacket(packetData);
 
@@ -454,6 +438,10 @@ public static class CharacterHandler {
         SendStatus(session);
         SendCurrentHpMp(session);
         SendAttributes(session);
+
+        foreach(var equip in session.ActiveCharacter.Equips) {
+            ItemHandler.UpdateItem(session, equip, true);
+        }
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -510,7 +498,7 @@ public static class CharacterHandler {
         //    SendRefreshItemSlot(session, EquipType.Mount, player.Equip[9]);
         //}
 
-        Console.WriteLine($"OK -> SendToWorldSends!");
+        Console.WriteLine($"OK -> SendToWorldSends");
     }
 
     private static void SendAttributes(Session session) {
@@ -603,13 +591,13 @@ public static class CharacterHandler {
         uint null_0 = stream.ReadUInt32();
         string token = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
 
-        Console.WriteLine($"AccountId: {accountId}");
-        Console.WriteLine($"Username: {username}");
-        Console.WriteLine($"Time: {time}");
-        Console.WriteLine($"MacAddr: {BitConverter.ToString(macAddr)}");
-        Console.WriteLine($"Version: {version}");
-        Console.WriteLine($"Null_0: {null_0}");
-        Console.WriteLine($"Token: {token}");
+        //Console.WriteLine($"AccountId: {accountId}");
+        //Console.WriteLine($"Username: {username}");
+        //Console.WriteLine($"Time: {time}");
+        //Console.WriteLine($"MacAddr: {BitConverter.ToString(macAddr)}");
+        //Console.WriteLine($"Version: {version}");
+        //Console.WriteLine($"Null_0: {null_0}");
+        //Console.WriteLine($"Token: {token}");
 
         //if(version != 290 || version == 290) {
         //    GameMessage(session, 16, 0, "Versao errada mane");
@@ -630,7 +618,7 @@ public static class CharacterHandler {
     }
 
     public static async Task CreateCharacter(Session session, StreamHandler stream) {
-        var character = CharacterService.GenerateInitialCharacter(session, stream);
+        var character = CharacterService.GenerateInitCharacter(session, stream);
         if(string.IsNullOrWhiteSpace(character.Name)) {
             GameMessage(session, 16, 0, "PERSONAGEM INVALIDO");
             return;
@@ -642,7 +630,7 @@ public static class CharacterHandler {
             return;
         }
 
-        var success = await CharacterService.CreateCharacterAsync(character, account);
+        var success = await CharacterService.CreateCharAsync(character, account);
         if(!success) {
             GameMessage(session, 16, 0, "ERRO: CRIAR PERSONAGEM");
             return;
@@ -702,21 +690,7 @@ public static class CharacterHandler {
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
-        var orderedEquips = new Dictionary<int, ushort>();
-
-        for(int j = 0; j < 8; j++) {
-            orderedEquips[j] = 0;
-        }
-
-        foreach(var equip in character?.Equips ?? new List<ItemEntitie>()) {
-            if(equip.Slot >= 0 && equip.Slot < 8) {
-                orderedEquips[equip.Slot] = (ushort)equip.ItemId;
-            }
-        }
-
-        for(int j = 0; j < 8; j++) {
-            packet.Write((ushort)orderedEquips[j]);
-        }
+        CharacterService.SetCharEquipsOrdered(character, packet); 
 
         // Item Effect?
         for(int j = 0; j < 12; j++) {
@@ -802,7 +776,7 @@ public static class CharacterHandler {
             orderedEquips[j] = 0;
         }
 
-        foreach(var equip in character?.Equips ?? new List<ItemEntitie>()) {
+        foreach(var equip in character?.Equips ?? []) {
             if(equip.Slot >= 0 && equip.Slot < 8) {
                 orderedEquips[equip.Slot] = (ushort)equip.ItemId;
             }
