@@ -159,7 +159,7 @@ public static class CharacterService {
     }
 
     public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharOrderedEquips(character.Equips);
+        var orderedEquips = GetCharOrderedInitEquips(character.Equips);
 
         for(int i = 0; i < 8; i++) {
             stream.Write((ushort)orderedEquips[i].ItemId);
@@ -174,7 +174,7 @@ public static class CharacterService {
         }
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharOrderedEquips(List<ItemEntitie> equips) {
+    public static Dictionary<int, ItemEntitie> GetCharOrderedInitEquips(List<ItemEntitie> equips) {
         var orderedEquips = new Dictionary<int, ItemEntitie>();
 
         for(int i = 0; i < 8; i++) {
@@ -183,6 +183,22 @@ public static class CharacterService {
 
         foreach(var equip in equips ?? []) {
             if(equip.Slot >= 0 && equip.Slot < 8) {
+                orderedEquips[equip.Slot] = equip;
+            }
+        }
+
+        return orderedEquips;
+    }
+
+    public static Dictionary<int, ItemEntitie> GetCharOrderedEquips(List<ItemEntitie> equips) {
+        var orderedEquips = new Dictionary<int, ItemEntitie>();
+
+        for(int i = 0; i < 16; i++) {
+            orderedEquips[i] = new ItemEntitie();
+        }
+
+        foreach(var equip in equips ?? []) {
+            if(equip.Slot >= 0 && equip.Slot < 16) {
                 orderedEquips[equip.Slot] = equip;
             }
         }

@@ -26,7 +26,7 @@ public static class ItemHandler {
     }
 
     public static void UpdateEquips(Session session, bool notice) {
-        var orderedEquips = CharacterService.GetCharOrderedEquips(session.ActiveCharacter.Equips);
+        var orderedEquips = CharacterService.GetCharOrderedInitEquips(session.ActiveCharacter.Equips);
 
         foreach(var equip in orderedEquips) {
             UpdateItem(session, equip.Value, notice);

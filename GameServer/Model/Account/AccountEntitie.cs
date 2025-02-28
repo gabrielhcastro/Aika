@@ -3,6 +3,7 @@
 namespace GameServer.Model.Account;
 public class AccountEntitie {
     public int Id { get; set; }
+    public uint ConnectionId { get; set; }
     public string Username { get; set; }
     public string PasswordHash { get; set; }
     public string Token { get; set; }

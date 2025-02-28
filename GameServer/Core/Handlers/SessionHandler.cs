@@ -25,6 +25,7 @@ public class SessionHandler : Singleton<SessionHandler> {
     public void RemoveSession(Session session) {
         _sessions.TryRemove(session.Id, out _);
         session.ActiveCharacter = null;
+        session.ActiveAccount = null;
 
         UpdateSessionActivity(session);
         session.Close();

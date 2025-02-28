@@ -17,11 +17,8 @@ public static class PacketHandler {
             case 0x685:
             await CharacterHandler.SelectedNation(session, stream);
             break;
-            case 0x769:
-            Console.WriteLine("Opcode 0x769 Data: {0}", BitConverter.ToString(stream));
-            break;
             case 0x3E04:
-            await CharacterHandler.CreateCharacter(session, stream);
+            await CharacterHandler.CreateChar(session, stream);
             break;
             case 0x39D:
             break;
@@ -32,10 +29,13 @@ public static class PacketHandler {
             CharacterHandler.SendToWorldSends(session);
             break;
             case 0x668:
-            await CharacterHandler.ChangeCharacter(session);
+            await CharacterHandler.ChangeChar(session);
             break;
             case 0x305:
             CharacterHandler.UpdateRotation(stream, session);
+            break;
+            case 0x301:
+            CharacterHandler.MoveChar(stream, session);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
