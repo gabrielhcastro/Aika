@@ -3,6 +3,7 @@ using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Network;
 using GameServer.Service;
+using System.Net.Sockets;
 using System.Text;
 
 namespace GameServer.Core.Handlers;
@@ -136,11 +137,11 @@ public static class CharacterHandler {
 
         var account = session.ActiveAccount;
 
-        session.ActiveCharacter = account.Characters[characterSlot];
-
-        var character = session.ActiveCharacter;
+        var character = account.Characters[characterSlot];
         if(character == null)
             return;
+
+        session.ActiveCharacter = account.Characters[characterSlot];
 
         if(numericRequestChange == 0 && string.IsNullOrEmpty(character?.NumericToken)) {
             character.NumericToken = numeric1;
@@ -151,13 +152,10 @@ public static class CharacterHandler {
                 Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
 
             Console.WriteLine($"{character.Name} -> Numérica Registrada!");
-            character.FirstLogin = 0;
         }
         else if(numericRequestChange == 1 && character.NumericToken == numeric1) {
             // TO-DO: Mapear e enviar para o mundo
             Console.WriteLine($"{character.Name} -> Numérica Correta!");
-
-            if(character.FirstLogin == 0) character.FirstLogin = 1;
         }
         else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
@@ -177,11 +175,19 @@ public static class CharacterHandler {
             return;
         }
 
+        // QUE MERDA É ESSA E PRA QUE SERVE?
+        //SendData(session, 0xCCCC, 0x1);
+        //SendData(session, 0x186, 0x1);
+        //SendData(session, 0x186, 0x1);
+        //SendData(session, 0x186, 0x1);
+
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
         packet.Write((uint)account.Id);
-        packet.Write((uint)character.FirstLogin);
+        // TO-DO: TFirst Login 
+        packet.Write((uint)1);
+        //packet.Write((uint)character.FirstLogin);
 
         packet.Write(account.ConnectionId); // CharacterId
         packet.Write(character.Id); // CharacterId
@@ -215,6 +221,7 @@ public static class CharacterHandler {
         packet.Write(character.Honor); // Honor
         packet.Write(character.KillPoint); // Pvp
         packet.Write(character.Infamia); // Infamia
+
         packet.Write((ushort)0); // TO-DO: Evil Points
         packet.Write((ushort)0); // TO-DO: Skill Points
 
@@ -235,9 +242,9 @@ public static class CharacterHandler {
             packet.Write((byte)0); // Null_2
 
         // Calculados dinamicamente?!
-        packet.Write((ushort)15); // Critical
-        packet.Write((byte)20); // Miss
-        packet.Write((byte)12); // Accuracy
+        packet.Write((ushort)0); // Critical
+        packet.Write((byte)0); // Miss
+        packet.Write((byte)0); // Accuracy
 
         packet.Write((ushort)0);     // Null_3
 
@@ -248,11 +255,11 @@ public static class CharacterHandler {
         for(ushort i = 0; i < 32; i++)
             packet.Write((byte)0); // Null_4
 
-        for(ushort i = 0; i < 40; i++)
-            packet.Write((byte)0); // BuffsId
+        for(ushort i = 0; i < 20; i++)
+            packet.Write((ushort)0); // BuffsId
 
-        for(ushort i = 0; i < 80; i++)
-            packet.Write((byte)0);   // BuffsDuration
+        for(ushort i = 0; i < 20; i++)
+            packet.Write((uint)0);   // BuffsDuration
 
         var orderedEquips = CharacterService.GetCharOrderedEquips(character.Equips);
 
@@ -291,8 +298,7 @@ public static class CharacterHandler {
 
         packet.Write((uint)0); // Unk_4
 
-        packet.Write((ushort)character.PositionX);
-        packet.Write((ushort)character.PositionY);
+        packet.Write((ushort)0); // Location
 
         // Unk_5
         for(ushort i = 0; i < 128; i++) {
@@ -357,7 +363,7 @@ public static class CharacterHandler {
 
         packet.Write((ushort)0); // TitleProgressType23
 
-        for(ushort i = 0; i < 200; i++)
+        for(ushort i = 0; i < 120; i++)
             packet.Write((ushort)0); // TitleProgress
 
         packet.Write((uint)DateTime.Now.AddDays(1).Ticks); // EndDayTime
@@ -370,7 +376,7 @@ public static class CharacterHandler {
             packet.Write((byte)0);
         }
 
-        packet.Write((uint)DateTime.UtcNow.Ticks); // Utc
+        packet.Write((uint)0); // Utc
         packet.Write((uint)DateTime.Now.Ticks); // LoginTime
 
         // Unk_11
@@ -387,6 +393,7 @@ public static class CharacterHandler {
         PacketFactory.FinalizePacket(packet);
 
         byte[] packetData = packet.GetBytes();
+        Console.WriteLine("Packet Data: {0}", BitConverter.ToString(packetData));
 
         EncDec.Encrypt(ref packetData, packetData.Length);
         session.SendPacket(packetData);
@@ -398,6 +405,23 @@ public static class CharacterHandler {
         Console.WriteLine($"OK -> HandleSendToWorld");
 
         Teleport(session, character.PositionX, character.PositionY);
+    }
+
+    private static void SendData(Session session, ushort packetCode, uint data) {
+        var account = session.ActiveAccount;
+
+        var packet = PacketFactory.CreateHeader(0x1, (ushort)account.Id);
+        packet.Write(data);
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine($"OK -> SendData ({packetCode}) {data}");
     }
 
     //TO-DO: Enviar atributos do mundo para o personagem
@@ -612,6 +636,8 @@ public static class CharacterHandler {
             GameMessage(session, 16, 0, "ERRO: CRIAR PERSONAGEM");
             return;
         }
+
+        account.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
 
         Console.WriteLine($"Personagem criado: {character.Name}");
 

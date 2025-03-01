@@ -159,7 +159,7 @@ public static class CharacterService {
     }
 
     public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharOrderedInitEquips(character.Equips);
+        var orderedEquips = GetCharOrderedInitEquips(character?.Equips);
 
         for(int i = 0; i < 8; i++) {
             stream.Write((ushort)orderedEquips[i].ItemId);
@@ -167,7 +167,7 @@ public static class CharacterService {
     }
 
     public static void CharItensOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedInventory = GetCharOrderedItens(character.Itens);
+        var orderedInventory = GetCharOrderedItens(character?.Itens);
 
         for(int i = 0; i < 64; i++) {
             stream.Write((ushort)orderedInventory[i].ItemId);
