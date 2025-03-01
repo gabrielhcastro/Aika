@@ -153,10 +153,18 @@ public static class CharacterService {
         }
     }
 
-    public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharEquipsInitOrdered(character?.Equips);
+    public static void SetCharLobbyOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedEquips = GetCharLobbyEquipsOrdered(character?.Equips);
 
         for(int i = 0; i < 8; i++) {
+            stream.Write((ushort)orderedEquips[i].ItemId);
+        }
+    }
+
+    public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedEquips = GetCharEquipsOrdered(character?.Equips);
+
+        for(int i = 0; i < 16; i++) {
             stream.Write((ushort)orderedEquips[i].ItemId);
         }
     }
@@ -164,12 +172,12 @@ public static class CharacterService {
     public static void SetCharInventoryOrdered(CharacterEntitie character, StreamHandler stream) {
         var orderedInventory = GetCharInventoryOrdered(character?.Inventory);
 
-        for(int i = 0; i < 64; i++) {
+        for(int i = 0; i < 60; i++) {
             stream.Write((ushort)orderedInventory[i].ItemId);
         }
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharEquipsInitOrdered(List<ItemEntitie> equips) {
+    public static Dictionary<int, ItemEntitie> GetCharLobbyEquipsOrdered(List<ItemEntitie> equips) {
         var orderedEquips = new Dictionary<int, ItemEntitie>();
 
         for(int i = 0; i < 8; i++) {
@@ -204,12 +212,12 @@ public static class CharacterService {
     public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> itens) {
         var orderedInventory = new Dictionary<int, ItemEntitie>();
 
-        for(int i = 0; i < 64; i++) {
+        for(int i = 0; i < 60; i++) {
             orderedInventory[i] = new ItemEntitie();
         }
 
         foreach(var item in itens ?? []) {
-            if(item.Slot >= 0 && item.Slot < 64) {
+            if(item.Slot >= 0 && item.Slot < 60) {
                 orderedInventory[item.Slot] = item;
             }
         }

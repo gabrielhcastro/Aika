@@ -1,6 +1,7 @@
 ﻿using GameServer.Model.Account;
 using GameServer.Model.Character;
 using GameServer.Model.Item;
+using GameServer.Service;
 using MySqlConnector;
 using System.Data;
 
@@ -9,14 +10,14 @@ public static class CharacterRepository {
     public static readonly Dictionary<ushort,
         (int Strength, int Intelligence, int Agility, int Constitution, int Luck, List<ItemEntitie> Items)>
         InitialClassItensAndStatus = new() {
-            // Warrior
+            // WR
             [0] = (15, 5, 9, 16, 0, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 1719, App = 1719, MinimalValue = 100, MaxValue = 100 },
         new() { Slot = 5, SlotType = 0, ItemId = 1779, App = 1779, MinimalValue = 100, MaxValue = 100 },
         new() { Slot = 6, SlotType = 0, ItemId = 1069, App = 1069, MinimalValue = 160, MaxValue = 160 }
         }),
 
-            // Templaria
+            // TP
             [1] = (14, 6, 10, 14, 0, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 1839, App = 1839, MinimalValue = 120, MaxValue = 120 },
         new() { Slot = 5, SlotType = 0, ItemId = 1899, App = 1899, MinimalValue = 120, MaxValue = 120 },
@@ -24,28 +25,28 @@ public static class CharacterRepository {
         new() { Slot = 7, SlotType = 0, ItemId = 1309, App = 1309, MinimalValue = 120, MaxValue = 120 }
         }),
 
-            // Atirador
+            // ATT
             [2] = (8, 9, 16, 12, 5, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 1959, App = 1959, MinimalValue = 80, MaxValue = 80 },
         new() { Slot = 5, SlotType = 0, ItemId = 2019, App = 2019, MinimalValue = 80, MaxValue = 80 },
         new() { Slot = 6, SlotType = 0, ItemId = 1209, App = 1209, MinimalValue = 160, MaxValue = 160 }
         }),
 
-            // Pistoleira
+            // DUAL
             [3] = (8, 10, 14, 12, 6, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 2079, App = 2079, MinimalValue = 80, MaxValue = 80 },
         new() { Slot = 5, SlotType = 0, ItemId = 2139, App = 2139, MinimalValue = 80, MaxValue = 80 },
         new() { Slot = 6, SlotType = 0, ItemId = 1174, App = 1174, MinimalValue = 140, MaxValue = 140 }
         }),
 
-            // Feiticeiro
+            // FC
             [4] = (7, 16, 9, 8, 10, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 2199, App = 2199, MinimalValue = 60, MaxValue = 60 },
         new() { Slot = 5, SlotType = 0, ItemId = 2259, App = 2259, MinimalValue = 60, MaxValue = 60 },
         new() { Slot = 6, SlotType = 0, ItemId = 1279, App = 1279, MinimalValue = 160, MaxValue = 160 }
         }),
 
-            // Clériga
+            // CL
             [5] = (7, 15, 10, 9, 9, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 2319, App = 2319, MinimalValue = 60, MaxValue = 60 },
         new() { Slot = 5, SlotType = 0, ItemId = 2379, App = 2379, MinimalValue = 60, MaxValue = 60 },
@@ -110,7 +111,8 @@ public static class CharacterRepository {
                 SavedPositionY = reader.IsDBNull("savedPositionY") ? 0 : reader.GetUInt32("savedPositionY"),
             };
 
-            character.Equips = await GetCharacterEquipsAsync(character.Id);
+            character.Equips = await ItemService.GetCharEquips(character);
+            character.Inventory = await ItemService.GetCharInventory(character);
             characters.Add(character);
         }
 
@@ -198,35 +200,6 @@ public static class CharacterRepository {
             await transaction.RollbackAsync();
             return false;
         }
-    }
-
-    public static async Task<List<ItemEntitie>> GetCharacterEquipsAsync(uint characterId) {
-        List<ItemEntitie> equips = [];
-
-        await using var connection = await DatabaseHandler.GetConnectionAsync();
-        await using var command = new MySqlCommand("SELECT * FROM itens WHERE ownerId = @ownerId AND slotType = 0", connection);
-        command.Parameters.AddWithValue("@ownerId", characterId);
-
-        await using var reader = await command.ExecuteReaderAsync();
-        while(await reader.ReadAsync()) {
-            ItemEntitie equip = new() {
-                OwnerId = reader.GetUInt32("ownerId"),
-                Slot = reader.GetByte("slot"),
-                SlotType = reader.GetByte("slotType"),
-                ItemId = reader.GetUInt32("itemId"),
-                App = reader.GetUInt32("app"),
-                MinimalValue = reader.GetUInt32("minimalItemValue"),
-                MaxValue = reader.GetUInt32("maxItemValue"),
-                Refine = reader.GetUInt16("refine"),
-                Time = reader.GetUInt32("time")
-            };
-
-            equips.Add(equip);
-            Console.WriteLine($"ItemId: {equip.ItemId}, Slot: {equip.Slot}, SlotType: {equip.SlotType}");
-        }
-
-        Console.WriteLine($"Personagem ID [{characterId}] - Equipamentos encontrados: {equips.Count}");
-        return equips;
     }
 
     public static async Task<bool> VerifyIfCharacterNameExistsAsync(string name) {

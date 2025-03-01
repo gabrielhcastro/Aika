@@ -1,5 +1,7 @@
 ﻿
 using GameServer.Core.Handlers;
+using GameServer.Data.Repositories;
+using GameServer.Model.Character;
 using GameServer.Model.Item;
 
 namespace GameServer.Service;
@@ -25,5 +27,13 @@ public static class ItemService {
 
         packet.Write(item.Refine);
         packet.Write((ushort)item.Time);
+    }
+
+    public static async Task<List<ItemEntitie>> GetCharEquips(CharacterEntitie character) {
+        return await ItemRepository.GetCharEquipsAsync(character.Id);
+    }
+
+    public static async Task<List<ItemEntitie>> GetCharInventory(CharacterEntitie character) {
+        return await ItemRepository.GetCharInventoryAsync(character.Id);
     }
 }

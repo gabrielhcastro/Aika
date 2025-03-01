@@ -6,7 +6,7 @@ using GameServer.Service;
 namespace GameServer.Core.Handlers;
 
 public static class ItemHandler {
-    public static void UpdateItem(Session session, ItemEntitie item, bool notice) {
+    public static void UpdateItemBySlotAndType(Session session, ItemEntitie item, bool notice) {
         var packet = PacketFactory.CreateHeader(0xF0E, 0x7535);
 
         packet.Write(notice);
@@ -25,19 +25,27 @@ public static class ItemHandler {
         PacketPool.Return(packet);
     }
 
-    public static void UpdateEquips(Session session, bool notice) {
-        var orderedEquips = CharacterService.GetCharEquipsInitOrdered(session.ActiveCharacter.Equips);
+    public static void SetLobbyEquipsOrdered(Session session, bool notice) {
+        var lobbyOrderedEquips = CharacterService.GetCharLobbyEquipsOrdered(session.ActiveCharacter.Equips);
 
-        foreach(var equip in orderedEquips) {
-            UpdateItem(session, equip.Value, notice);
+        foreach(var equip in lobbyOrderedEquips) {
+            UpdateItemBySlotAndType(session, equip.Value, notice);
         }
     }
 
-    public static void UpdateInventory(Session session, bool notice) {
-        var orderedItens = CharacterService.GetCharInventoryOrdered(session.ActiveCharacter.Inventory);
+    public static void SetEquipsOrdered(Session session, bool notice) {
+        var lobbyOrderedEquips = CharacterService.GetCharEquipsOrdered(session.ActiveCharacter.Equips);
 
-        foreach(var item in orderedItens) {
-            UpdateItem(session, item.Value, notice);
+        foreach(var equip in lobbyOrderedEquips) {
+            UpdateItemBySlotAndType(session, equip.Value, notice);
+        }
+    }
+
+    public static void UpdateInventoryItensOrdered(Session session, bool notice) {
+        var orderedInventory = CharacterService.GetCharInventoryOrdered(session.ActiveCharacter.Inventory);
+
+        foreach(var item in orderedInventory) {
+            UpdateItemBySlotAndType(session, item.Value, notice);
         }
     }
 }

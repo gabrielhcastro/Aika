@@ -30,7 +30,7 @@ public static class CharacterHandler {
             packet.Write((byte)(character?.Leg ?? 119)); // Perna
             packet.Write((byte)(character?.Body ?? 119)); // Corpo
 
-            CharacterService.SetCharEquipsOrdered(character, packet);
+            CharacterService.SetCharLobbyOrdered(character, packet);
 
             for(ushort k = 0; k < 12; k++) {
                 packet.Write((byte)0); //Refine?
@@ -260,19 +260,12 @@ public static class CharacterHandler {
         for(ushort i = 0; i < 20; i++)
             packet.Write((uint)0);   // BuffsDuration
 
-        var orderedEquips = CharacterService.GetCharEquipsOrdered(character.Equips);
-
-        foreach(var equip in orderedEquips) {
-            packet.Write((byte)equip.Value.ItemId);
-        }
+        // Talvez seja byte?
+        CharacterService.SetCharEquipsOrdered(character, stream);
 
         packet.Write((uint)0);  // Null_5
 
-        var orderedItens = CharacterService.GetCharInventoryOrdered(character.Inventory);
-
-        foreach(var equip in orderedEquips) {
-            packet.Write((byte)equip.Value.ItemId);
-        }
+        CharacterService.SetCharInventoryOrdered(character, stream);
 
         packet.Write((long)character.Gold);  // Gold
 
@@ -286,8 +279,8 @@ public static class CharacterHandler {
             packet.Write((ushort)0); // Id
 
             for(ushort j = 0; j < 10; j++) {
-            packet.Write((byte)0); // Unk (Progress?!)
-        }
+                packet.Write((byte)0); // Unk (Progress?!)
+            }
         }
 
         // Unk_3
@@ -392,7 +385,6 @@ public static class CharacterHandler {
         PacketFactory.FinalizePacket(packet);
 
         byte[] packetData = packet.GetBytes();
-        Console.WriteLine("Packet Data: {0}", BitConverter.ToString(packetData));
 
         EncDec.Encrypt(ref packetData, packetData.Length);
         session.SendPacket(packetData);
@@ -437,8 +429,13 @@ public static class CharacterHandler {
         SendCurrentHpMp(session);
         SendAttributes(session);
 
-        ItemHandler.UpdateEquips(session, true);
-        ItemHandler.UpdateInventory(session, true);
+        foreach(var equip in session.ActiveCharacter.Equips) {
+            ItemHandler.UpdateItemBySlotAndType(session, equip, true);
+        }
+
+        foreach(var item in session.ActiveCharacter.Inventory) {
+            ItemHandler.UpdateItemBySlotAndType(session, item, true);
+        }
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -643,7 +640,8 @@ public static class CharacterHandler {
             return;
         }
 
-        account.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
+        character.Inventory = [];
+        account.Characters.Add(character);
 
         Console.WriteLine($"Personagem criado: {character.Name}");
 
@@ -700,6 +698,7 @@ public static class CharacterHandler {
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
         CharacterService.SetCharEquipsOrdered(character, packet);
+        CharacterService.SetCharInventoryOrdered(character, packet);
 
         // Item Effect?
         for(ushort j = 0; j < 12; j++) {

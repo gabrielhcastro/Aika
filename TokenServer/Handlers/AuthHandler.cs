@@ -10,7 +10,6 @@ public static class AuthHandlers {
         try {
             await using var connection = await DatabaseHandler.GetConnectionAsync();
 
-            // Obtém a conta do banco de dados
             const string query = "SELECT id, passwordHash, accountStatus, banDays, tokenCreationTime FROM accounts WHERE username = @username";
             await using var command = new MySqlCommand(query, connection);
             command.Parameters.AddWithValue("@username", username);
@@ -47,7 +46,6 @@ public static class AuthHandlers {
 
             string newToken = GenerateToken();
 
-            // Atualiza o token no banco
             await using var updateTokenCommand = new MySqlCommand(
                 "UPDATE accounts SET token = @token, tokenCreationTime = NOW() WHERE username = @username",
                 connection);
@@ -76,13 +74,12 @@ public static class AuthHandlers {
 
             await using var reader = await accountCommand.ExecuteReaderAsync();
             if(!await reader.ReadAsync())
-                return "0"; // Conta não encontrada ou token inválido
+                return "0"; // Conta não encontrada/Token inválido
 
             int accountId = reader.GetInt32("id");
             int nation = reader.GetInt32("nation");
             await reader.CloseAsync();
 
-            // Conta o número de personagens
             const string charQuery = "SELECT COUNT(*) FROM characters WHERE ownerAccountId = @accountId";
             await using var charCommand = new MySqlCommand(charQuery, connection);
             charCommand.Parameters.AddWithValue("@accountId", accountId);
@@ -118,7 +115,6 @@ public static class AuthHandlers {
 
             string newToken = GenerateToken();
 
-            // Atualiza o token no banco
             await using var updateTokenCommand = new MySqlCommand(
                 "UPDATE accounts SET token = @token, tokenCreationTime = NOW() WHERE username = @username",
                 connection);
@@ -139,7 +135,6 @@ public static class AuthHandlers {
             await using var connection = new MySqlConnection(_connectionString);
             await connection.OpenAsync();
 
-            // Verifica se a conta já existe
             const string checkQuery = "SELECT COUNT(*) FROM accounts WHERE username = @username";
             await using var checkCommand = new MySqlCommand(checkQuery, connection);
             checkCommand.Parameters.AddWithValue("@username", username);
@@ -147,26 +142,25 @@ public static class AuthHandlers {
             var exists = Convert.ToInt32(await checkCommand.ExecuteScalarAsync()) > 0;
             if(exists) return "0"; // Conta já existe
 
-            // Query para inserir nova conta
             const string insertQuery = @"
                 INSERT INTO accounts (username, password_hash, token, tokenCreationTime, accountStatus, 
                                      banDays, nation, accountType, storageGold, cash, premiumTime)
                 VALUES (@username, @passwordHash, @token, @tokenCreationTime, @accountStatus, 
                         @banDays, @nation, @accountType, @storageGold, @cash, @premiumTime);
-                SELECT LAST_INSERT_ID();"; // Retorna o ID da conta criada
+                SELECT LAST_INSERT_ID();";
 
             await using var command = new MySqlCommand(insertQuery, connection);
             command.Parameters.AddWithValue("@username", username);
             command.Parameters.AddWithValue("@passwordHash", passwordHash);
-            command.Parameters.AddWithValue("@token", Guid.NewGuid().ToString()); // Gera um token aleatório
+            command.Parameters.AddWithValue("@token", Guid.NewGuid().ToString()); 
             command.Parameters.AddWithValue("@tokenCreationTime", DateTime.UtcNow);
-            command.Parameters.AddWithValue("@accountStatus", 1); // Status ativo
+            command.Parameters.AddWithValue("@accountStatus", 1);
             command.Parameters.AddWithValue("@banDays", 0);
-            command.Parameters.AddWithValue("@nation", 0); // Sem nação no início
+            command.Parameters.AddWithValue("@nation", 0);
             command.Parameters.AddWithValue("@accountType", accountType);
             command.Parameters.AddWithValue("@storageGold", 0);
             command.Parameters.AddWithValue("@cash", 0);
-            command.Parameters.AddWithValue("@premiumTime", DBNull.Value); // Sem premium no início
+            command.Parameters.AddWithValue("@premiumTime", DBNull.Value);
 
             var accountId = await command.ExecuteScalarAsync();
 
