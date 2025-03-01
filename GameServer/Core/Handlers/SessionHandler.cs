@@ -11,17 +11,10 @@ public class SessionHandler : Singleton<SessionHandler> {
     public SessionHandler() {
     }
 
-    /// <summary>
-    /// Adiciona sessão ao servidor e atualiza o tempo da ultima atividade
-    /// </summary>
     public void AddSession(Session session) {
         _sessions[session.Id] = session;
         session.LastActivity = DateTime.UtcNow;
     }
-
-    /// <summary>
-    /// Limpa os personagens da sessão e a remove do servidor
-    /// </summary>
     public void RemoveSession(Session session) {
         _sessions.TryRemove(session.Id, out _);
         session.ActiveCharacter = null;

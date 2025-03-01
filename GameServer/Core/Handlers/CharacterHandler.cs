@@ -3,7 +3,6 @@ using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Network;
 using GameServer.Service;
-using System.Net.Sockets;
 using System.Text;
 
 namespace GameServer.Core.Handlers;
@@ -261,7 +260,7 @@ public static class CharacterHandler {
         for(ushort i = 0; i < 20; i++)
             packet.Write((uint)0);   // BuffsDuration
 
-        var orderedEquips = CharacterService.GetCharOrderedEquips(character.Equips);
+        var orderedEquips = CharacterService.GetCharEquipsOrdered(character.Equips);
 
         foreach(var equip in orderedEquips) {
             packet.Write((byte)equip.Value.ItemId);
@@ -269,7 +268,7 @@ public static class CharacterHandler {
 
         packet.Write((uint)0);  // Null_5
 
-        var orderedItens = CharacterService.GetCharOrderedItens(character.Itens);
+        var orderedItens = CharacterService.GetCharInventoryOrdered(character.Inventory);
 
         foreach(var equip in orderedEquips) {
             packet.Write((byte)equip.Value.ItemId);
@@ -438,9 +437,8 @@ public static class CharacterHandler {
         SendCurrentHpMp(session);
         SendAttributes(session);
 
-        foreach(var equip in session.ActiveCharacter.Equips) {
-            ItemHandler.UpdateItem(session, equip, true);
-        }
+        ItemHandler.UpdateEquips(session, true);
+        ItemHandler.UpdateInventory(session, true);
 
         // Enviar informações de guilda, se o jogador tiver
         //if(player.GuildIndex > 0) {
@@ -548,6 +546,7 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SendCurrentLevel");
     }
 
+    // TO-DO: CALCULAR STATUS
     private static void SendStatus(Session session) {
         var packet = PacketFactory.CreateHeader(0x10A, 0x7535);
 
@@ -581,6 +580,13 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SendStatus");
     }
 
+    // VERIFICAR SE TA BANIDO
+    // VERIFICAR DIAS DE BAN CASO BANIDO
+    // VERIFICAR GOLD DO BAU
+    // VERIFICAR CASH DA CONTA
+    // VERIFICAR TEMPO DE EXPIRAÇÃO DO PREMIUM
+    // VERIFICAR NAÇÃO
+    // VERIFICAR O STATUS/TIPO DA CONTA
     public static async Task SelectedNation(Session session, StreamHandler stream) {
         uint connectionId = stream.ReadUInt32();
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');

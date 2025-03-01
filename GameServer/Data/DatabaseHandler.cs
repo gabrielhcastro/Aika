@@ -1,10 +1,5 @@
-﻿using GameServer.Model.Account;
-using GameServer.Model.Character;
-using GameServer.Model.Item;
-using MySqlConnector;
+﻿using MySqlConnector;
 using Shared.Core;
-using Shared.Models.Account;
-using System.Data;
 
 namespace GameServer.Data;
 public class DatabaseHandler : Singleton<DatabaseHandler> {
@@ -12,9 +7,6 @@ public class DatabaseHandler : Singleton<DatabaseHandler> {
 
     public DatabaseHandler() { }
 
-    /// <summary>
-    /// Obtém a conexão MySql de forma assíncrona.
-    /// </summary>
     public static async Task<MySqlConnection> GetConnectionAsync() {
         var connection = new MySqlConnection(_connectionString);
         await connection.OpenAsync();

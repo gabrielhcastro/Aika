@@ -1,24 +1,10 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Data;
 using GameServer.Data.Repositories;
-using GameServer.Model.Account;
-using GameServer.Model.Character;
 using GameServer.Network;
-using GameServer.Service;
-using MySqlConnector;
-using Shared.Core;
 using System.Text;
 
 namespace GameServer.Core.Handlers;
 public class AccountHandler{
-    // VERIFICAR SE TA BANIDO
-    // VERIFICAR DIAS DE BAN CASO BANIDO
-    // VERIFICAR GOLD DO BAU
-    // VERIFICAR CASH DA CONTA
-    // VERIFICAR TEMPO DE EXPIRAÇÃO DO PREMIUM
-    // VERIFICAR NAÇÃO
-    // VERIFICAR O STATUS/TIPO DA CONTA
-
     public static async Task AccountLogin(Session session, StreamHandler stream) {
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
         string password = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');

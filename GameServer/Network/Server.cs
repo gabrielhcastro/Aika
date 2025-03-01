@@ -42,7 +42,6 @@ public class Server : INetwork {
             while(IsStarted) {
                 await Task.Delay(TimeSpan.FromHours(1));
 
-                // Se não houver conexões ativas, recicla buffer
                 if(SessionHandler.Instance.GetAllSessions().Count == 0) {
                     Console.WriteLine("[BufferHandler] Reciclando buffers...");
                     _bufferControl.Release();

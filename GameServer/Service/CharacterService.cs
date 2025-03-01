@@ -72,8 +72,7 @@ public static class CharacterService {
             character.Luck = (uint)classConfig.Luck;
 
             foreach(var item in classConfig.Items) {
-                Console.WriteLine($"Adicionando item inicial -> Slot: {item.Slot}, ItemId: {item.ItemId}");
-                EquipSingleCharacterEquip(character, item);
+                character.Equips[item.Slot] = item;
             }
         }
     }
@@ -90,15 +89,15 @@ public static class CharacterService {
         };
     }
 
-    private static void EquipSingleCharacterEquip(CharacterEntitie character, ItemEntitie item) {
-        character.Equips[item.Slot] = item;
+    public static async Task<bool> CreateCharAsync(CharacterEntitie character, AccountEntitie account) {
+        return await CharacterRepository.CreateCharacterAsync(character, account);
     }
 
     public static CharacterEntitie GenerateInitCharacter(Session session, StreamHandler stream) {
         try {
             var character = new CharacterEntitie {
                 OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
-                Itens = Enumerable.Range(0, 60).Select(_ => new ItemEntitie()).ToList(),
+                Inventory = Enumerable.Range(0, 60).Select(_ => new ItemEntitie()).ToList(),
                 Equips = Enumerable.Range(0, 8).Select(_ => new ItemEntitie()).ToList(),
                 SpeedMove = 40,
                 Height = 7,
@@ -154,27 +153,23 @@ public static class CharacterService {
         }
     }
 
-    public static async Task<bool> CreateCharAsync(CharacterEntitie character, AccountEntitie account) {
-        return await CharacterRepository.CreateCharacterAsync(character, account);
-    }
-
     public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharOrderedInitEquips(character?.Equips);
+        var orderedEquips = GetCharEquipsInitOrdered(character?.Equips);
 
         for(int i = 0; i < 8; i++) {
             stream.Write((ushort)orderedEquips[i].ItemId);
         }
     }
 
-    public static void CharItensOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedInventory = GetCharOrderedItens(character?.Itens);
+    public static void SetCharInventoryOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedInventory = GetCharInventoryOrdered(character?.Inventory);
 
         for(int i = 0; i < 64; i++) {
             stream.Write((ushort)orderedInventory[i].ItemId);
         }
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharOrderedInitEquips(List<ItemEntitie> equips) {
+    public static Dictionary<int, ItemEntitie> GetCharEquipsInitOrdered(List<ItemEntitie> equips) {
         var orderedEquips = new Dictionary<int, ItemEntitie>();
 
         for(int i = 0; i < 8; i++) {
@@ -190,7 +185,7 @@ public static class CharacterService {
         return orderedEquips;
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharOrderedEquips(List<ItemEntitie> equips) {
+    public static Dictionary<int, ItemEntitie> GetCharEquipsOrdered(List<ItemEntitie> equips) {
         var orderedEquips = new Dictionary<int, ItemEntitie>();
 
         for(int i = 0; i < 16; i++) {
@@ -206,7 +201,7 @@ public static class CharacterService {
         return orderedEquips;
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharOrderedItens(List<ItemEntitie> itens) {
+    public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> itens) {
         var orderedInventory = new Dictionary<int, ItemEntitie>();
 
         for(int i = 0; i < 64; i++) {
