@@ -15,10 +15,9 @@ public class Session : IDisposable {
     private readonly Dictionary<string, object> _attributes = [];
     private readonly SocketAsyncEventArgs _writeEventArg = new();
     private ConcurrentQueue<byte[]> _packetQueue = new();
-    private readonly object _lock = new();
-    private bool _processing;
-    private bool _sending;
-    private bool _closed;
+    private int _processing;
+    private int _sending;
+    private int _closed;
     private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
     public uint Id { get; }
     public Socket Socket { get; }
@@ -36,101 +35,71 @@ public class Session : IDisposable {
         ReadEventArg = readEventArg;
         _writeEventArg.Completed += WriteComplete;
         Ip = RemoteEndPoint.Address;
-        ProcessPackets();
     }
 
     public void SendPacket(byte[] packet) {
-        if(_packetQueue == null)
-            return;
+        if(_closed == 1) return;
 
         _packetQueue.Enqueue(packet);
-        lock(_lock) {
-            if(!_processing) {
-                _processing = true;
-                Task.Run(ProcessPackets);
-            }
+
+        if(Interlocked.CompareExchange(ref _processing, 1, 0) == 0) {
+            Task.Run(ProcessPackets);
         }
-
-        lock(Socket) {
-            if(!_sending)
-                ProcessPackets();
-        }
-    }
-
-    public void AddAttribute(string name, object attribute) {
-        _attributes.Add(name, attribute);
-        Console.WriteLine($"Adding Attributes. Key: {name} Value:{attribute}");
-    }
-
-    public object GetAttribute(string name) {
-        _attributes.TryGetValue(name, out var attribute);
-        Console.WriteLine($"Getting Attributes. Key: {name} Value:{attribute}");
-        return attribute;
-    }
-
-    private byte[] GetNextPacket() {
-        if(_packetQueue == null)
-            return null;
-        _packetQueue.TryDequeue(out var result);
-        return result;
     }
 
     private void ProcessPackets() {
-        lock(Socket) {
-            _sending = true;
-        }
-
-        var buffer = GetNextPacket();
-        if(buffer == null) {
-            lock(Socket) {
-                _sending = false;
-            }
-
-            return;
-        }
-
-        _writeEventArg.SetBuffer(buffer, 0, buffer.Length);
-
         try {
-            var willRaise = Socket.SendAsync(_writeEventArg);
-            if(!willRaise)
-                ProcessSend(_writeEventArg);
-        }
-        catch(ObjectDisposedException) {
-            _packetQueue = null;
-            lock(Socket) {
-                _sending = false;
+            while(_packetQueue.TryDequeue(out var buffer)) {
+                if(_closed == 1) return;
+
+                _writeEventArg.SetBuffer(buffer, 0, buffer.Length);
+
+                try {
+                    if(Interlocked.Exchange(ref _sending, 1) == 0) {
+                        var willRaise = Socket.SendAsync(_writeEventArg);
+                        if(!willRaise)
+                            ProcessSend(_writeEventArg);
+                    }
+                    else {
+                        Interlocked.Exchange(ref _sending, 0);
+                    }
+                }
+                catch(ObjectDisposedException) {
+                    return;
+                }
             }
+        }
+        finally {
+            Interlocked.Exchange(ref _processing, 0);
         }
     }
 
     private void WriteComplete(object sender, SocketAsyncEventArgs e) {
-        switch(e.LastOperation) {
-            case SocketAsyncOperation.Send:
+        if(e.LastOperation == SocketAsyncOperation.Send) {
             ProcessSend(e);
-            break;
-            default:
-            throw new ArgumentException("The last operation completed on the socket was not a send");
+        }
+        else {
+            throw new ArgumentException("The last operation completed on the socket was not a send.");
         }
     }
 
     private void ProcessSend(SocketAsyncEventArgs e) {
         if(e.SocketError == SocketError.Success) {
             _network.OnSend(this, e.Buffer, e.Offset, e.BytesTransferred);
-            ProcessPackets();
         }
         else {
-            _log.Error("Error on ProcessSend: {0}", e.SocketError.ToString());
+            _log.Error($"Error on ProcessSend: {e.SocketError}");
             Close();
         }
+
+        Interlocked.Exchange(ref _sending, 0);
     }
 
     public void Close() {
-        if(_closed)
+        if(Interlocked.Exchange(ref _closed, 1) == 1)
             return;
 
-        _closed = true;
-        _packetQueue = null;
+        _packetQueue.Clear();
         _network.OnDisconnect(this);
         try {
             Socket.Shutdown(SocketShutdown.Receive);
