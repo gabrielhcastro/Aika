@@ -1,8 +1,7 @@
+using GameServer.Core.Handlers;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
 using NLog;
-using Shared.Models.Account;
-using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 
@@ -10,18 +9,16 @@ namespace GameServer.Core.Base;
 
 public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
-
-    private readonly INetwork _network;
-    private readonly Dictionary<string, object> _attributes = [];
     private readonly SocketAsyncEventArgs _writeEventArg = new();
-    private ConcurrentQueue<byte[]> _packetQueue = new();
+    private INetwork _network;
+    private RingBuffer _packetQueue = new(1024 * 64);
     private int _processing;
     private int _sending;
     private int _closed;
     private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
     public uint Id { get; }
-    public Socket Socket { get; }
-    public SocketAsyncEventArgs ReadEventArg { get; }
+    public Socket Socket { get; private set; }
+    public SocketAsyncEventArgs ReadEventArg { get; private set; }
     public IPAddress Ip { get; }
     public DateTime LastActivity { get; set; }
     public string Username { get; set; }
@@ -37,10 +34,24 @@ public class Session : IDisposable {
         Ip = RemoteEndPoint.Address;
     }
 
+    public void Init(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
+        _network = network;
+        ReadEventArg = readEventArg;
+        Socket = socket;
+        _closed = 0;
+        _processing = 0;
+        _sending = 0;
+        _packetQueue.Reset();
+        LastActivity = DateTime.Now;
+    }
+
     public void SendPacket(byte[] packet) {
         if(_closed == 1) return;
 
-        _packetQueue.Enqueue(packet);
+        if(!_packetQueue.Enqueue(packet)) {
+            _log.Warn($"[Session {Id}] Packet queue is full, dropping packet.");
+            return;
+        }
 
         if(Interlocked.CompareExchange(ref _processing, 1, 0) == 0) {
             Task.Run(ProcessPackets);
@@ -49,10 +60,15 @@ public class Session : IDisposable {
 
     private void ProcessPackets() {
         try {
-            while(_packetQueue.TryDequeue(out var buffer)) {
+            byte[] buffer = new byte[8192];
+
+            while(_packetQueue.Count > 0) {
                 if(_closed == 1) return;
 
-                _writeEventArg.SetBuffer(buffer, 0, buffer.Length);
+                int bytesRead = _packetQueue.Dequeue(buffer);
+                if(bytesRead == 0) return;
+
+                _writeEventArg.SetBuffer(buffer, 0, bytesRead);
 
                 try {
                     if(Interlocked.Exchange(ref _sending, 1) == 0) {
@@ -99,8 +115,9 @@ public class Session : IDisposable {
         if(Interlocked.Exchange(ref _closed, 1) == 1)
             return;
 
-        _packetQueue.Clear();
+        _packetQueue.Reset();
         _network.OnDisconnect(this);
+
         try {
             Socket.Shutdown(SocketShutdown.Receive);
         }

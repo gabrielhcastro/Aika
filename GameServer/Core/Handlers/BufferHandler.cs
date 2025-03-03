@@ -18,11 +18,7 @@ public class BufferHandler {
     }
 
     public void Init() {
-        // Usa pool
         _buffer = ArrayPool<byte>.Shared.Rent(_bufferSize);
-
-        //Aloca dinamicamente
-        //_buffer = new byte[_byteLenght];
     }
 
     public void Empty(SocketAsyncEventArgs args) {
@@ -36,7 +32,6 @@ public class BufferHandler {
 
             if(newPos < _bufferSize) args.SetBuffer(_buffer, newPos, _blockSize);
             else {
-                // Buffer cheio, usa um buffer temporário
                 args.SetBuffer(ArrayPool<byte>.Shared.Rent(_blockSize), 0, _blockSize);
             }
         }
