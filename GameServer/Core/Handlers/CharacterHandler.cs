@@ -81,7 +81,7 @@ public static class CharacterHandler {
     }
 
     private static void Teleport(Session session, uint positionX, uint positionY) {
-        var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveCharacter.OwnerAccountId);
+        var packet = PacketFactory.CreateHeader(0x301, 1);
 
         packet.Write((float)positionX);
         packet.Write((float)positionY);
@@ -105,8 +105,7 @@ public static class CharacterHandler {
     }
 
     private static void SendCurrentHpMp(Session session) {
-        var packet = PacketFactory.CreateHeader(0x103, (ushort)session.ActiveAccount.Id);
-
+        var packet = PacketFactory.CreateHeader(0x103, 1);
 
         packet.Write((uint)session.ActiveCharacter.CurrentHealth);
         packet.Write((uint)session.ActiveCharacter.CurrentHealth);

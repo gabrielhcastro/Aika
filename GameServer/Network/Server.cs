@@ -13,9 +13,7 @@ public class Server : INetwork {
     private readonly Socket _listenSocket;
     private readonly Semaphore _maxNumberAcceptedClients;
     private readonly BaseProtocol _protocol;
-
     public bool IsStarted { get; private set; }
-
     public string Name { get; set; }
     public byte NationId { get; set; }
 
@@ -82,6 +80,7 @@ public class Server : INetwork {
     private void ProcessAccept(SocketAsyncEventArgs e) {
         var readEventArg = new SocketAsyncEventArgs();
         readEventArg.Completed += ReadComplete;
+
         _bufferControl.Set(readEventArg);
 
         if(e.AcceptSocket?.RemoteEndPoint == null) {
@@ -93,9 +92,9 @@ public class Server : INetwork {
         var session = new Session(this, readEventArg, e.AcceptSocket);
         readEventArg.UserToken = session;
 
-        SessionHandler.Instance.AddSession(session);
-
         _protocol.OnConnect(session);
+
+        SessionHandler.Instance.AddSession(session);
 
         var willRaiseEvent = e.AcceptSocket.ReceiveAsync(readEventArg);
         if(!willRaiseEvent)
@@ -118,8 +117,8 @@ public class Server : INetwork {
         var session = (Session)e.UserToken;
         if(e.BytesTransferred > 0 && e.SocketError == SocketError.Success) {
             Span<byte> buffer = e.BytesTransferred <= 128
-                ? stackalloc byte[e.BytesTransferred]  // Pacotes pequenos = stackalloc (zero GC)
-                : new byte[e.BytesTransferred]; // Pacotes grandes = Heap
+                ? stackalloc byte[e.BytesTransferred]  // Pacotes pequenos stackalloc
+                : new byte[e.BytesTransferred]; // Pacotes grandes Heap
 
             e.Buffer.AsSpan(e.Offset, e.BytesTransferred).CopyTo(buffer);
 
@@ -142,6 +141,16 @@ public class Server : INetwork {
         }
     }
 
+    public void RemoveSession(Session session) {
+        _bufferControl.Empty(session.ReadEventArg);
+
+        SessionHandler.Instance.RemoveSession(session);
+        SessionHandler.Instance.ReturnSession(session);
+
+        if(SessionHandler.Instance.GetAllSessions() != null)
+            _maxNumberAcceptedClients.Release();
+    }
+
     public void OnConnect(Session session) {
         _protocol.OnConnect(session);
     }
@@ -157,14 +166,5 @@ public class Server : INetwork {
 
     public void OnSend(Session session, byte[] buff, int offset, int bytes) {
         _protocol.OnSend(session, buff, offset, bytes);
-    }
-
-    public void RemoveSession(Session session) {
-        _bufferControl.Empty(session.ReadEventArg);
-
-        SessionHandler.Instance.RemoveSession(session);
-
-        if(SessionHandler.Instance.GetAllSessions() != null)
-            _maxNumberAcceptedClients.Release();
     }
 }

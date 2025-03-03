@@ -25,6 +25,14 @@ public class Session : IDisposable {
     public CharacterEntitie ActiveCharacter { get; set; }
     public AccountEntitie ActiveAccount { get; set; }
 
+    public Session() {
+        _closed = 0;
+        _processing = 0;
+        _sending = 0;
+        _packetQueue.Reset();
+        LastActivity = DateTime.Now;
+    }
+
     public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         Socket = socket;
         Id = (uint)RemoteEndPoint.GetHashCode();
@@ -32,17 +40,6 @@ public class Session : IDisposable {
         ReadEventArg = readEventArg;
         _writeEventArg.Completed += WriteComplete;
         Ip = RemoteEndPoint.Address;
-    }
-
-    public void Init(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
-        _network = network;
-        ReadEventArg = readEventArg;
-        Socket = socket;
-        _closed = 0;
-        _processing = 0;
-        _sending = 0;
-        _packetQueue.Reset();
-        LastActivity = DateTime.Now;
     }
 
     public void SendPacket(byte[] packet) {
