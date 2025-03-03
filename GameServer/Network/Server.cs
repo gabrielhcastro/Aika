@@ -60,12 +60,12 @@ public class Server : INetwork {
 
     private void StartAccept(SocketAsyncEventArgs acceptEventArg) {
         if(acceptEventArg == null) {
-            acceptEventArg = new SocketAsyncEventArgs();
+            acceptEventArg = SocketAsyncEventArgsPool.Instance.Rent();
             acceptEventArg.Completed += AcceptEventArg_Completed;
         }
         else {
             acceptEventArg.AcceptSocket = null;
-        }
+    }
 
         _maxNumberAcceptedClients.WaitOne();
         var willRaiseEvent = _listenSocket.AcceptAsync(acceptEventArg);
@@ -78,18 +78,13 @@ public class Server : INetwork {
     }
 
     private void ProcessAccept(SocketAsyncEventArgs e) {
-        var readEventArg = new SocketAsyncEventArgs();
+        var readEventArg = SocketAsyncEventArgsPool.Instance.Rent();
         readEventArg.Completed += ReadComplete;
-
         _bufferControl.Set(readEventArg);
 
-        if(e.AcceptSocket?.RemoteEndPoint == null) {
-            if(IsStarted)
-                StartAccept(e);
-            return;
-        }
+        readEventArg.AcceptSocket = e.AcceptSocket;
 
-        var session = new Session(this, readEventArg, e.AcceptSocket);
+        var session = SessionHandler.Instance.RentSession(this, readEventArg, e.AcceptSocket);
         readEventArg.UserToken = session;
 
         _protocol.OnConnect(session);
@@ -144,6 +139,7 @@ public class Server : INetwork {
     public void RemoveSession(Session session) {
         _bufferControl.Empty(session.ReadEventArg);
 
+        SessionHandler.Instance.ReturnSocketEvent(session.ReadEventArg);
         SessionHandler.Instance.RemoveSession(session);
         SessionHandler.Instance.ReturnSession(session);
 

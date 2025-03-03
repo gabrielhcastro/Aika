@@ -11,15 +11,15 @@ public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
     private readonly SocketAsyncEventArgs _writeEventArg = new();
     private INetwork _network;
+    public INetwork Network => _network;
     private RingBuffer _packetQueue = new(1024 * 64);
     private int _processing;
     private int _sending;
     private int _closed;
-    private IPEndPoint RemoteEndPoint => (IPEndPoint)Socket.RemoteEndPoint;
-    public uint Id { get; }
+    public uint Id { get; private set; }
     public Socket Socket { get; private set; }
     public SocketAsyncEventArgs ReadEventArg { get; private set; }
-    public IPAddress Ip { get; }
+    public IPAddress Ip { get; private set; }
     public DateTime LastActivity { get; set; }
     public string Username { get; set; }
     public CharacterEntitie ActiveCharacter { get; set; }
@@ -33,13 +33,31 @@ public class Session : IDisposable {
         LastActivity = DateTime.Now;
     }
 
-    public Session(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
-        Socket = socket;
-        Id = (uint)RemoteEndPoint.GetHashCode();
+    public void Init(INetwork network, SocketAsyncEventArgs readEventArg, Socket socket) {
         _network = network;
         ReadEventArg = readEventArg;
+        Socket = socket;
+        _closed = 0;
+        _processing = 0;
+        _sending = 0;
+        _packetQueue.Reset();
+        LastActivity = DateTime.Now;
+
+        Id = (uint)(socket?.RemoteEndPoint?.GetHashCode() ?? 0);
+        Ip = (socket != null) ? ((IPEndPoint)socket.RemoteEndPoint).Address : IPAddress.None;
+
+        _writeEventArg.Completed -= WriteComplete;
         _writeEventArg.Completed += WriteComplete;
-        Ip = RemoteEndPoint.Address;
+    }
+
+    public void Reset() {
+        _closed = 1;
+        _processing = 0;
+        _sending = 0;
+        _packetQueue.Reset();
+        ActiveCharacter = null;
+        ActiveAccount = null;
+        Username = null;
     }
 
     public void SendPacket(byte[] packet) {
@@ -124,6 +142,8 @@ public class Session : IDisposable {
 
         Socket.Close();
         _network.RemoveSession(this);
+
+        SessionHandler.Instance.ReturnSocketEvent(ReadEventArg);
     }
 
     public void Dispose() {
