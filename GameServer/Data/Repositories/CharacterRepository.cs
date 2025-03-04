@@ -137,8 +137,8 @@ public static class CharacterRepository {
             command.Parameters.AddWithValue("@name", character.Name);
             command.Parameters.AddWithValue("@slot", character.Slot);
             command.Parameters.AddWithValue("@classInfo", character.ClassInfo);
-            command.Parameters.AddWithValue("@positionX", character.PositionX);
-            command.Parameters.AddWithValue("@positionY", character.PositionY);
+            command.Parameters.AddWithValue("@positionX", character.Position.X);
+            command.Parameters.AddWithValue("@positionY", character.Position.Y);
             command.Parameters.AddWithValue("@height", character.Height);
             command.Parameters.AddWithValue("@trunk", character.Trunk);
             command.Parameters.AddWithValue("@leg", character.Leg);

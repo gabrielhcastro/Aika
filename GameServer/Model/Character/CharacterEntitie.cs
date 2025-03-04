@@ -41,8 +41,6 @@ public class CharacterEntitie {
     public byte Level { get; set; }
     public uint GuildIndex { get; set; }
     public uint Gold { get; set; }
-    public uint PositionX { get; set; }
-    public uint PositionY { get; set; }
     public string CreationTime { get; set; }
     public string DeleteTime { get; set; }
     public uint LoginTime { get; set; }
@@ -50,6 +48,8 @@ public class CharacterEntitie {
     public uint ActiveAction { get; set; }
     public string TeleportPositions { get; set; }
     public uint PranEvolutionCount { get; set; }
+    public Single PositionX { get; internal set; }
+    public Single PositionY { get; internal set; }
     public uint SavedPositionX { get; set; }
     public uint SavedPositionY { get; set; }
     public ushort Critical { get; set; }
@@ -65,5 +65,9 @@ public class CharacterEntitie {
     public List<ItemEntitie> Equips { get; set; }
     public List<ItemEntitie> Inventory { get; set; }
     public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
-    public Position Position { get; set; }
+    public Position Position { get; set; } = new Position();
+    public List<ushort> VisiblePlayers { get; set; }
+    public List<ushort> VisibleMobs { get; set; }
+    public List<ushort> VisibleNpcs { get; set; }
+    public List<Neighbors> Neighbors { get; set; }
 }

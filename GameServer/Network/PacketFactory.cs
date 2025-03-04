@@ -7,10 +7,12 @@ public static class PacketFactory {
 
         var header = new PacketHeader(opcode, index);
 
-        Span<byte> headerData = stackalloc byte[8]; // Stack (zero GC)
-        BitConverter.TryWriteBytes(headerData.Slice(0, 2), (ushort)0);
+        Span<byte> headerData = stackalloc byte[8]; // Stack
+        BitConverter.TryWriteBytes(headerData[..2], (ushort)0);
+
         headerData[2] = header.Key;
         headerData[3] = header.ChkSum;
+
         BitConverter.TryWriteBytes(headerData.Slice(4, 2), header.Index);
         BitConverter.TryWriteBytes(headerData.Slice(6, 2), header.Code);
 

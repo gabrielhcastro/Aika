@@ -1,8 +1,8 @@
 using Shared.Core.Conversions;
 using System.Text;
 
-namespace GameServer.Core.Handlers; 
-public class StreamHandler {
+namespace PacketTool; 
+public class PacketStream {
     #region Data
 
     private const int DefaultSize = 128;
@@ -28,11 +28,11 @@ public class StreamHandler {
         get => Buffer[index];
     }
 
-    public static explicit operator StreamHandler(byte[] bytes) {
-        return new StreamHandler(bytes);
+    public static explicit operator PacketStream(byte[] bytes) {
+        return new PacketStream(bytes);
     }
 
-    public static implicit operator byte[](StreamHandler packet) {
+    public static implicit operator byte[](PacketStream packet) {
         return packet.GetBytes();
     }
 
@@ -40,15 +40,15 @@ public class StreamHandler {
 
     #region Constructor
 
-    public StreamHandler() : this(DefaultSize) {
+    public PacketStream() : this(DefaultSize) {
     }
 
-    public StreamHandler(int count) {
+    public PacketStream(int count) {
         IsLittleEndian = true;
         Reserve(count);
     }
 
-    public StreamHandler(byte[] bytes) {
+    public PacketStream(byte[] bytes) {
         IsLittleEndian = true;
         Replace(bytes);
     }
@@ -57,19 +57,19 @@ public class StreamHandler {
 
     #region Replace
 
-    public StreamHandler Replace(StreamHandler packet) {
+    public PacketStream Replace(PacketStream packet) {
         return Replace(packet.Buffer, 0, packet.Count);
     }
 
-    public StreamHandler Replace(byte[] bytes) {
+    public PacketStream Replace(byte[] bytes) {
         return Replace(bytes, 0, bytes.Length);
     }
 
-    public StreamHandler Replace(StreamHandler packet, int offset, int count) {
+    public PacketStream Replace(PacketStream packet, int offset, int count) {
         return Replace(packet.Buffer, offset, count);
     }
 
-    public StreamHandler Replace(byte[] bytes, int offset, int count) {
+    public PacketStream Replace(byte[] bytes, int offset, int count) {
         Reserve(count);
         var newBuff = new byte[count];
         System.Buffer.BlockCopy(bytes, offset, newBuff, 0, count);
@@ -99,17 +99,17 @@ public class StreamHandler {
         }
     }
 
-    public StreamHandler Insert(int offset, byte[] copyArray) {
+    public PacketStream Insert(int offset, byte[] copyArray) {
         return Insert(offset, copyArray, 0, copyArray.Length);
     }
 
-    public StreamHandler PushBack(byte b) {
+    public PacketStream PushBack(byte b) {
         Reserve(Count + 1);
         Buffer[Count++] = b;
         return this;
     }
 
-    public StreamHandler Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
+    public PacketStream Insert(int offset, byte[] copyArray, int copyArrayOffset, int count) {
         Reserve(Count + count);
         System.Buffer.BlockCopy(Buffer, offset, Buffer, offset + count, Count - offset);
         System.Buffer.BlockCopy(copyArray, copyArrayOffset, Buffer, offset, count);
@@ -131,50 +131,50 @@ public class StreamHandler {
 
     #region Write Types
 
-    public StreamHandler Write(bool value, bool isInt = false) {
+    public PacketStream Write(bool value, bool isInt = false) {
         return isInt ? Write(value ? 1 : 0) : Write(value ? (byte)1 : (byte)0);
     }
 
-    public StreamHandler Write(byte value) {
+    public PacketStream Write(byte value) {
         PushBack(value);
         return this;
     }
 
-    public StreamHandler Write(byte[] value, bool appendSize = false) {
+    public PacketStream Write(byte[] value, bool appendSize = false) {
         if(appendSize)
             Write((ushort)(value.Length + 2));
         return Insert(Count, value);
     }
 
-    public StreamHandler Write(short value) {
+    public PacketStream Write(short value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(int value) {
+    public PacketStream Write(int value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(long value) {
+    public PacketStream Write(long value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(ushort value) {
+    public PacketStream Write(ushort value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(uint value) {
+    public PacketStream Write(uint value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(ulong value) {
+    public PacketStream Write(ulong value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler Write(float value) {
+    public PacketStream Write(float value) {
         return Write(Converter.GetBytes(value));
     }
 
-    public StreamHandler WriteCc(int count) {
+    public PacketStream WriteCc(int count) {
         var buff = new byte[count];
         for(var i = 0; i < count; i++)
             buff[i] = 0xCC;
@@ -182,11 +182,11 @@ public class StreamHandler {
         return Write(buff);
     }
 
-    public StreamHandler Write(StreamHandler value, bool appendSize = false) {
+    public PacketStream Write(PacketStream value, bool appendSize = false) {
         return Write(value.GetBytes(), appendSize);
     }
 
-    public StreamHandler Write(string value, int count, bool fillCc = false) {
+    public PacketStream Write(string value, int count, bool fillCc = false) {
         var tmp = _encoding.GetBytes(fillCc ? value + '\u0000' : value);
         if(tmp.Length > count)
             Array.Resize(ref tmp, count);
@@ -200,7 +200,7 @@ public class StreamHandler {
         return Write(buff);
     }
 
-    public StreamHandler Write(ReadOnlySpan<byte> value) {
+    public PacketStream Write(ReadOnlySpan<byte> value) {
         Reserve(Count + value.Length);
         value.CopyTo(Buffer.AsSpan(Count, value.Length));
         Count += value.Length;
@@ -325,10 +325,9 @@ public class StreamHandler {
     }
     #endregion
 
-    //Limpa o buffer melhorando o uptime
     public void Reset() {
         Array.Clear(Buffer, 0, Count); // Limpa os bytes
-        Count = 0; // Reinicia o tamanho do pacote
-        Pos = 0;   // Reinicia a posição de leitura/escrita
+        Count = 0; // Reinicia tamanho do pacote
+        Pos = 0;   // Reinicia posição de leitura/escrita
     }
 }

@@ -21,7 +21,6 @@ public class Session : IDisposable {
     public SocketAsyncEventArgs ReadEventArg { get; private set; }
     public IPAddress Ip { get; private set; }
     public DateTime LastActivity { get; set; }
-    public string Username { get; set; }
     public CharacterEntitie ActiveCharacter { get; set; }
     public AccountEntitie ActiveAccount { get; set; }
 
@@ -57,7 +56,6 @@ public class Session : IDisposable {
         _packetQueue.Reset();
         ActiveCharacter = null;
         ActiveAccount = null;
-        Username = null;
     }
 
     public void SendPacket(byte[] packet) {

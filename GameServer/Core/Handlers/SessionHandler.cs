@@ -51,7 +51,9 @@ public class SessionHandler : Singleton<SessionHandler> {
         _sessions[session.Id] = session;
         session.LastActivity = DateTime.UtcNow;
         UpdateSessionActivity(session);
+        Console.WriteLine($"Session ID: {session.Id}");
     }
+
     public void RemoveSession(Session session) {
         _sessions.TryRemove(session.Id, out _);
         session.ActiveCharacter = null;
@@ -60,6 +62,16 @@ public class SessionHandler : Singleton<SessionHandler> {
         UpdateSessionActivity(session);
         session.Close();
     }
+
+    public Session? GetSessionByCharacterId(ushort characterId) {
+        return _sessions.Values.FirstOrDefault(s => s.ActiveCharacter?.Id == characterId);
+    }
+
+    public int GetAllSessionsCount() => _sessions.Values.Count;
+
+    public List<Session> GetAllSessions() => [.. _sessions.Values];
+
+    public static int GetAllCharacters() => _characters.Values.Count;
 
     public static void UpdateSessionActivity(Session session) {
         session.LastActivity = DateTime.UtcNow;
@@ -75,9 +87,70 @@ public class SessionHandler : Singleton<SessionHandler> {
         return player;
     }
 
+    // TO-DO: REMOÇÃO DE PERSONAGEM
     public static void RemoveCharacter(int playerId) {
         _characters.Remove(playerId, out var character);
         Console.WriteLine($"Player deslogou: {character?.Name}.");
+    }
+
+    public void UpdateVisibleList(Session session) {
+        //float visibilityRange = 30f;
+
+        if(session.ActiveCharacter == null) return;
+
+        var character = session.ActiveCharacter;
+        if(character.Neighbors != null)
+            character.Neighbors.Clear();
+
+        foreach(var otherSession in _sessions.Values) {
+            if(session == otherSession || otherSession.ActiveCharacter == null)
+                continue;
+
+            var otherCharacter = otherSession.ActiveCharacter;
+
+            character.Neighbors.Add(new(otherCharacter.PositionX, otherCharacter.PositionY));
+            character.VisiblePlayers ??= [];
+            character.VisiblePlayers.Add((ushort)otherCharacter.Id);
+
+            CharacterHandler.SpawnCharacter(GetSessionByCharacterId((ushort)otherCharacter.Id));
+            //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);
+
+            //    if(distance <= visibilityRange) {
+            //        if(!session.ActiveCharacter.VisiblePlayers.Contains((ushort)otherSession.Id)) {
+            //            session.ActiveCharacter.VisiblePlayers.Add((ushort)otherSession.Id);
+            //            var foundSession = GetSession((ushort)otherSession.Id);
+            //            if(foundSession != null) {
+            //                CharacterHandler.CreateCharacterMob(foundSession);
+            //            }
+
+            //            CharacterHandler.GameMessage(session, 16, 0, "Tentando adicionar personagem");
+            //        }
+            //    }
+            //    else {
+            //        if(session.ActiveCharacter.VisiblePlayers.Contains((ushort)otherSession.Id)) {
+            //            session.ActiveCharacter.VisiblePlayers.Remove((ushort)otherSession.Id);
+            //            CharacterHandler.GameMessage(session, 16, 0, "Tentando remover personagem");
+            //        }
+            //    }
+            //}
+
+            //foreach(var npc in NpcHandler.Instance.GetAllNpcs()) {
+            //    float distance = session.ActiveCharacter.DistanceTo(npc);
+
+            //    if(distance <= visibilityRange) {
+            //        if(!session.VisibleNpcs.Contains(npc.Id)) {
+            //            session.VisibleNpcs.Add(npc.Id);
+            //            session.SendPacket(PacketFactory.CreateSpawnNpc(npc));
+            //        }
+            //    }
+            //    else {
+            //        if(session.VisibleNpcs.Contains(npc.Id)) {
+            //            session.VisibleNpcs.Remove(npc.Id);
+            //            session.SendPacket(PacketFactory.CreateRemoveNpc(npc));
+            //        }
+            //    }
+            //}
+        }
     }
 
     private void ReadComplete(object sender, SocketAsyncEventArgs e) {
@@ -112,8 +185,4 @@ public class SessionHandler : Singleton<SessionHandler> {
             session.Close();
         }
     }
-
-    public int GetAllSessionsCount() => _sessions.Values.Count;
-    public List<Session> GetAllSessions() => [.. _sessions.Values];
-    public static int GetAllCharacters() => _characters.Values.Count;
 }

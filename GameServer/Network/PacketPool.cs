@@ -8,10 +8,10 @@ public static class PacketPool {
 
     public static StreamHandler Rent() {
         if(_packetPool.TryTake(out var packet)) {
-            packet.Reset(); // Limpa o buffer antes de reutilizar
+            packet.Reset();
             return packet;
         }
-        return new StreamHandler(); // pool vazio
+        return new StreamHandler();
     }
 
     public static void Return(StreamHandler packet) {

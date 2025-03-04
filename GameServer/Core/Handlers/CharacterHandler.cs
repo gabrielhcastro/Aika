@@ -3,6 +3,7 @@ using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Network;
 using GameServer.Service;
+using System.IO;
 using System.Text;
 
 namespace GameServer.Core.Handlers;
@@ -80,11 +81,11 @@ public static class CharacterHandler {
         PacketPool.Return(packet);
     }
 
-    private static void Teleport(Session session, uint positionX, uint positionY) {
+    private static void Teleport(Session session, Single positionX, Single positionY) {
         var packet = PacketFactory.CreateHeader(0x301, 1);
 
-        packet.Write((float)positionX);
-        packet.Write((float)positionY);
+        packet.Write(positionX);
+        packet.Write(positionY);
 
         for(ushort i = 0; i < 6; i++)
             packet.Write((byte)0);
@@ -147,13 +148,11 @@ public static class CharacterHandler {
             var numericSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
 
             if(!numericSaved)
-                Console.WriteLine($"{character.Name} -> Erro ao registrar numérica!");
+                GameMessage(session, 16, 0, "Erro ao registrar, entre em contato com o suporte!");
 
-            Console.WriteLine($"{character.Name} -> Numérica Registrada!");
         }
         else if(numericRequestChange == 1 && character.NumericToken == numeric1) {
-            // TO-DO: Mapear e enviar para o mundo
-            Console.WriteLine($"{character.Name} -> Numérica Correta!");
+            Console.WriteLine($"[{account.ConnectionId}] {character.Name} -> Entrou no jogo");
         }
         else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
             character.NumericToken = numeric1;
@@ -161,23 +160,22 @@ public static class CharacterHandler {
             var numericaSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
 
             if(!numericaSaved)
-                Console.WriteLine($"{character.Name} -> Erro ao trocar numérica!");
+                GameMessage(session, 16, 0, "Erro ao registrar, entre em contato com o suporte!");
 
             Console.WriteLine($"{character.Name} -> Numérica Alterada!");
         }
         else {
-            Console.WriteLine($"{character.Name} -> Numérica errada!");
             await SendToCharactersList(session, account);
-            GameMessage(session, 16, 0, "Numerica incorreta");
+            GameMessage(session, 16, 0, "Numerica incorreta!");
             character.NumericErrors += 1;
             return;
         }
 
         // QUE MERDA É ESSA E PRA QUE SERVE?
-        //SendData(session, 0xCCCC, 0x1);
-        //SendData(session, 0x186, 0x1);
-        //SendData(session, 0x186, 0x1);
-        //SendData(session, 0x186, 0x1);
+        SendData(session, 0xCCCC, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
 
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
@@ -392,8 +390,12 @@ public static class CharacterHandler {
 
         session.ActiveCharacter = character;
 
+        SessionHandler.AddCharacter(character);
+
         Console.WriteLine($"OK -> HandleSendToWorld");
 
+        // TO-DO: SALVAR LOGOFF
+        // TELEPORTAR PARA ONDE PAROU
         Teleport(session, character.PositionX, character.PositionY);
     }
 
@@ -421,8 +423,17 @@ public static class CharacterHandler {
             return;
         }
 
-        CreateCharacterMob(session);
-        SpawnCharacter(session);
+        session.ActiveCharacter.Neighbors = [];
+        session.ActiveCharacter.VisiblePlayers = [];
+        session.ActiveCharacter.VisibleMobs = [];
+        session.ActiveCharacter.VisibleNpcs = [];
+
+        //CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
+        CreateCharacterMob(session, 0);
+        //CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
+
+        //SessionHandler.Instance.UpdateVisibleList(session);
+
         SendCurrentLevel(session);
         SendStatus(session);
         SendCurrentHpMp(session);
@@ -435,61 +446,6 @@ public static class CharacterHandler {
         foreach(var item in session.ActiveCharacter.Inventory) {
             ItemHandler.UpdateItemBySlotAndType(session, item, true);
         }
-
-        // Enviar informações de guilda, se o jogador tiver
-        //if(player.GuildIndex > 0) {
-        //    SendGuildInfo(session, player);
-        //    SendGuildPlayers(session, player.GuildIndex);
-        //}
-
-        // Enviar habilidades do jogador
-        //SendPlayerSkills(session, player);
-
-        // Configuração inicial de EXP (se for 0, ajusta para 1)
-        //if(player.Experience == 0) {
-        //RemoveItemIfExists(session, 5284);
-        //    player.Experience = 1;
-        //    SendRefreshLevel(session, player);
-        //}
-
-        // Atualiza inventário de cash
-        //SendCashInventory(session, player);
-
-        // Verifica tempo premium
-        //if(player.PremiumTime > DateTime.Now) {
-        //    SendAccountStatus(session, player);
-        //}
-        //else {
-        //    SendClientMessage(session, 16, 0, "Seu auxílio poderoso expirou.");
-        //}
-
-        // Verifica se tem item premium no inventário (8250)
-        //foreach(var item in player.Inventory) {
-        //    if(item.Index == 8250 && player.PremiumTime <= DateTime.Now) {
-        //        SendClientMessage(session, 16, 0, "Seu auxílio poderoso foi ativado. Você tem 30 dias Premium.");
-        //        player.PremiumTime = DateTime.Now.AddDays(30);
-        //        SendAccountStatus(session, player);
-        //    }
-        //}
-
-        // Enviar buffs ativos
-        //foreach(var buff in player.Buffs) {
-        //    if(buff.Index > 0) {
-        //        AddBuff(session, buff);
-        //    }
-        //}
-
-        // Atualizações finais de status
-        //SendRefreshBuffs(session, player);
-        //SendQuests(session, player);
-        //SendNationInformation(session, player);
-        //SendReliquesToPlayer(session, player);
-        //SendStatus(session, player);
-
-        // Se o jogador tiver montaria equipada, envia atualização
-        //if(player.Equip[9].Index > 0) {
-        //    SendRefreshItemSlot(session, EquipType.Mount, player.Equip[9]);
-        //}
 
         Console.WriteLine($"OK -> SendToWorldSends");
     }
@@ -686,39 +642,37 @@ public static class CharacterHandler {
             session.ActiveCharacter.Rotation = rotation;
     }
 
-    private static void CreateCharacterMob(Session session) {
+    public static void CreateCharacterMob(Session session, ushort spawnType) {
         if(session == null) return;
 
-        var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
-        var packet = PacketFactory.CreateHeader(0x349, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x349, 1);
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
         CharacterService.SetCharEquipsOrdered(character, packet);
-        CharacterService.SetCharInventoryOrdered(character, packet);
 
         // Item Effect?
         for(ushort j = 0; j < 12; j++) {
             packet.Write((byte)0);
         }
 
-        packet.Write(character.PositionX);
-        packet.Write(character.PositionY);
+        packet.Write((Single)character.Position.X);
+        packet.Write((Single)character.Position.Y);
 
         packet.Write((uint)character.Rotation);
 
-        packet.Write(character.MaxHealth);
-        packet.Write(character.MaxMana);
         packet.Write(character.CurrentHealth);
+        packet.Write(character.MaxHealth);
         packet.Write(character.CurrentMana);
+        packet.Write(character.MaxMana);
 
-        packet.Write((byte)0); // Unk
+        packet.Write((byte)0xA); // Unk
 
         packet.Write(character.SpeedMove);
 
-        packet.Write((byte)0); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
+        packet.Write((byte)spawnType); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
@@ -745,9 +699,10 @@ public static class CharacterHandler {
         packet.Write((ushort)0);
 
         // Effects?
-        for(ushort i = 0; i < 4; i++) {
-            packet.Write((ushort)0);
-        }
+        packet.Write((ushort)0);
+        packet.Write((ushort)0x1D);
+        packet.Write((ushort)0);
+        packet.Write((ushort)0);
 
         packet.Write((byte)0); // Unk_0
         packet.Write((byte)0); // TO-DO: ChaosPoints
@@ -755,7 +710,7 @@ public static class CharacterHandler {
         packet.Write((long)0); // Null_0
 
         packet.Write((byte)0); // TitleId
-        packet.Write((byte)0); // TitleLevel
+        packet.Write((byte)0xFF); // TitleLevel
 
         packet.Write((ushort)0); // Null_1
 
@@ -771,67 +726,72 @@ public static class CharacterHandler {
         Console.WriteLine($"OK -> CreateCharacterMob");
     }
 
-    private static void SpawnCharacter(Session session) {
+    public static void SpawnCharacter(Session session) {
         var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
-        var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x35E, 1);
 
-        var orderedEquips = new Dictionary<int, ushort>();
+        CharacterService.SetCharLobbyOrdered(character, packet);
 
-        for(ushort j = 0; j < 8; j++) {
-            orderedEquips[j] = 0;
-        }
+        packet.Write((byte)0); // Accessory?
+        packet.Write((byte)0); // Accessory?
+        packet.Write((byte)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((byte)0); // Accessory?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
+        packet.Write((ushort)0); // Duração do item?
 
-        foreach(var equip in character?.Equips ?? []) {
-            if(equip.Slot >= 0 && equip.Slot < 8) {
-                orderedEquips[equip.Slot] = (ushort)equip.ItemId;
-            }
-        }
+        packet.WriteCc(3);
 
-        for(ushort j = 0; j < 8; j++) {
-            packet.Write(orderedEquips[j]);
-        }
+        packet.Write(character.Position.X);
+        packet.Write(character.Position.Y);
 
-        packet.Write(character.PositionX);
-        packet.Write(character.PositionY);
+        packet.Write(character.Rotation);
 
-        packet.Write((uint)character.Rotation);
+        packet.Write((ushort)0);
 
         packet.Write(character.MaxHealth);
-        packet.Write(character.MaxMana);
         packet.Write(character.CurrentHealth);
+        packet.Write(character.MaxMana);
         packet.Write(character.CurrentMana);
 
-        packet.Write((ushort)0); // Unk_0
+        packet.Write((ushort)10); // Unk_0
+        packet.Write((ushort)61); // Unk_1 (Level?!)
 
-        packet.Write((ushort)character.Level); // Level
-
-        packet.Write((ushort)0); // Null_0
-
-        packet.Write((bool)false); // IsService 
-
-        for(ushort i = 0; i < 4; i++) {
-            packet.Write((byte)0); // TO-DO: Effects
-        }
-
-        packet.Write((byte)0); // SpawnType
+        packet.Write((ushort)0); // Spawn Type
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
         packet.Write(character.Leg);
 
-        packet.Write((ushort)character.Body);
+        packet.Write((ushort)0); // Head Effect?!
 
-        packet.Write((byte)0); // Mob Type
+        packet.Write((ushort)0); // IsService / IsStore?!
+        packet.Write((ushort)0); // Helmet App? Helmet Image?
+
+        packet.Write(new byte[120]);
+        packet.Write(new byte[240]);
+
+        packet.Write("Title", 32); // title/guild
+        packet.Write((byte)0); // citId?
 
         packet.Write((byte)account.Nation); // Nation
+        packet.Write((byte)0); 
+        packet.Write((byte)0);
 
-        packet.Write((ushort)0x7535); // Mob Name?!
+        packet.Write((ushort)70); // Character Speed?
+        packet.Write((ushort)0); // Unk_2
+        packet.Write((ushort)0); // Emoticon?
+        packet.Write((ushort)0); // unk (byte) >0 <64 unique behavior
 
-        for(ushort i = 0; i < 3; i++) {
-            packet.Write((ushort)0); // Unk_1
-        }
+        packet.Write((uint)0);
+        packet.Write((uint)0);
 
         PacketFactory.FinalizePacket(packet);
 
@@ -845,7 +805,7 @@ public static class CharacterHandler {
     }
 
     // TO-DO: TRATAR PLAYER MORTO
-    internal static void MoveChar(StreamHandler stream, Session session) {
+    public static void MoveChar(StreamHandler stream, Session session) {
         var positionX = stream.ReadSingle();
         var positionY = stream.ReadSingle();
         var null_0 = stream.ReadBytes(6);
@@ -855,17 +815,31 @@ public static class CharacterHandler {
 
         Console.WriteLine($"PositionX: {positionX}, PositionY: {positionY}, MoveType: {moveType}, Speed: {speed}, Unk: {unk}");
 
-        //var packet = PacketFactory.CreateHeader(0x301);
+        var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
 
-        //packet.Write(session.ActiveCharacter.PositionX);
-        //packet.Write(session.ActiveCharacter.PositionY);
+        packet.Write(session.ActiveCharacter.Position.X);
+        packet.Write(session.ActiveCharacter.Position.Y);
 
-        //packet.Write(new byte[6]); // Null
+        packet.Write((byte)0); // Null
 
-        //packet.Write((byte)0); // MoveType (0: normal 1: teleport ?!)
-        //packet.Write((byte)0); // Speed
+        packet.Write((ushort)session.ActiveCharacter.Rotation); // Null
 
-        //packet.Write((uint)0); // Unk
+        packet.Write(moveType); // MoveType (0: normal 1: teleport ?!)
+        packet.Write(speed); // Speed
+
+        packet.Write((byte)0); // Unk
+        packet.Write((byte)0); // Unk
+        packet.Write((byte)0); // Unk
+        packet.Write((byte)0); // Unk
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetByte = packet.GetBytes();
+        EncDec.Encrypt(ref packetByte, packetByte.Length);
+
+        session.SendPacket(packet);
+
+        PacketPool.Return(packet);
     }
 
     //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {

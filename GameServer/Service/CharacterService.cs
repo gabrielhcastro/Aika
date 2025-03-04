@@ -4,6 +4,8 @@ using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
 using GameServer.Model.Item;
+using GameServer.Model.World;
+using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -54,12 +56,12 @@ public static class CharacterService {
 
     private static void SetCharInitPosition(CharacterEntitie character, uint local) {
         if(local == 0) { // Regenshien
-            character.PositionX = 3450;
-            character.PositionY = 690;
+            Position position = new(3450, 690);
+            character.Position = position;
         }
         else if(local == 1) { // Verband
-            character.PositionX = 3470;
-            character.PositionY = 935;
+            Position position = new(3470, 935);
+            character.Position = position;
         }
     }
 
@@ -137,7 +139,7 @@ public static class CharacterService {
                 CharacterHandler.GameMessage(session, 16, 0, "Cabelo fora dos limites");
 
             SetCharAppearance(character, classInfo, hair);
-            
+
             _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
 
             var local = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
@@ -223,5 +225,22 @@ public static class CharacterService {
         }
 
         return orderedInventory;
+    }
+
+    public static void SetCurrentNeighbors(CharacterEntitie character) {
+        character.Neighbors.Clear();
+
+        float x = character.PositionX;
+        float y = character.PositionY;
+
+        character.Neighbors.Add(new(x - 0.6f, y - 0.6f));
+        character.Neighbors.Add(new(x + 0.6f, y + 0.6f));
+        character.Neighbors.Add(new(x - 0.7f, y - 0.7f));
+        character.Neighbors.Add(new(x + 0.7f, y + 0.7f));
+        character.Neighbors.Add(new(x - 0.5f, y - 0.5f));
+        character.Neighbors.Add(new(x + 0.5f, y + 0.5f));
+        character.Neighbors.Add(new(x - 0.8f, y - 0.8f));
+        character.Neighbors.Add(new(x + 0.8f, y + 0.8f));
+        character.Neighbors.Add(new(x - 1.0f, y - 1.0f));
     }
 }

@@ -34,6 +34,9 @@ public static class PacketHandler {
             case 0x305:
             CharacterHandler.UpdateRotation(stream, session);
             break;
+            case 0x304:
+            Console.WriteLine("Packet Data: {0}", BitConverter.ToString(stream));
+            break;
             case 0x301:
             CharacterHandler.MoveChar(stream, session);
             break;
