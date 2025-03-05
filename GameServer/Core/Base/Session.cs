@@ -1,6 +1,7 @@
 using GameServer.Core.Handlers;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
+using GameServer.Network;
 using NLog;
 using System.Net;
 using System.Net.Sockets;
@@ -141,7 +142,7 @@ public class Session : IDisposable {
         Socket.Close();
         _network.RemoveSession(this);
 
-        SessionHandler.Instance.ReturnSocketEvent(ReadEventArg);
+        SocketAsyncEventArgsPool.Instance.Return(ReadEventArg);
     }
 
     public void Dispose() {

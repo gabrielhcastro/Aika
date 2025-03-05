@@ -159,7 +159,7 @@ partial class PacketToolDesign {
         // OnGoingPacketsRichTxt
         // 
         OnGoingPacketsRichTxt.BackColor = SystemColors.ControlText;
-        OnGoingPacketsRichTxt.Font = new Font("Cambria", 8.25F, FontStyle.Regular, GraphicsUnit.Point, 0);
+        OnGoingPacketsRichTxt.Font = new Font("Fira Code", 8.249999F, FontStyle.Regular, GraphicsUnit.Point, 0);
         OnGoingPacketsRichTxt.ForeColor = Color.White;
         OnGoingPacketsRichTxt.Location = new Point(12, 114);
         OnGoingPacketsRichTxt.Name = "OnGoingPacketsRichTxt";

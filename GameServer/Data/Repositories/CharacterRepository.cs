@@ -111,6 +111,7 @@ public static class CharacterRepository {
                 SavedPositionY = reader.IsDBNull("savedPositionY") ? 0 : reader.GetUInt32("savedPositionY"),
             };
 
+            character.Position = new(character.PositionX, character.Position.Y);
             character.Equips = await ItemService.GetCharEquips(character);
             character.Inventory = await ItemService.GetCharInventory(character);
             characters.Add(character);

@@ -157,7 +157,7 @@ public class Server : INetwork {
     public void RemoveSession(Session session) {
         _bufferControl.Empty(session.ReadEventArg);
 
-        SessionHandler.Instance.ReturnSocketEvent(session.ReadEventArg);
+        SocketAsyncEventArgsPool.Instance.Return(session.ReadEventArg);
         SessionHandler.Instance.RemoveSession(session);
         SessionHandler.Instance.ReturnSession(session);
 

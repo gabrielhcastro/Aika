@@ -27,31 +27,10 @@ public class SessionHandler : Singleton<SessionHandler> {
         _sessionPool.Return(session);
     }
 
-    public SocketAsyncEventArgs RentSocketEvent(EventHandler<SocketAsyncEventArgs> completedHandler) {
-        var args = _socketEventPool.Rent();
-        if(args == null) {
-            args = new SocketAsyncEventArgs();
-            args.Completed += completedHandler;
-        }
-        else {
-            args.Completed -= completedHandler;
-            args.Completed += completedHandler;
-            args.AcceptSocket = null;
-            args.UserToken = null;
-            args.SetBuffer(null, 0, 0);
-        }
-        return args;
-    }
-
-    public void ReturnSocketEvent(SocketAsyncEventArgs eventArg) {
-        _socketEventPool.Return(eventArg);
-    }
-
     public void AddSession(Session session) {
         _sessions[session.Id] = session;
         session.LastActivity = DateTime.UtcNow;
         UpdateSessionActivity(session);
-        Console.WriteLine($"Session ID: {session.Id}");
     }
 
     public void RemoveSession(Session session) {
@@ -63,7 +42,7 @@ public class SessionHandler : Singleton<SessionHandler> {
         session.Close();
     }
 
-    public Session? GetSessionByCharacterId(ushort characterId) {
+    public Session GetSessionByCharacterId(ushort characterId) {
         return _sessions.Values.FirstOrDefault(s => s.ActiveCharacter?.Id == characterId);
     }
 
@@ -87,7 +66,7 @@ public class SessionHandler : Singleton<SessionHandler> {
         return player;
     }
 
-    // TO-DO: REMOÇÃO DE PERSONAGEM
+    // TO-DO: REMOÇÃO DE PERSONAGEM AO DESLOGAR
     public static void RemoveCharacter(int playerId) {
         _characters.Remove(playerId, out var character);
         Console.WriteLine($"Player deslogou: {character?.Name}.");
@@ -95,12 +74,10 @@ public class SessionHandler : Singleton<SessionHandler> {
 
     public void UpdateVisibleList(Session session) {
         //float visibilityRange = 30f;
-
         if(session.ActiveCharacter == null) return;
 
         var character = session.ActiveCharacter;
-        if(character.Neighbors != null)
-            character.Neighbors.Clear();
+        character.Neighbors?.Clear();
 
         foreach(var otherSession in _sessions.Values) {
             if(session == otherSession || otherSession.ActiveCharacter == null)
@@ -108,11 +85,11 @@ public class SessionHandler : Singleton<SessionHandler> {
 
             var otherCharacter = otherSession.ActiveCharacter;
 
-            character.Neighbors.Add(new(otherCharacter.PositionX, otherCharacter.PositionY));
-            character.VisiblePlayers ??= [];
-            character.VisiblePlayers.Add((ushort)otherCharacter.Id);
+            if(!character.VisiblePlayers.Contains((ushort)otherCharacter.Id)) {
+                CharacterHandler.CreateCharacterMob(otherSession, 0);
 
-            CharacterHandler.SpawnCharacter(GetSessionByCharacterId((ushort)otherCharacter.Id));
+                character.VisiblePlayers.Add((ushort)otherCharacter.Id);
+            }
             //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);
 
             //    if(distance <= visibilityRange) {

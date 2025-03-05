@@ -116,12 +116,15 @@ public partial class PacketToolDesign : Form {
     }
 
     private void PastePacketRichTxt_TextChanged(object sender, EventArgs e) {
-        EncryptBtn.Enabled = true;
-        DecryptBtn.Enabled = true;
-
         if(PastePacketRichTxt.Text.Length == 0) {
             EncryptBtn.Enabled = false;
             DecryptBtn.Enabled = false;
+            SendPacketBtn.Enabled = false;
+        }
+        else {
+            EncryptBtn.Enabled = true;
+            DecryptBtn.Enabled = true;
+            SendPacketBtn.Enabled = true;
         }
 
         // PacketStatusLbl.Text = Encriptado/Desencriptado
@@ -170,9 +173,9 @@ public partial class PacketToolDesign : Form {
                 throw new ArgumentException($"Entrada inválida: {hex.Substring(i * 2, 2)} não é um byte válido.");
             }
         }
+
         return data;
     }
-
 
     private async Task ListenForPackets() {
         try {
@@ -206,7 +209,6 @@ public partial class PacketToolDesign : Form {
             LogPacket("Erro", Encoding.UTF8.GetBytes("Conexão perdida."));
         }
     }
-
 
     private void LogPacket(string direction, byte[] data) {
         if(InvokeRequired) {

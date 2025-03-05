@@ -214,12 +214,12 @@ public static class CharacterService {
     public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> itens) {
         var orderedInventory = new Dictionary<int, ItemEntitie>();
 
-        for(int i = 0; i < 60; i++) {
+        for(int i = 0; i < 64; i++) {
             orderedInventory[i] = new ItemEntitie();
         }
 
         foreach(var item in itens ?? []) {
-            if(item.Slot >= 0 && item.Slot < 60) {
+            if(item.Slot >= 0 && item.Slot < 64) {
                 orderedInventory[item.Slot] = item;
             }
         }
