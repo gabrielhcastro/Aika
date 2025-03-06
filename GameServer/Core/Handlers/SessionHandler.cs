@@ -27,6 +27,10 @@ public class SessionHandler : Singleton<SessionHandler> {
         _sessionPool.Return(session);
     }
 
+    public void ReturnSocketEvent(SocketAsyncEventArgs eventArg) {
+        _socketEventPool.Return(eventArg);
+    }
+
     public void AddSession(Session session) {
         _sessions[session.Id] = session;
         session.LastActivity = DateTime.UtcNow;
@@ -73,7 +77,6 @@ public class SessionHandler : Singleton<SessionHandler> {
     }
 
     public void UpdateVisibleList(Session session) {
-        //float visibilityRange = 30f;
         if(session.ActiveCharacter == null) return;
 
         var character = session.ActiveCharacter;
@@ -88,11 +91,10 @@ public class SessionHandler : Singleton<SessionHandler> {
 
             var otherCharacter = otherSession.ActiveCharacter;
 
-            if(!character.VisiblePlayers.Contains((ushort)otherCharacter.Id)) {
-                CharacterHandler.CreateCharacterMob(otherSession, 0);
-
-                character.VisiblePlayers.Add((ushort)otherCharacter.Id);
+            if(!character.VisiblePlayers.Contains(otherCharacter)) {
+                character.VisiblePlayers.Add(otherCharacter);
             }
+
             //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);
 
             //    if(distance <= visibilityRange) {

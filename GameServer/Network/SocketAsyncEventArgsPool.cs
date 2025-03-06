@@ -30,6 +30,7 @@ public class SocketAsyncEventArgsPool : Singleton<SocketAsyncEventArgsPool> {
         if(_pool.TryTake(out var args)) {
             return args;
         }
+
         return CreateNew();
     }
 

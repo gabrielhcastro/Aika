@@ -33,7 +33,7 @@ public class Server : INetwork {
         IsStarted = true;
         StartAccept(null);
 
-        await Task.WhenAll(StartPeriodicRecicle());
+        await StartPeriodicRecicle();
     }
 
     public async Task StartPeriodicRecicle() {
@@ -66,7 +66,7 @@ public class Server : INetwork {
         }
         else {
             acceptEventArg.AcceptSocket = null;
-    }
+        }
 
         _maxNumberAcceptedClients.WaitOne();
         var willRaiseEvent = _listenSocket.AcceptAsync(acceptEventArg);
@@ -140,7 +140,7 @@ public class Server : INetwork {
     public void RemoveSession(Session session) {
         _bufferControl.Empty(session.ReadEventArg);
 
-        SocketAsyncEventArgsPool.Instance.Return(session.ReadEventArg);
+        SessionHandler.Instance.ReturnSocketEvent(session.ReadEventArg);
         SessionHandler.Instance.RemoveSession(session);
         SessionHandler.Instance.ReturnSession(session);
 

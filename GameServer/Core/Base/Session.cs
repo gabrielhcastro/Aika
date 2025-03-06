@@ -142,7 +142,7 @@ public class Session : IDisposable {
         Socket.Close();
         _network.RemoveSession(this);
 
-        SocketAsyncEventArgsPool.Instance.Return(ReadEventArg);
+        SessionHandler.Instance.ReturnSocketEvent(ReadEventArg);
     }
 
     public void Dispose() {
