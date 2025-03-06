@@ -82,13 +82,13 @@ public static class CharacterHandler {
     }
 
     private static void Teleport(Session session, Single positionX, Single positionY) {
+        var account = session.ActiveCharacter;
         var packet = PacketFactory.CreateHeader(0x301, 1);
 
         packet.Write(positionX);
         packet.Write(positionY);
 
-        for(ushort i = 0; i < 6; i++)
-            packet.Write((byte)0);
+        packet.Write(new byte[6]);
 
         packet.Write((byte)1); // Move Type
         packet.Write((byte)0); // Speed 
@@ -106,6 +106,7 @@ public static class CharacterHandler {
     }
 
     private static void SendCurrentHpMp(Session session) {
+        var account = session.ActiveCharacter;
         var packet = PacketFactory.CreateHeader(0x103, 1);
 
         packet.Write((uint)session.ActiveCharacter.CurrentHealth);
@@ -171,12 +172,6 @@ public static class CharacterHandler {
             return;
         }
 
-        // QUE MERDA É ESSA E PRA QUE SERVE?
-        SendData(session, 0xCCCC, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
@@ -184,8 +179,8 @@ public static class CharacterHandler {
         // TO-DO: TFirst Login 
         packet.Write((uint)1);
         //packet.Write((uint)character.FirstLogin);
-
         packet.Write(account.ConnectionId); // CharacterId
+
         packet.Write(character.Id); // CharacterId
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0'))); // Name
@@ -388,21 +383,22 @@ public static class CharacterHandler {
 
         PacketPool.Return(packet);
 
+        SendData(session, 0xCCCC, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
+
         session.ActiveCharacter = character;
 
         SessionHandler.AddCharacter(character);
 
         Console.WriteLine($"OK -> HandleSendToWorld");
-
-        // TO-DO: SALVAR LOGOFF
-        // TELEPORTAR PARA ONDE PAROU
-        Teleport(session, character.PositionX, character.PositionY);
     }
 
     private static void SendData(Session session, ushort packetCode, uint data) {
         var account = session.ActiveAccount;
 
-        var packet = PacketFactory.CreateHeader(0x1, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(packetCode, (ushort)account.Id);
         packet.Write(data);
 
         PacketFactory.FinalizePacket(packet);
@@ -428,16 +424,20 @@ public static class CharacterHandler {
         session.ActiveCharacter.VisibleMobs = [];
         session.ActiveCharacter.VisibleNpcs = [];
 
-        //CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
-        CreateCharacterMob(session, 0);
-        //CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
+        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
 
-        //SessionHandler.Instance.UpdateVisibleList(session);
+        CreateCharacterMob(session, 0);
+
+        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
+        SessionHandler.Instance.UpdateVisibleList(session);
+        
+        CreateCharacterMob(session, 1, false);
 
         SendCurrentLevel(session);
         SendStatus(session);
         SendCurrentHpMp(session);
         SendAttributes(session);
+        Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
 
         foreach(var equip in session.ActiveCharacter.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
@@ -633,16 +633,16 @@ public static class CharacterHandler {
     }
 
     //TO-DO: Deixar visivel para todos/proximos
-    public static void UpdateRotation(StreamHandler stream, Session session) {
+    public static void UpdateRotation(Session session, StreamHandler stream) {
         var rotation = BitConverter.ToUInt16(stream.ReadBytes(4));
-
-        Console.WriteLine($"Rotation: {rotation}");
 
         if(session.ActiveCharacter.Rotation != rotation)
             session.ActiveCharacter.Rotation = rotation;
+
+        //UpdateRotationToAll(session, stream);
     }
 
-    public static void CreateCharacterMob(Session session, ushort spawnType) {
+    public static void CreateCharacterMob(Session session, ushort spawnType, bool sendSelf = true) {
         if(session == null) return;
 
         var character = session.ActiveCharacter;
@@ -651,12 +651,10 @@ public static class CharacterHandler {
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
-        CharacterService.SetCharEquipsOrdered(character, packet);
+        CharacterService.SetCharLobbyOrdered(character, packet);
 
         // Item Effect?
-        for(ushort j = 0; j < 12; j++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[12]);
 
         packet.Write((Single)character.Position.X);
         packet.Write((Single)character.Position.Y);
@@ -668,7 +666,7 @@ public static class CharacterHandler {
         packet.Write(character.CurrentMana);
         packet.Write(character.MaxMana);
 
-        packet.Write((byte)0xA); // Unk
+        packet.Write((byte)0x0A); // Unk
 
         packet.Write(character.SpeedMove);
 
@@ -700,17 +698,17 @@ public static class CharacterHandler {
 
         // Effects?
         packet.Write((ushort)0);
-        packet.Write((ushort)0x1D);
+        packet.Write((ushort)0);
         packet.Write((ushort)0);
         packet.Write((ushort)0);
 
         packet.Write((byte)0); // Unk_0
         packet.Write((byte)0); // TO-DO: ChaosPoints
 
-        packet.Write((long)0); // Null_0
+        packet.Write((uint)0); // Null_0
 
         packet.Write((byte)0); // TitleId
-        packet.Write((byte)0xFF); // TitleLevel
+        packet.Write((byte)0); // TitleLevel
 
         packet.Write((ushort)0); // Null_1
 
@@ -720,13 +718,12 @@ public static class CharacterHandler {
         EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packetData);
+        SendToVisibles(session, packetData);
 
         PacketPool.Return(packet);
-
-        Console.WriteLine($"OK -> CreateCharacterMob");
     }
 
-    public static void SpawnCharacter(Session session) {
+    public static void SpawnCharacter(Session session, ushort spawnType) {
         var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
@@ -734,64 +731,39 @@ public static class CharacterHandler {
 
         CharacterService.SetCharLobbyOrdered(character, packet);
 
-        packet.Write((byte)0); // Accessory?
-        packet.Write((byte)0); // Accessory?
-        packet.Write((byte)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((byte)0); // Accessory?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-        packet.Write((ushort)0); // Duração do item?
-
-        packet.WriteCc(3);
-
         packet.Write(character.Position.X);
         packet.Write(character.Position.Y);
-
         packet.Write(character.Rotation);
-
-        packet.Write((ushort)0);
 
         packet.Write(character.MaxHealth);
         packet.Write(character.CurrentHealth);
         packet.Write(character.MaxMana);
         packet.Write(character.CurrentMana);
 
-        packet.Write((ushort)10); // Unk_0
-        packet.Write((ushort)61); // Unk_1 (Level?!)
+        packet.Write((ushort)0); // Unk_0
 
-        packet.Write((ushort)0); // Spawn Type
+        packet.Write((ushort)character.Level);
+        packet.Write((ushort)0); // Null_0
+
+        packet.Write(false);
+
+        packet.Write(new byte[4]); // Effects
+
+        packet.Write(spawnType); // Spawn Type
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
         packet.Write(character.Leg);
+        packet.Write((ushort)character.Body); // Body
 
-        packet.Write((ushort)0); // Head Effect?!
-
-        packet.Write((ushort)0); // IsService / IsStore?!
-        packet.Write((ushort)0); // Helmet App? Helmet Image?
-
-        packet.Write(new byte[120]);
-        packet.Write(new byte[240]);
-
-        packet.Write("Title", 32); // title/guild
-        packet.Write((byte)0); // citId?
+        packet.Write((byte)0); // Mob Type
 
         packet.Write((byte)account.Nation); // Nation
-        packet.Write((byte)0); 
+
+        packet.Write((ushort)0); // Mob Name?
         packet.Write((byte)0);
 
-        packet.Write((ushort)70); // Character Speed?
-        packet.Write((ushort)0); // Unk_2
-        packet.Write((ushort)0); // Emoticon?
-        packet.Write((ushort)0); // unk (byte) >0 <64 unique behavior
-
-        packet.Write((uint)0);
-        packet.Write((uint)0);
+        packet.Write(new byte[3]); // Unk_1
 
         PacketFactory.FinalizePacket(packet);
 
@@ -805,15 +777,13 @@ public static class CharacterHandler {
     }
 
     // TO-DO: TRATAR PLAYER MORTO
-    public static void MoveChar(StreamHandler stream, Session session) {
+    public static void MoveChar(Session session, StreamHandler stream) {
         var positionX = stream.ReadSingle();
         var positionY = stream.ReadSingle();
         var null_0 = stream.ReadBytes(6);
         var moveType = stream.ReadByte();
         var speed = stream.ReadByte();
         var unk = stream.ReadUInt32();
-
-        Console.WriteLine($"PositionX: {positionX}, PositionY: {positionY}, MoveType: {moveType}, Speed: {speed}, Unk: {unk}");
 
         var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
 
@@ -840,6 +810,41 @@ public static class CharacterHandler {
         session.SendPacket(packet);
 
         PacketPool.Return(packet);
+    }
+
+    internal static void UpdateCharInfo(Session session, StreamHandler stream) {
+        var index = stream.ReadUInt32();
+        var loop = stream.ReadUInt32();
+
+        //var packet = PacketFactory.CreateHeader(0x306, (ushort)index);
+        var packet = PacketFactory.CreateHeader(0x306, 1);
+        packet.Write(index);
+        packet.Write(loop);
+
+        PacketFactory.FinalizePacket(packet);
+
+        var packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine("OK -> UpdateCharInfo");
+    }
+
+    public static void SendToVisibles(Session session, byte[] packet) {
+        foreach(var otherPlayer in session.ActiveCharacter.VisiblePlayers) {
+
+            var otherPlayerSession = SessionHandler.Instance.GetSessionByCharacterId((ushort)otherPlayer.Id);
+
+            if(session.ActiveCharacter.VisiblePlayers.Any(c => c.Id == otherPlayerSession.ActiveCharacter.Id)) continue;
+
+            if(otherPlayerSession.ActiveCharacter == null)
+                continue;
+
+            otherPlayerSession.SendPacket(packet);
+        }
     }
 
     //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {

@@ -7,7 +7,9 @@ namespace GameServer.Core.Handlers;
 
 public static class ItemHandler {
     public static void UpdateItemBySlotAndType(Session session, ItemEntitie item, bool notice) {
-        var packet = PacketFactory.CreateHeader(0xF0E, 0x7535);
+        var account = session.ActiveAccount;
+        var connectionId = (account.Id - 1) + 0x7535;
+        var packet = PacketFactory.CreateHeader(0xF0E, (ushort)connectionId);
 
         packet.Write(notice);
         packet.Write(item.SlotType);

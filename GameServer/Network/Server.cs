@@ -33,24 +33,7 @@ public class Server : INetwork {
         IsStarted = true;
         StartAccept(null);
 
-        await Task.WhenAll(StartPeriodicRecicle(), UpdateVisibilityLoop());
-    }
-
-    private async Task UpdateVisibilityLoop() {
-        while(IsStarted) {
-            try {
-                foreach(var session in SessionHandler.Instance.GetAllSessions()) {
-                    if(session.ActiveCharacter == null) continue;
-
-                    SessionHandler.Instance.UpdateVisibleList(session);
-                }
-            }
-            catch(Exception ex) {
-                _log.Error($"Erro no UpdateVisibilityLoop: {ex.Message}");
-            }
-
-            await Task.Delay(100);
-        }
+        await Task.WhenAll(StartPeriodicRecicle());
     }
 
     public async Task StartPeriodicRecicle() {
