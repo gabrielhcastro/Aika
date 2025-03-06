@@ -32,13 +32,13 @@ public static class PacketHandler {
             await CharacterHandler.ChangeChar(session);
             break;
             case 0x305:
-            CharacterHandler.UpdateRotation(stream, session);
+            CharacterHandler.UpdateRotation(session, stream);
             break;
-            case 0x304:
-            Console.WriteLine("Packet Data: {0}", BitConverter.ToString(stream));
+            case 0x306:
+            CharacterHandler.UpdateCharInfo(session, stream);
             break;
             case 0x301:
-            CharacterHandler.MoveChar(stream, session);
+            CharacterHandler.MoveChar(session, stream);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");

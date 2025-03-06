@@ -78,9 +78,12 @@ public class SessionHandler : Singleton<SessionHandler> {
 
         var character = session.ActiveCharacter;
         character.Neighbors?.Clear();
+        character.VisiblePlayers ??= [];
 
         foreach(var otherSession in _sessions.Values) {
-            if(session == otherSession || otherSession.ActiveCharacter == null)
+            if(character.VisiblePlayers.Any(c => c.Id == otherSession.ActiveCharacter.Id)) continue;
+
+            if(otherSession.ActiveCharacter == null)
                 continue;
 
             var otherCharacter = otherSession.ActiveCharacter;
@@ -127,7 +130,10 @@ public class SessionHandler : Singleton<SessionHandler> {
             //        }
             //    }
             //}
+            character.VisiblePlayers.Add(otherCharacter);
         }
+
+        Console.WriteLine("OK -> UpdateVisibleList");
     }
 
     private void ReadComplete(object sender, SocketAsyncEventArgs e) {
