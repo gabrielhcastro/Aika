@@ -14,7 +14,7 @@ public static class CharacterHandler {
 
         var packet = PacketFactory.CreateHeader(0x901);
 
-        packet.Write((uint)account.Id); // AccountID
+        packet.Write(account.Id); // AccountID
         packet.Write((uint)0); // Campo desconhecido (Unk)
         packet.Write((uint)0); // Campo não utilizado (NotUse)
 
@@ -428,14 +428,11 @@ public static class CharacterHandler {
         session.ActiveCharacter.VisibleMobs = [];
         session.ActiveCharacter.VisibleNpcs = [];
 
-        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
 
         CreateCharacterMob(session, 0);
 
         CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
-        
-        CreateCharacterMob(session, 1, false);
 
         SendCurrentLevel(session);
         SendStatus(session);
@@ -651,7 +648,7 @@ public static class CharacterHandler {
 
         var character = session.ActiveCharacter;
 
-        var packet = PacketFactory.CreateHeader(0x349, (ushort)session.ActiveAccount.Id);
+        var packet = PacketFactory.CreateHeader(0x349, 1);
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 

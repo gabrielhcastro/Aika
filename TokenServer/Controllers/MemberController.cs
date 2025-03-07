@@ -5,9 +5,14 @@ using TokenServer.Models;
 namespace TokenServer.Controllers;
 
 public class MemberController : ControllerBase {
-    [HttpPost("/member/Aika_get_token.asp")]
-    public async Task<string> Aika_get_token(string id, string pw) {
-        return await AuthHandlers.GetTokenAsync(id, pw);
+    [HttpPost("/member/aika_get_token.asp")]
+    public async Task<IActionResult> Aika_get_token([FromForm] string id, [FromForm] string pw) {
+        string responseText = await AuthHandlers.GetTokenAsync(id, pw);
+        Response.Headers["Connection"] = "close";
+        Response.Headers["Content-Type"] = "text/html; charset=utf-8";
+        Response.Headers["Content-Length"] = responseText.Length.ToString();
+        Response.Headers["Date"] = DateTime.UtcNow.ToString("R");
+        return Content(responseText, "text/html", System.Text.Encoding.UTF8);
     }
 
     [HttpPost("/member/create_account")]

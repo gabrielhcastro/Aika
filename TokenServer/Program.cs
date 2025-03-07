@@ -6,12 +6,18 @@ public class Program {
     public static void Main(string[] args) {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.WebHost
-            .UseKestrel()
-            .UseSetting("https_port", "8090")
-            .UseUrls("https://*:8090/");
+        builder.WebHost.UseKestrel()
+            .UseUrls("http://*:8090/");
 
-        // Add services to the container.
+        builder.WebHost.ConfigureKestrel(serverOptions =>
+        {
+            serverOptions.AddServerHeader = false;
+        });
+
+        builder.Services.Configure<Microsoft.AspNetCore.HttpsPolicy.HttpsRedirectionOptions>(options => {
+            options.HttpsPort = null;
+        });
+
         builder.Services.AddControllersWithViews();
 
         var app = builder.Build();
@@ -23,8 +29,9 @@ public class Program {
 
         app.UseExceptionMiddleware();
 
-        app.UseHttpsRedirection();
+        //app.UseHttpsRedirection();
         app.UseStaticFiles();
+
         app.UseRouting();
         app.UseAuthorization();
 

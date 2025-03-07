@@ -13,21 +13,23 @@ public class AccountHandler{
 
         var account = await AccountRepository.GetAccountByUsernameAsync(username);
         if(account == null) {
-            CharacterHandler.GameMessage(session, 16, 0, "CONTA NÃO ENCONTRADA!");
+            CharacterHandler.GameMessage(session, 16, 0, "CONTA NAO ENCONTRADA!");
             return;
         }
 
         var packet = PacketFactory.CreateHeader(0x82);
 
-        packet.Write((uint)account.Id); // AccountID
+        packet.Write(account.Id); // AccountID
         packet.Write((uint)Environment.TickCount); // LoginTime
-        packet.Write((ushort)account.Nation); // Nação
-        packet.Write((uint)0); // Null_1 (padding)
+        packet.Write((uint)account.Nation); // Nação
+        packet.Write((byte)0); // Null_1 (padding)
 
         packet.Buffer[0] = 0x19; // size 25 bytes fixo login porta 8831
         packet.Buffer[1] = 0x00;
 
         byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+
         session.SendPacket(packetData);
         session.LastActivity = DateTime.Now;
 

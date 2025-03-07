@@ -54,7 +54,7 @@ public static class CharacterRepository {
         })
         };
     
-    public static async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(int accountId) {
+    public static async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(uint accountId) {
         List<CharacterEntitie> characters = [];
 
         await using var connection = await DatabaseHandler.GetConnectionAsync();

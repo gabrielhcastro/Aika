@@ -62,7 +62,6 @@ public static class AuthHandlers {
         }
     }
 
-
     public static async Task<string> GetCharacterCountAsync(string username, string passwordHash) {
         try {
             await using var connection = await DatabaseHandler.GetConnectionAsync();
@@ -87,8 +86,7 @@ public static class AuthHandlers {
             int charCount = Convert.ToInt32(await charCommand.ExecuteScalarAsync());
 
             var infos = new StringBuilder();
-            infos.Append($"CNT {charCount} 0 0 0 <br> ");
-            infos.Append($"{nation} 0 0 0");
+            infos.Append($"CNT {charCount} 0 0 0 0 0<br>{nation} 0 0 0 0 0");
 
             return infos.ToString();
         }
@@ -175,11 +173,7 @@ public static class AuthHandlers {
 
     //TO-DO: Implementar método para recuperar lista de servidores
     public static string GetPlayerCountPerServer() {
-        var serverList = new string[64];
-        for(int i = 0; i < serverList.Length; i++) {
-            serverList[i] = "0";
-        }
-        return string.Join(" ", serverList);
+        return "1 1 1 -1 ";
     }
 
 

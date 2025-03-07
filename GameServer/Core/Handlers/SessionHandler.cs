@@ -84,10 +84,10 @@ public class SessionHandler : Singleton<SessionHandler> {
         character.VisiblePlayers ??= [];
 
         foreach(var otherSession in _sessions.Values) {
-            if(character.VisiblePlayers.Any(c => c.Id == otherSession.ActiveCharacter.Id)) continue;
-
             if(otherSession.ActiveCharacter == null)
                 continue;
+
+            if(character.VisiblePlayers.Any(c => c.Id == otherSession?.ActiveCharacter?.Id)) continue;
 
             var otherCharacter = otherSession.ActiveCharacter;
 

@@ -36,17 +36,17 @@ public static class AccountRepository {
 
     private static AccountEntitie MapAccount(MySqlDataReader reader) {
         return new AccountEntitie {
-            Id = reader.GetInt32("id"),
+            Id = reader.GetUInt32("id"),
             Username = reader.GetString("username"),
             PasswordHash = reader.GetString("passwordHash"),
             Token = reader.GetString("token"),
             TokenCreationTime = reader.GetDateTime("tokenCreationTime"),
-            AccountStatus = reader.GetInt32("accountStatus"),
-            BanDays = reader.GetInt32("banDays"),
-            Nation = reader.GetInt32("nation"),
+            AccountStatus = reader.GetUInt16("accountStatus"),
+            BanDays = reader.GetUInt16("banDays"),
+            Nation = reader.GetUInt16("nation"),
             AccountType = (AccountType)reader.GetInt32("accountType"),
-            StorageGold = reader.IsDBNull("storageGold") ? 0 : reader.GetInt32("storageGold"),
-            Cash = reader.IsDBNull("cash") ? 0 : reader.GetInt32("cash"),
+            StorageGold = reader.IsDBNull("storageGold") ? 0 : reader.GetUInt32("storageGold"),
+            Cash = reader.IsDBNull("cash") ? 0 : reader.GetUInt32("cash"),
             PremiumExpiration = reader.IsDBNull("premiumExpiration") ? string.Empty : reader.GetString("premiumExpiration"),
         };
     }
