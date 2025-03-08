@@ -23,7 +23,7 @@ public static class PacketHandler {
             case 0x39D:
             break;
             case 0xF02:
-            await CharacterHandler.SendToWorld(session, stream);
+            CharacterHandler.SendToWorld(session, stream);
             break;
             case 0xF0B:
             CharacterHandler.SendToWorldSends(session);

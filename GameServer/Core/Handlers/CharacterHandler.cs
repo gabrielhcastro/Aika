@@ -9,14 +9,15 @@ using System.Text;
 
 namespace GameServer.Core.Handlers;
 public static class CharacterHandler {
-    private static async Task SendToCharactersList(Session session, AccountEntitie account) {
-        account.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
+    private static async Task SendToCharactersList(Session session) {
+        var account = session.ActiveAccount;
+        session.ActiveAccount.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
 
-        var packet = PacketFactory.CreateHeader(0x901);
+        var packet = PacketFactory.CreateHeader(0x901, (ushort)account.Id);
 
-        packet.Write(account.Id); // AccountID
-        packet.Write((uint)0); // Campo desconhecido (Unk)
-        packet.Write((uint)0); // Campo não utilizado (NotUse)
+        packet.Write((uint)5077);
+        packet.Write((uint)0); // Unk
+        packet.Write((uint)0); // Unk
 
         for(ushort i = 0; i < 3; i++) {
             var character = i < account.Characters.Count ? account.Characters.ToList()[i] : null;
@@ -24,13 +25,13 @@ public static class CharacterHandler {
             // Nome
             packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
 
-            packet.Write((ushort)(account?.Nation ?? 0)); // Nação
-            packet.Write((ushort)(character?.ClassInfo ?? 0)); // Classe
+            packet.Write((ushort)(account?.Nation ?? 0));
+            packet.Write((ushort)(character?.ClassInfo ?? 0));
 
-            packet.Write((byte)(character?.Height ?? 7)); // Altura
-            packet.Write((byte)(character?.Trunk ?? 119)); // Tronco
-            packet.Write((byte)(character?.Leg ?? 119)); // Perna
-            packet.Write((byte)(character?.Body ?? 119)); // Corpo
+            packet.Write((byte)(character?.Height ?? 0));
+            packet.Write((byte)(character?.Trunk ?? 0));
+            packet.Write((byte)(character?.Leg ?? 0));
+            packet.Write((byte)(character?.Body ?? 0));
 
             CharacterService.SetCharLobbyOrdered(character, packet);
 
@@ -52,25 +53,14 @@ public static class CharacterHandler {
             packet.Write((long)(character?.Experience ?? 1)); // Exp
             packet.Write((long)(character?.Gold ?? 0)); // Gold
 
-            packet.Write(new byte[4]); // Null
+            packet.Write((uint)0); // Null
 
-            // TO-DO: LIDAR COM PERSONAGEM APAGANDO
-            if(character != null)
-                packet.Write((uint)character.Deleted); // Deleted?
-            else {
-                packet.Write((uint)0);
-            }
+            packet.Write((uint)0); // > 0 pode excluir
 
-            packet.Write((byte)(character?.NumericErrors ?? 0)); // Numeric Erros
+            packet.Write((uint)0); // Erro de numérica (só visual não funciona)
 
-            if(!string.IsNullOrEmpty(character?.NumericToken)) packet.Write(true); // Numeric Registered?
-            else {
-                packet.Write(false);
-            }
 
-            packet.Write(new byte[6]); // NotUse (Possivelmente Delet Remain Time?!)
-
-            if(!string.IsNullOrEmpty(character?.Name)) // Assume que o personagem existe se tiver nome (Melhorar?!)
+            if(!string.IsNullOrEmpty(character?.Name))
                 Console.WriteLine($"Character: {character.Name} -> Carregado");
         }
 
@@ -82,56 +72,9 @@ public static class CharacterHandler {
         PacketPool.Return(packet);
     }
 
-    public static void Teleport(Session session, Single positionX, Single positionY) {
-        var packet = PacketFactory.CreateHeader(0x301, 1);
-
-        packet.Write(positionX);
-        packet.Write(positionY);
-
-        packet.Write(new byte[6]);
-
-        packet.Write((byte)1); // Move Type
-        packet.Write((byte)0); // Speed 
-        packet.Write((uint)0); // Unk_0
-
-        PacketFactory.FinalizePacket(packet);
-
-        byte[] packetData = packet.GetBytes();
-        EncDec.Encrypt(ref packetData, packetData.Length);
-        session.SendPacket(packetData);
-
-        PacketPool.Return(packet);
-
-        session.ActiveCharacter.Position = new Position(positionX, positionY);
-
-        Console.WriteLine($"OK -> Teleport x: {positionX} y: {positionY}");
-    }
-
-    private static void SendCurrentHpMp(Session session) {
-        var account = session.ActiveCharacter;
-        var packet = PacketFactory.CreateHeader(0x103, 1);
-
-        packet.Write((uint)session.ActiveCharacter.CurrentHealth);
-        packet.Write((uint)session.ActiveCharacter.CurrentHealth);
-        //packet.Write((uint)session.ActiveCharacter.MaxHealth);
-        packet.Write((uint)session.ActiveCharacter.CurrentMana);
-        packet.Write((uint)session.ActiveCharacter.CurrentMana);
-        //packet.Write((uint)session.ActiveCharacter.MaxMana);
-        packet.Write((uint)0); // Null
-
-        PacketFactory.FinalizePacket(packet);
-
-        byte[] packetBytes = packet.GetBytes();
-        EncDec.Encrypt(ref packetBytes, packetBytes.Length);
-
-        session.SendPacket(packetBytes);
-
-        PacketPool.Return(packet);
-    }
-
     // TO-DO: Mapear Personagem (Item, Buffs...)
     // Tratar erro de numericas
-    public static async Task SendToWorld(Session session, StreamHandler stream) {
+    public static void SendToWorld(Session session, StreamHandler stream) {
         var characterSlot = stream.ReadBytes(4)[0];
         var numericRequestChange = stream.ReadBytes(4)[0];
         var numeric1 = Encoding.ASCII.GetString(stream.ReadBytes(4));
@@ -145,39 +88,16 @@ public static class CharacterHandler {
 
         session.ActiveCharacter = account.Characters[characterSlot];
 
-        if(numericRequestChange == 0 && string.IsNullOrEmpty(character?.NumericToken)) {
-            character.NumericToken = numeric1;
-            character.NumericErrors = 0;
-            var numericSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
-
-            if(!numericSaved)
-                GameMessage(session, 16, 0, "Erro ao registrar, entre em contato com o suporte!");
-
-        }
-        else if(numericRequestChange == 1 && character.NumericToken == numeric1) {
-            Console.WriteLine($"[{account.ConnectionId}] {character.Name} -> Entrou no jogo");
-        }
-        else if(numericRequestChange == 2 && character.NumericToken == numeric2) {
-            character.NumericToken = numeric1;
-            character.NumericErrors = 0;
-            var numericaSaved = CharacterRepository.SaveCharacterNumericAsync(character.Name, numeric1, character.NumericErrors).Result;
-
-            if(!numericaSaved)
-                GameMessage(session, 16, 0, "Erro ao registrar, entre em contato com o suporte!");
-
-            Console.WriteLine($"{character.Name} -> Numérica Alterada!");
-        }
-        else {
-            await SendToCharactersList(session, account);
-            GameMessage(session, 16, 0, "Numerica incorreta!");
-            character.NumericErrors += 1;
-            return;
-        }
+        SendData(session, 0xCCCC, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendData(session, 0x186, 0x1);
+        SendClientIndex(session, session.ActiveAccount.Id);
 
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
-        packet.Write((uint)account.Id);
+        packet.Write((uint)5077);
 
         // TO-DO: First Login 
         packet.Write((uint)1);
@@ -387,11 +307,6 @@ public static class CharacterHandler {
 
         PacketPool.Return(packet);
 
-        SendData(session, 0xCCCC, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-
         session.ActiveCharacter = character;
 
         SessionHandler.AddCharacter(character);
@@ -399,24 +314,6 @@ public static class CharacterHandler {
         Console.WriteLine($"OK -> HandleSendToWorld");
     }
 
-    private static void SendData(Session session, ushort packetCode, uint data) {
-        var account = session.ActiveAccount;
-
-        var packet = PacketFactory.CreateHeader(packetCode, (ushort)account.Id);
-        packet.Write(data);
-
-        PacketFactory.FinalizePacket(packet);
-
-        byte[] packetData = packet.GetBytes();
-        EncDec.Encrypt(ref packetData, packetData.Length);
-        session.SendPacket(packetData);
-
-        PacketPool.Return(packet);
-
-        Console.WriteLine($"OK -> SendData ({packetCode}) {data}");
-    }
-
-    //TO-DO: Enviar atributos do mundo para o personagem
     public static void SendToWorldSends(Session session) {
         if(session.ActiveCharacter == null) {
             GameMessage(session, 16, 0, "Erro ao carregar personagem");
@@ -436,9 +333,9 @@ public static class CharacterHandler {
 
         SendCurrentLevel(session);
         SendStatus(session);
-        SendCurrentHpMp(session);
+        //SendCurrentHpMp(session);
         SendAttributes(session);
-        Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
+        //Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
 
         foreach(var equip in session.ActiveCharacter.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
@@ -451,9 +348,86 @@ public static class CharacterHandler {
         Console.WriteLine($"OK -> SendToWorldSends");
     }
 
+    public static void Teleport(Session session, Single positionX, Single positionY) {
+        var packet = PacketFactory.CreateHeader(0x301, 1);
+
+        packet.Write(positionX);
+        packet.Write(positionY);
+
+        packet.Write(new byte[6]);
+
+        packet.Write((byte)1); // Move Type
+        packet.Write((byte)0); // Speed 
+        packet.Write((uint)0); // Unk_0
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        session.ActiveCharacter.Position = new Position(positionX, positionY);
+
+        Console.WriteLine($"OK -> Teleport x: {positionX} y: {positionY}");
+    }
+
+    private static void SendData(Session session, ushort packetCode, uint data) {
+        var account = session.ActiveAccount;
+
+        var packet = PacketFactory.CreateHeader(packetCode, 0x7535);
+        packet.Write(data);
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+
+        Console.WriteLine($"OK -> SendData ({packetCode}) {data}");
+    }
+
+    private static void SendClientIndex(Session session, uint clientId) {
+        var packet = PacketFactory.CreateHeader(0x117);
+        packet.Write(clientId);
+        packet.Write((uint)0); // Unk
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+
+        session.SendPacket(packetData);
+
+        PacketPool.Return(packet);
+    }
+
+    public static void SendCurrentHpMp(Session session) {
+        var account = session.ActiveCharacter;
+        var packet = PacketFactory.CreateHeader(0x103, (ushort)account.Id);
+
+        packet.Write(session.ActiveCharacter.CurrentHealth);
+        packet.Write(session.ActiveCharacter.MaxHealth);
+        packet.Write(session.ActiveCharacter.CurrentMana);
+        packet.Write(session.ActiveCharacter.MaxMana);
+
+        packet.Write((uint)0); // Null
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetBytes = packet.GetBytes();
+        EncDec.Encrypt(ref packetBytes, packetBytes.Length);
+
+        session.SendPacket(packetBytes);
+
+        PacketPool.Return(packet);
+    }
+
     private static void SendAttributes(Session session) {
         var character = session.ActiveCharacter;
-        var account = session.ActiveAccount;
 
         var packet = PacketFactory.CreateHeader(0x109, 0x7535);
 
@@ -465,7 +439,6 @@ public static class CharacterHandler {
         packet.Write((ushort)character.Status);
         packet.Write((ushort)20); // Status Point
         packet.Write((ushort)20); // Skill Point
-
 
         PacketFactory.FinalizePacket(packet);
 
@@ -482,11 +455,13 @@ public static class CharacterHandler {
         var character = session.ActiveCharacter;
         var account = session.ActiveAccount;
 
-        var packet = PacketFactory.CreateHeader(0x108, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x108, 0x7535);
 
-        packet.Write((ushort)character.Level);
-        packet.Write((ushort)0xCC); // Unk
-        packet.Write((long)character.Experience); // Exp
+        packet.Write((ushort)0); // Level
+        packet.Write((byte)0xCC); // Unk
+        packet.Write((byte)0); // Unk
+        packet.Write((uint)0); // XP
+        packet.Write(new byte[9]); // Unk
 
         PacketFactory.FinalizePacket(packet);
 
@@ -503,24 +478,29 @@ public static class CharacterHandler {
     private static void SendStatus(Session session) {
         var packet = PacketFactory.CreateHeader(0x10A, 0x7535);
 
-        packet.Write((ushort)100); // Dano Fisico
-        packet.Write((ushort)100); // Def Fisica
-        packet.Write((ushort)100); // Dano Magico
-        packet.Write((ushort)100); // Def Magica
+        packet.Write((ushort)60); // Physic Damage
+        packet.Write((ushort)31); // Physic Defense
+        packet.Write((ushort)0); // Magic Damage
+        packet.Write((ushort)31); // Magic Defense
+        packet.Write((ushort)20); // Status
 
-        packet.Write(new byte[6]); // Null_0
+        packet.Write(new byte[10]); // Unk
 
-        packet.Write((ushort)60); // Speed Move
+        packet.Write((ushort)40); // Speed Move
 
-        packet.Write((ushort)0); // Atack Ability?
+        packet.Write((ulong)0); // Unk
 
-        packet.Write(new byte[6]); // Null_1
+        packet.Write((ushort)34); // Critical
 
-        packet.Write((ushort)20); // Critical
-        packet.Write((byte)20); // Esquiva
-        packet.Write((byte)20); // Acerto
-        packet.Write((ushort)20); // Double
-        packet.Write((ushort)20); // Resist
+        packet.Write((ushort)0); // Unk
+
+        packet.Write((ushort)36); // Miss
+
+        packet.Write((ushort)37); // Accuracy
+        packet.Write((ushort)38); // Double
+        packet.Write((ushort)39); // Resistence
+
+        packet.Write((ushort)0); // Unk
 
         PacketFactory.FinalizePacket(packet);
 
@@ -533,6 +513,7 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SendStatus");
     }
 
+    // TO-DO:
     // VERIFICAR SE TA BANIDO
     // VERIFICAR DIAS DE BAN CASO BANIDO
     // VERIFICAR GOLD DO BAU
@@ -543,24 +524,9 @@ public static class CharacterHandler {
     public static async Task SelectedNation(Session session, StreamHandler stream) {
         uint connectionId = stream.ReadUInt32();
         string username = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
-        uint time = stream.ReadUInt32();
-        byte[] macAddr = stream.ReadBytes(14);
-        ushort version = stream.ReadUInt16();
-        uint null_0 = stream.ReadUInt32();
-        string token = Encoding.ASCII.GetString(stream.ReadBytes(32)).TrimEnd('\0');
 
         Console.WriteLine($"ConnectionId: {connectionId}");
         Console.WriteLine($"Username: {username}");
-        Console.WriteLine($"Time: {time}");
-        Console.WriteLine($"MacAddr: {BitConverter.ToString(macAddr)}");
-        Console.WriteLine($"Version: {version}");
-        Console.WriteLine($"Null_0: {null_0}");
-        Console.WriteLine($"Token: {token}");
-
-        //if(version != 290 || version == 290) {
-        //    GameMessage(session, 16, 0, "Versao errada mane");
-        //    return;
-        //}
 
         var account = await AccountRepository.GetAccountByUsernameAsync(username);
         if(account == null) {
@@ -569,12 +535,11 @@ public static class CharacterHandler {
         }
 
         account.ConnectionId = connectionId;
+        session.ActiveAccount = account;
 
-        await SendToCharactersList(session, account);
+        await SendToCharactersList(session);
 
         Console.WriteLine($"OK -> ChararactersList");
-
-        session.ActiveAccount = account;
     }
 
     public static async Task CreateChar(Session session, StreamHandler stream) {
@@ -601,7 +566,7 @@ public static class CharacterHandler {
 
         Console.WriteLine($"Personagem criado: {character.Name}");
 
-        await SendToCharactersList(session, account);
+        await SendToCharactersList(session);
     }
 
     public static async Task ChangeChar(Session session) {
@@ -612,7 +577,7 @@ public static class CharacterHandler {
             return;
         }
 
-        await SendToCharactersList(session, account);
+        await SendToCharactersList(session);
     }
 
     public static void GameMessage(Session session, byte type1, byte type2, string message) {
