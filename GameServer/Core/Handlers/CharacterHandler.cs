@@ -76,9 +76,9 @@ public static class CharacterHandler {
     // Tratar erro de numericas
     public static void SendToWorld(Session session, StreamHandler stream) {
         var characterSlot = stream.ReadBytes(4)[0];
-        var numericRequestChange = stream.ReadBytes(4)[0];
-        var numeric1 = Encoding.ASCII.GetString(stream.ReadBytes(4));
-        var numeric2 = Encoding.ASCII.GetString(stream.ReadBytes(4));
+        //var numericRequestChange = stream.ReadBytes(4)[0];
+        //var numeric1 = Encoding.ASCII.GetString(stream.ReadBytes(4));
+        //var numeric2 = Encoding.ASCII.GetString(stream.ReadBytes(4));
 
         var account = session.ActiveAccount;
 
@@ -97,26 +97,17 @@ public static class CharacterHandler {
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
-        packet.Write((uint)5077);
+        packet.Write(account.Id);
 
         // TO-DO: First Login 
         packet.Write((uint)1);
-        //packet.Write((uint)character.FirstLogin);
 
-        packet.Write(account.ConnectionId);
-        packet.Write(character.Id);
+        packet.Write((uint)0); // Unk
+        packet.Write((uint)0); // Unk
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
+
         packet.Write((byte)account.Nation);
         packet.Write(character.ClassInfo);
-
-        packet.Write(character.Id); // CharacterId
-
-        packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0'))); // Name
-
-        packet.Write((byte)account.Nation); // Nation
-        packet.Write(character.ClassInfo); // Classe
-
-        packet.Write((byte)0); // Null_0
 
         packet.Write((ushort)character.Strength);
         packet.Write((ushort)character.Agility);
@@ -133,11 +124,16 @@ public static class CharacterHandler {
         packet.Write(character.MaxMana);
         packet.Write(character.CurrentMana);
 
-        packet.Write((uint)0); // TO-DO: Server reset time
+        packet.Write((ushort)0); // Unk
+
+        packet.Write((uint)0); // Unk
 
         packet.Write(character.Honor);
         packet.Write(character.KillPoint);
-        packet.Write(character.Infamia);
+
+        packet.Write((uint)0); // Unk
+
+        packet.Write((ushort)character.Infamia);
 
         packet.Write((ushort)0); // TO-DO: Evil Points
         packet.Write((ushort)0); // TO-DO: Skill Points
@@ -326,16 +322,16 @@ public static class CharacterHandler {
         session.ActiveCharacter.VisibleNpcs = [];
 
 
-        CreateCharacterMob(session, 0);
+        //CreateCharacterMob(session, 0);
 
         CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
 
-        SendCurrentLevel(session);
+        SendCurrentLevelAndXp(session);
         SendStatus(session);
-        //SendCurrentHpMp(session);
+        SendCurrentHpMp(session);
         SendAttributes(session);
-        //Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
+        Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
 
         foreach(var equip in session.ActiveCharacter.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
@@ -407,12 +403,14 @@ public static class CharacterHandler {
 
     public static void SendCurrentHpMp(Session session) {
         var account = session.ActiveCharacter;
-        var packet = PacketFactory.CreateHeader(0x103, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x103, 1);
 
         packet.Write(session.ActiveCharacter.CurrentHealth);
-        packet.Write(session.ActiveCharacter.MaxHealth);
+        packet.Write(session.ActiveCharacter.CurrentHealth);
+        //packet.Write(session.ActiveCharacter.MaxHealth);
         packet.Write(session.ActiveCharacter.CurrentMana);
-        packet.Write(session.ActiveCharacter.MaxMana);
+        packet.Write(session.ActiveCharacter.CurrentMana);
+        //packet.Write(session.ActiveCharacter.MaxMana);
 
         packet.Write((uint)0); // Null
 
@@ -451,7 +449,7 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SendCurrentLevel");
     }
 
-    private static void SendCurrentLevel(Session session) {
+    private static void SendCurrentLevelAndXp(Session session) {
         var character = session.ActiveCharacter;
         var account = session.ActiveAccount;
 
