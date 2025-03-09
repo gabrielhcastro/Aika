@@ -9,7 +9,7 @@ using System.Text;
 
 namespace GameServer.Core.Handlers;
 public static class CharacterHandler {
-    private static async Task SendToCharactersList(Session session) {
+    public static async Task SendToCharactersList(Session session) {
         var account = session.ActiveAccount;
         session.ActiveAccount.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
 
@@ -73,7 +73,6 @@ public static class CharacterHandler {
     }
 
     // TO-DO: Mapear Personagem (Item, Buffs...)
-    // Tratar erro de numericas
     public static void SendToWorld(Session session, StreamHandler stream) {
         var characterSlot = stream.ReadBytes(4)[0];
         //var numericRequestChange = stream.ReadBytes(4)[0];
@@ -88,11 +87,11 @@ public static class CharacterHandler {
 
         session.ActiveCharacter = account.Characters[characterSlot];
 
-        SendData(session, 0xCCCC, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendData(session, 0x186, 0x1);
-        SendClientIndex(session, session.ActiveAccount.Id);
+        SendData(session, 0xCCCC, 1);
+        SendData(session, 0x186, 1);
+        SendData(session, 0x186, 1);
+        SendData(session, 0x186, 1);
+        SendClientIndex(session, 70);
 
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
@@ -297,8 +296,8 @@ public static class CharacterHandler {
         PacketFactory.FinalizePacket(packet);
 
         byte[] packetData = packet.GetBytes();
-
         EncDec.Encrypt(ref packetData, packetData.Length);
+
         session.SendPacket(packetData);
 
         PacketPool.Return(packet);
@@ -321,17 +320,17 @@ public static class CharacterHandler {
         session.ActiveCharacter.VisibleMobs = [];
         session.ActiveCharacter.VisibleNpcs = [];
 
-
-        //CreateCharacterMob(session, 0);
-
-        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
-        SessionHandler.Instance.UpdateVisibleList(session);
-
         SendCurrentLevelAndXp(session);
         SendStatus(session);
         SendCurrentHpMp(session);
         SendAttributes(session);
+
         Teleport(session, session.ActiveCharacter.PositionX, session.ActiveCharacter.PositionY);
+
+        CreateCharacterMob(session, 0);
+
+        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
+        SessionHandler.Instance.UpdateVisibleList(session);
 
         foreach(var equip in session.ActiveCharacter.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
@@ -372,7 +371,7 @@ public static class CharacterHandler {
     private static void SendData(Session session, ushort packetCode, uint data) {
         var account = session.ActiveAccount;
 
-        var packet = PacketFactory.CreateHeader(packetCode, 0x7535);
+        var packet = PacketFactory.CreateHeader(packetCode, 1);
         packet.Write(data);
 
         PacketFactory.FinalizePacket(packet);
@@ -455,11 +454,11 @@ public static class CharacterHandler {
 
         var packet = PacketFactory.CreateHeader(0x108, 0x7535);
 
-        packet.Write((ushort)0); // Level
+        packet.Write((ushort)character.Level); // Level
         packet.Write((byte)0xCC); // Unk
         packet.Write((byte)0); // Unk
-        packet.Write((uint)0); // XP
-        packet.Write(new byte[9]); // Unk
+        packet.Write((ulong)character.Experience); // XP
+        packet.Write(new byte[8]); // Unk
 
         PacketFactory.FinalizePacket(packet);
 
@@ -472,7 +471,7 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SendCurrentLevel");
     }
 
-    // TO-DO: CALCULAR STATUS
+    // TO-DO: Calcular Status
     private static void SendStatus(Session session) {
         var packet = PacketFactory.CreateHeader(0x10A, 0x7535);
 
@@ -486,17 +485,17 @@ public static class CharacterHandler {
 
         packet.Write((ushort)40); // Speed Move
 
-        packet.Write((ulong)0); // Unk
+        packet.Write((ulong)13); // Unk
 
-        packet.Write((ushort)34); // Critical
+        packet.Write((ushort)1); // Critical
 
-        packet.Write((ushort)0); // Unk
+        packet.Write((ushort)13); // Unk
 
-        packet.Write((ushort)36); // Miss
+        packet.Write((ushort)3); // Miss
 
-        packet.Write((ushort)37); // Accuracy
-        packet.Write((ushort)38); // Double
-        packet.Write((ushort)39); // Resistence
+        packet.Write((ushort)12); // Accuracy
+        packet.Write((ushort)0); // Double
+        packet.Write((ushort)4); // Resistence
 
         packet.Write((ushort)0); // Unk
 
@@ -606,7 +605,7 @@ public static class CharacterHandler {
         //UpdateRotationToAll(session, stream);
     }
 
-    public static void CreateCharacterMob(Session session, ushort spawnType, bool sendSelf = true) {
+    public static void CreateCharacterMob(Session session, ushort spawnType) {
         if(session == null) return;
 
         var character = session.ActiveCharacter;
@@ -623,23 +622,28 @@ public static class CharacterHandler {
         packet.Write((Single)character.Position.X);
         packet.Write((Single)character.Position.Y);
 
-        packet.Write((uint)character.Rotation);
+        packet.Write(character.Rotation);
 
+        packet.Write((ushort)0); // Unk
+
+        //packet.Write(character.MaxHealth);
         packet.Write(character.CurrentHealth);
-        packet.Write(character.MaxHealth);
         packet.Write(character.CurrentMana);
-        packet.Write(character.MaxMana);
+        packet.Write(character.CurrentHealth);
+        packet.Write(character.CurrentMana);
+        //packet.Write(character.MaxMana);
 
-        packet.Write((byte)0x0A); // Unk
-
-        packet.Write(character.SpeedMove);
-
-        packet.Write((byte)spawnType); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
+        packet.Write((ushort)0xA);
+        packet.Write((byte)0);
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
         packet.Write(character.Leg);
         packet.Write(character.Body);
+
+        packet.Write(character.SpeedMove);
+
+        packet.Write((byte)spawnType); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
 
         packet.Write((byte)0); // IsService (0 Player, 1 Npc?!)
 
@@ -656,25 +660,22 @@ public static class CharacterHandler {
 
         packet.Write(Encoding.ASCII.GetBytes(new string('\0', 32))); // Title
 
-        // TO-DO: Guild Index and Nation Index
         //packet.Write((ushort)account.Nation * 4096); 
         packet.Write((ushort)0);
 
-        // Effects?
+        packet.Write((ushort)6);
         packet.Write((ushort)0);
         packet.Write((ushort)0);
         packet.Write((ushort)0);
         packet.Write((ushort)0);
+        packet.Write((ushort)0); // relacionado a mov
 
-        packet.Write((byte)0); // Unk_0
-        packet.Write((byte)0); // TO-DO: ChaosPoints
+        packet.Write((byte)0); // relacionado a mov
 
-        packet.Write((uint)0); // Null_0
+        packet.Write((byte)0xFF); // TO-DO: ChaosPoints
 
         packet.Write((byte)0); // TitleId
         packet.Write((byte)0); // TitleLevel
-
-        packet.Write((ushort)0); // Null_1
 
         PacketFactory.FinalizePacket(packet);
 
@@ -682,7 +683,6 @@ public static class CharacterHandler {
         EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packetData);
-        SendToVisibles(session, packetData);
 
         PacketPool.Return(packet);
     }
@@ -691,7 +691,7 @@ public static class CharacterHandler {
         var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
-        var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.ConnectionId);
 
         CharacterService.SetCharLobbyOrdered(character, packet);
 
@@ -759,7 +759,7 @@ public static class CharacterHandler {
         Console.WriteLine("OK -> SpawnCharacter");
     }
 
-    // TO-DO: TRATAR PLAYER MORTO
+    // TO-DO: Tratar player morto
     public static void MoveChar(Session session, StreamHandler stream) {
         var positionX = stream.ReadSingle();
         var positionY = stream.ReadSingle();
@@ -768,86 +768,68 @@ public static class CharacterHandler {
         var speed = stream.ReadByte();
         var unk = stream.ReadUInt32();
 
-        var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
+        Console.WriteLine($"PositionX: {positionX}");
+        Console.WriteLine($"PositionY: {positionY}");
+        Console.WriteLine($"Null_0: {BitConverter.ToString(null_0)}");
+        Console.WriteLine($"MoveType: {moveType}");
+        Console.WriteLine($"Speed: {speed}");
+        Console.WriteLine($"Unk: {unk}");
 
-        packet.Write(session.ActiveCharacter.Position.X);
-        packet.Write(session.ActiveCharacter.Position.Y);
+        //var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
 
-        packet.Write((byte)0); // Null
+        //packet.Write(session.ActiveCharacter.Position.X);
+        //packet.Write(session.ActiveCharacter.Position.Y);
 
-        packet.Write((ushort)session.ActiveCharacter.Rotation); // Null
+        //packet.Write((byte)0); // Null
 
-        packet.Write(moveType); // MoveType (0: normal 1: teleport ?!)
-        packet.Write(speed); // Speed
+        //packet.Write((ushort)session.ActiveCharacter.Rotation); // Null
 
-        packet.Write((byte)0); // Unk
-        packet.Write((byte)0); // Unk
-        packet.Write((byte)0); // Unk
-        packet.Write((byte)0); // Unk
+        //packet.Write(moveType); // MoveType (0: normal 1: teleport ?!)
+        //packet.Write(speed); // Speed
 
-        PacketFactory.FinalizePacket(packet);
+        //packet.Write((byte)0); // Unk
+        //packet.Write((byte)0); // Unk
+        //packet.Write((byte)0); // Unk
+        //packet.Write((byte)0); // Unk
 
-        byte[] packetByte = packet.GetBytes();
-        EncDec.Encrypt(ref packetByte, packetByte.Length);
+        //PacketFactory.FinalizePacket(packet);
 
-        session.SendPacket(packet);
+        //byte[] packetByte = packet.GetBytes();
+        //EncDec.Encrypt(ref packetByte, packetByte.Length);
 
-        PacketPool.Return(packet);
+        //session.SendPacket(packet);
+
+        //PacketPool.Return(packet);
     }
 
     internal static void UpdateCharInfo(Session session, StreamHandler stream) {
-        var index = stream.ReadUInt32();
-        var loop = stream.ReadUInt32();
+        //var index = stream.ReadUInt32();
+        //var loop = stream.ReadUInt32();
 
-        //var packet = PacketFactory.CreateHeader(0x306, (ushort)index);
-        var packet = PacketFactory.CreateHeader(0x306, 1);
-        packet.Write(index);
-        packet.Write(loop);
+        //var packet = PacketFactory.CreateHeader(0x306, 1);
+        //packet.Write(index);
+        //packet.Write(loop);
 
-        PacketFactory.FinalizePacket(packet);
+        //PacketFactory.FinalizePacket(packet);
 
-        var packetData = packet.GetBytes();
-        EncDec.Encrypt(ref packetData, packetData.Length);
+        //var packetData = packet.GetBytes();
+        //EncDec.Encrypt(ref packetData, packetData.Length);
 
-        session.SendPacket(packetData);
+        //session.SendPacket(packetData);
 
-        PacketPool.Return(packet);
+        //PacketPool.Return(packet);
 
-        Console.WriteLine("OK -> UpdateCharInfo");
+        Console.WriteLine($"UpdateCharInfo Data: {stream.GetBytes()}");
     }
 
     public static void SendToVisibles(Session session, byte[] packet) {
         foreach(var otherPlayer in session.ActiveCharacter.VisiblePlayers) {
-
             var otherPlayerSession = SessionHandler.Instance.GetSessionByCharacterId((ushort)otherPlayer.Id);
 
             if(session.ActiveCharacter.VisiblePlayers.Any(c => c.Id == otherPlayerSession.ActiveCharacter.Id)) continue;
 
             if(otherPlayerSession.ActiveCharacter == null)
                 continue;
-
-            otherPlayerSession.SendPacket(packet);
         }
     }
-
-    //private static void SetInitialBullets(Player player, int slotIndex, int classCategory) {
-    //    if(classCategory == 2) {
-    //        SetBullet(player, slotIndex, 4615);
-    //    }
-    //    else if(classCategory == 3) {
-    //        SetBullet(player, slotIndex, 4600);
-    //    }
-    //}
-
-    //private static void SetBullet(Player player, int slotIndex, int bulletId) {
-    //    player.Account.Characters[slotIndex].Base.Equip[15].Index = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Equip[15].APP = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Equip[15].Refi = 1000;
-    //    player.Account.Characters[slotIndex].Base.Inventory[5].Index = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Inventory[5].APP = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Inventory[5].Refi = 1000;
-    //    player.Account.Characters[slotIndex].Base.Inventory[6].Index = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Inventory[6].APP = bulletId;
-    //    player.Account.Characters[slotIndex].Base.Inventory[6].Refi = 1000;
-    //}
 }

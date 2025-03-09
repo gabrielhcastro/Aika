@@ -14,22 +14,8 @@ public static class PacketHandler {
             case 0x81:
             await AccountHandler.AccountLogin(session, stream);
             break;
-            case 0x685:
-            await CharacterHandler.SelectedNation(session, stream);
-            break;
-            case 0x3E04:
-            await CharacterHandler.CreateChar(session, stream);
-            break;
-            case 0x39D:
-            break;
-            case 0xF02:
-            CharacterHandler.SendToWorld(session, stream);
-            break;
-            case 0xF0B:
-            CharacterHandler.SendToWorldSends(session);
-            break;
-            case 0x668:
-            await CharacterHandler.ChangeChar(session);
+            case 0x301:
+            CharacterHandler.MoveChar(session, stream);
             break;
             case 0x305:
             CharacterHandler.UpdateRotation(session, stream);
@@ -37,8 +23,24 @@ public static class PacketHandler {
             case 0x306:
             CharacterHandler.UpdateCharInfo(session, stream);
             break;
-            case 0x301:
-            CharacterHandler.MoveChar(session, stream);
+            case 0x39D:
+                // packet que o client envia antes de pedir pra entrar no mundo
+                // ignored
+            break;
+            case 0x668:
+            await CharacterHandler.ChangeChar(session);
+            break;
+            case 0x685:
+            await CharacterHandler.SelectedNation(session, stream);
+            break;
+            case 0xF02:
+            CharacterHandler.SendToWorld(session, stream);
+            break;
+            case 0xF0B:
+            CharacterHandler.SendToWorldSends(session);
+            break;
+            case 0x3E04:
+            await CharacterHandler.CreateChar(session, stream);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");

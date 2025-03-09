@@ -93,6 +93,8 @@ public class SessionHandler : Singleton<SessionHandler> {
 
             if(!character.VisiblePlayers.Contains(otherCharacter)) {
                 character.VisiblePlayers.Add(otherCharacter);
+
+                //CharacterHandler.CreateCharacterMob(otherSession);
             }
 
             //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);
