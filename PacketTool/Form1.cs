@@ -49,8 +49,8 @@ public partial class PacketToolDesign : Form {
             _snifferSocket.Bind(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8822));
             _snifferSocket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.HeaderIncluded, true);
 
-            byte[] optionInValue = new byte[4] { 1, 0, 0, 0 };
-            byte[] optionOutValue = new byte[4] { 1, 0, 0, 0 };
+            byte[] optionInValue = [ 1, 0, 0, 0 ];
+            byte[] optionOutValue = [ 1, 0, 0, 0 ];
 
             _snifferSocket.IOControl(IOControlCode.ReceiveAll, optionInValue, optionOutValue);
 
@@ -85,7 +85,7 @@ public partial class PacketToolDesign : Form {
         PacketResultRichTxt.Clear();
 
         try {
-            byte[] packet = StringToByteArray(PastePacketRichTxt.Text);
+            byte[] packet = Convert.FromBase64String(PastePacketRichTxt.Text); 
             EncDec.Encrypt(ref packet, packet.Length);
             PacketResultRichTxt.Text = BitConverter.ToString(packet).Replace("-", " ");
             PacketStatusLbl.Text = "Criptografado";
@@ -169,7 +169,7 @@ public partial class PacketToolDesign : Form {
         byte[] data = new byte[length];
 
         for(int i = 0; i < length; i++) {
-            if(!byte.TryParse(hex.Substring(i * 2, 2), System.Globalization.NumberStyles.HexNumber, null, out data[i])) {
+            if(!byte.TryParse(hex.AsSpan(i * 2, 2), System.Globalization.NumberStyles.HexNumber, null, out data[i])) {
                 throw new ArgumentException($"Entrada inválida: {hex.Substring(i * 2, 2)} não é um byte válido.");
             }
         }
@@ -183,7 +183,7 @@ public partial class PacketToolDesign : Form {
             int bufferOffset = 0;
 
             while(_client.Connected) {
-                int bytesRead = await _stream.ReadAsync(buffer, bufferOffset, buffer.Length - bufferOffset);
+                int bytesRead = await _stream.ReadAsync(buffer.AsMemory(bufferOffset, buffer.Length - bufferOffset));
                 if(bytesRead > 0) {
                     bufferOffset += bytesRead;
 

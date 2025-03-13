@@ -6,6 +6,7 @@
     <Nullable>disable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <AssemblyName>PacketTool</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

@@ -8,10 +8,10 @@ public class MemberController : ControllerBase {
     [HttpPost("/member/aika_get_token.asp")]
     public async Task<IActionResult> Aika_get_token([FromForm] string id, [FromForm] string pw) {
         string responseText = await AuthHandlers.GetTokenAsync(id, pw);
-        Response.Headers["Connection"] = "close";
-        Response.Headers["Content-Type"] = "text/html; charset=utf-8";
+        Response.Headers.Connection = "close";
+        Response.Headers.ContentType = "text/html; charset=utf-8";
         Response.Headers["Content-Length"] = responseText.Length.ToString();
-        Response.Headers["Date"] = DateTime.UtcNow.ToString("R");
+        Response.Headers.Date = DateTime.UtcNow.ToString("R");
         return Content(responseText, "text/html", System.Text.Encoding.UTF8);
     }
 

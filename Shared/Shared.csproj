@@ -1,14 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>disable</Nullable>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>disable</Nullable>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<AssemblyName>Shared</AssemblyName>
+		<AssemblyVersion>1.0.0.0</AssemblyVersion>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="MySqlConnector" Version="2.3.5" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="MySqlConnector" Version="2.3.5" />
+	</ItemGroup>
 
 </Project>

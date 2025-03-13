@@ -2,7 +2,7 @@
 
 namespace GameServer.Network;
 public class ObjectPool<T> where T : class, new() {
-    private readonly ConcurrentBag<T> _pool = new();
+    private readonly ConcurrentBag<T> _pool = [];
 
     public T Rent() {
         return _pool.TryTake(out var item) ? item : new T();

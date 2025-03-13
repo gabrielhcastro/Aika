@@ -103,7 +103,7 @@ public static class CharacterHandler {
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
-        packet.Write(account.ConnectionId);
+        packet.Write(account.Id);
 
         // TO-DO: First Login 
         packet.Write((uint)1);
@@ -344,11 +344,12 @@ public static class CharacterHandler {
 
         Teleport(session, character.PositionX, character.PositionY);
 
-        Console.WriteLine($"CRIANDO -> [{session.ActiveCharacter.Id}] {session.ActiveCharacter.Name}");
         CreateCharacterMob(session, session.ActiveCharacter, 1, 0);
-        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
 
+        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
+
+        CreateCharVisibleList(session);
 
         foreach(var equip in character.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
@@ -359,6 +360,24 @@ public static class CharacterHandler {
         }
 
         Console.WriteLine($"OK -> SendToWorldSends");
+    }
+
+    private static void CreateCharVisibleList(Session session) {
+        foreach(var playerId in session.ActiveCharacter.VisiblePlayers) {
+            var character = SessionHandler.GetCharacter(playerId);
+
+            if(character == null) continue;
+
+            var sessionTest = SessionHandler.Instance.GetSessionByCharacterId(playerId);
+            if(sessionTest == null) {
+                Console.WriteLine($"Erro: Sessão não encontrada para o personagem {playerId}");
+            }
+            else {
+                Console.WriteLine($"Personagem {playerId} pertence à sessão {sessionTest.Id}");
+            }
+
+            CreateCharacterMob(session, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+        }
     }
 
     public static void Teleport(Session session, Single positionX, Single positionY) {
@@ -387,8 +406,6 @@ public static class CharacterHandler {
     }
 
     private static void SendData(Session session, ushort packetCode, uint data) {
-        var account = session.ActiveAccount;
-
         var packet = PacketFactory.CreateHeader(packetCode, 1);
         packet.Write(data);
 
@@ -649,8 +666,7 @@ public static class CharacterHandler {
 
         packet.Write((byte)0xA); // Unk
         packet.Write(character.SpeedMove);
-
-        packet.Write((byte)0xA); // Unk
+        packet.Write((byte)spawnType); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
@@ -659,7 +675,7 @@ public static class CharacterHandler {
 
         packet.Write((byte)0); // Unk
 
-        packet.Write((byte)spawnType); // SpawnType (0: Normal, 1: Teleporte, 2: BabyGen)
+        packet.Write((byte)0); // Unk
 
         packet.Write((byte)0); // IsService (0 Player, 1 Npc?!)
 

@@ -84,21 +84,21 @@ public class SessionHandler : Singleton<SessionHandler> {
         character.VisiblePlayers ??= [];
 
         foreach(var otherSession in _sessions.Values) {
+            if(otherSession.Id == session.Id) continue;
+
             var otherCharacter = otherSession.ActiveCharacter;
+            if(otherCharacter == null) continue;
 
-            if(otherCharacter == null || otherCharacter.Id == session.ActiveCharacter.Id)
-                continue;
+            if(character.VisiblePlayers.Contains(otherCharacter.Id)) continue;
 
-            Console.WriteLine($"[{character.Id}] {character.Name} -> Player Visível: [{otherCharacter.Id}] {otherCharacter.Name}");
+            character.VisiblePlayers.Add(otherCharacter.Id);
+            CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
 
-            if(character.VisiblePlayers.Any(c => c.Id == otherCharacter?.Id)) continue;
+            if(otherCharacter.VisiblePlayers.Contains(character.Id)) continue;
 
-            if(!character.VisiblePlayers.Contains(otherCharacter)) {
-                character.VisiblePlayers.Add(otherCharacter);
-                CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)session.ActiveAccount.ConnectionId, 0);
-                Console.WriteLine($"{character.Name} criando -> [{otherCharacter.Id}] {otherCharacter.Name}");
-            }
-        } 
+            otherCharacter.VisiblePlayers.Add(character.Id);
+            CharacterHandler.CreateCharacterMob(otherSession, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+        }
 
         Console.WriteLine("OK -> UpdateVisibleList");
     }

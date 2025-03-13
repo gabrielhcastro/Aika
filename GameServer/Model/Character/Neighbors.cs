@@ -2,12 +2,7 @@
 
 namespace GameServer.Model.Character;
 
-public class Neighbors {
-    bool Occuped;
-    Position Position;
-
-    public Neighbors(Single positionX, Single positionY) {
-        Position = new(positionX, positionY);
-        Occuped = false;
-    }
+public class Neighbors(Single positionX, Single positionY) {
+    readonly bool Occuped = false;
+    Position Position = new(positionX, positionY);
 }

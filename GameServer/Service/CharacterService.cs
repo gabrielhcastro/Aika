@@ -67,11 +67,11 @@ public static class CharacterService {
 
     private static void SetCharInitAttributesAndItens(CharacterEntitie character, byte classInfo) {
         if(CharacterRepository.InitialClassItensAndStatus.TryGetValue(classInfo, out var classConfig)) {
-            character.Strength = (uint)classConfig.Strength;
-            character.Intelligence = (uint)classConfig.Intelligence;
-            character.Agility = (uint)classConfig.Agility;
-            character.Constitution = (uint)classConfig.Constitution;
-            character.Luck = (uint)classConfig.Luck;
+            character.Strength = classConfig.Strength;
+            character.Intelligence = classConfig.Intelligence;
+            character.Agility = classConfig.Agility;
+            character.Constitution = classConfig.Constitution;
+            character.Luck = classConfig.Luck;
 
             foreach(var item in classConfig.Items) {
                 character.Equips[item.Slot] = item;
@@ -98,7 +98,7 @@ public static class CharacterService {
     public static CharacterEntitie GenerateInitCharacter(Session session, StreamHandler stream) {
         try {
             var character = new CharacterEntitie {
-                OwnerAccountId = BitConverter.ToUInt32(stream.ReadBytes(4), 0),
+                OwnerAccountId = BitConverter.ToUInt16(stream.ReadBytes(4), 0),
                 Inventory = Enumerable.Range(0, 60).Select(_ => new ItemEntitie()).ToList(),
                 Equips = Enumerable.Range(0, 8).Select(_ => new ItemEntitie()).ToList(),
                 SpeedMove = 40,

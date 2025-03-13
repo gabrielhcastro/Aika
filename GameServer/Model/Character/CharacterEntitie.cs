@@ -4,8 +4,8 @@ using System.Collections.Concurrent;
 
 namespace GameServer.Model.Character;
 public class CharacterEntitie {
-    public uint Id { get; set; }
-    public uint OwnerAccountId { get; set; }
+    public ushort Id { get; set; }
+    public ushort OwnerAccountId { get; set; }
     public string Name { get; set; }
     public byte Slot { get; set; }
     public string NumericToken { get; set; }
@@ -17,12 +17,12 @@ public class CharacterEntitie {
     public byte PlayerKill { get; set; }
     public byte ClassInfo { get; set; }
     public byte FirstLogin { get; set; }
-    public uint Strength { get; set; }
-    public uint Agility { get; set; }
-    public uint Intelligence { get; set; }
-    public uint Constitution { get; set; }
-    public uint Luck { get; set; }
-    public uint Status { get; set; }
+    public ushort Strength { get; set; }
+    public ushort Agility { get; set; }
+    public ushort Intelligence { get; set; }
+    public ushort Constitution { get; set; }
+    public ushort Luck { get; set; }
+    public ushort Status { get; set; }
     public byte Height { get; set; }
     public byte Trunk { get; set; }
     public byte Leg { get; set; }
@@ -39,35 +39,37 @@ public class CharacterEntitie {
     public ulong Experience { get; set; }
     public byte Level { get; set; }
     public uint GuildIndex { get; set; }
-    public uint Gold { get; set; }
+    public ulong Gold { get; set; }
     public string CreationTime { get; set; }
     public string DeleteTime { get; set; }
     public uint LoginTime { get; set; }
-    public uint ActiveTitle { get; set; }
-    public uint ActiveAction { get; set; }
+    public byte ActiveTitle { get; set; }
+    public byte ActiveAction { get; set; }
     public string TeleportPositions { get; set; }
-    public uint PranEvolutionCount { get; set; }
+    public byte PranEvolutionCount { get; set; }
     public Single PositionX { get; internal set; }
     public Single PositionY { get; internal set; }
-    public uint SavedPositionX { get; set; }
-    public uint SavedPositionY { get; set; }
+    public ushort SavedPositionX { get; set; }
+    public ushort SavedPositionY { get; set; }
     public ushort Critical { get; set; }
-    public uint PhysicDamage { get; set; }
-    public uint MagicDamage { get; set; }
-    public uint PhysicDefense { get; set; }
-    public uint MagicDefense { get; set; }
-    public uint BonusDamage { get; set; }
-    public uint Miss { get; set; }
-    public uint Accuracy { get; set; }
+    public ushort PhysicDamage { get; set; }
+    public ushort MagicDamage { get; set; }
+    public ushort PhysicDefense { get; set; }
+    public ushort MagicDefense { get; set; }
+    public ushort BonusDamage { get; set; }
+    public byte Miss { get; set; }
+    public byte Accuracy { get; set; }
     public bool IsActive { get; set; }
 
-    public ushort[] Skills { get; set; }
+    public HashSet<ushort> Skills { get; set; }
     public List<ItemEntitie> Equips { get; set; }
     public List<ItemEntitie> Inventory { get; set; }
     public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
     public Position Position { get; set; }
-    public List<CharacterEntitie> VisiblePlayers { get; set; }
-    public List<ushort> VisibleMobs { get; set; }
-    public List<ushort> VisibleNpcs { get; set; }
-    public List<Neighbors> Neighbors { get; set; }
+    public HashSet<ushort> VisiblePlayers { get; set; } = [];
+    public HashSet<ushort> VisibleMobs { get; set; }
+    public HashSet<ushort> VisibleNpcs { get; set; }
+    public HashSet<Neighbors> Neighbors { get; set; }
+
+
 }

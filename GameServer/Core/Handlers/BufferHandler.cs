@@ -3,19 +3,12 @@ using System.Collections.Concurrent;
 using System.Net.Sockets;
 
 namespace GameServer.Core.Handlers;
-public class BufferHandler {
-    private readonly int _bufferSize;
-    private readonly int _blockSize;
-    private readonly ConcurrentStack<int> _freeIndexPool;
-    private int _posIndex;
+public class BufferHandler(int totalBufferSize, int blockSize) {
+    private readonly int _bufferSize = totalBufferSize;
+    private readonly int _blockSize = blockSize;
+    private readonly ConcurrentStack<int> _freeIndexPool = new();
+    private int _posIndex = 0;
     private byte[] _buffer;
-
-    public BufferHandler(int totalBufferSize, int blockSize) {
-        _bufferSize = totalBufferSize;
-        _blockSize = blockSize;
-        _freeIndexPool = new ConcurrentStack<int>();
-        _posIndex = 0;
-    }
 
     public void Init() {
         _buffer = ArrayPool<byte>.Shared.Rent(_bufferSize);

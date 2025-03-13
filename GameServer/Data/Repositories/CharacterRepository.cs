@@ -8,7 +8,7 @@ using System.Data;
 namespace GameServer.Data.Repositories;
 public static class CharacterRepository {
     public static readonly Dictionary<ushort,
-        (int Strength, int Intelligence, int Agility, int Constitution, int Luck, List<ItemEntitie> Items)>
+        (ushort Strength, ushort Intelligence, ushort Agility, ushort Constitution, ushort Luck, List<ItemEntitie> Items)>
         InitialClassItensAndStatus = new() {
             // WR
             [0] = (15, 5, 9, 16, 0, new List<ItemEntitie> {
@@ -65,8 +65,8 @@ public static class CharacterRepository {
         await using var reader = await command.ExecuteReaderAsync();
         while(await reader.ReadAsync()) {
             var character = new CharacterEntitie {
-                Id = reader.GetUInt32("id"),
-                OwnerAccountId = reader.GetUInt32("ownerAccountId"),
+                Id = reader.GetUInt16("id"),
+                OwnerAccountId = reader.GetUInt16("ownerAccountId"),
                 Name = reader.GetString("name"),
                 Slot = reader.GetByte("slot"),
                 NumericToken = reader.IsDBNull("numericToken") ? string.Empty : reader.GetString("numericToken"),
@@ -78,12 +78,12 @@ public static class CharacterRepository {
                 PlayerKill = reader.GetByte("playerKill"),
                 ClassInfo = reader.GetByte("classInfo"),
                 FirstLogin = reader.IsDBNull("firstLogin") ? (byte)0 : reader.GetByte("firstLogin"),
-                Strength = reader.GetUInt32("strength"),
-                Agility = reader.GetUInt32("agility"),
-                Intelligence = reader.GetUInt32("intelligence"),
-                Constitution = reader.GetUInt32("constitution"),
-                Luck = reader.GetUInt32("luck"),
-                Status = reader.GetUInt32("status"),
+                Strength = reader.GetUInt16("strength"),
+                Agility = reader.GetUInt16("agility"),
+                Intelligence = reader.GetUInt16("intelligence"),
+                Constitution = reader.GetUInt16("constitution"),
+                Luck = reader.GetUInt16("luck"),
+                Status = reader.GetUInt16("status"),
                 Height = reader.GetByte("height"),
                 Trunk = reader.GetByte("trunk"),
                 Leg = reader.GetByte("leg"),
@@ -98,17 +98,17 @@ public static class CharacterRepository {
                 Level = reader.GetByte("level"),
                 GuildIndex = reader.IsDBNull("guildIndex") ? 0 : reader.GetUInt32("guildIndex"),
                 Gold = reader.IsDBNull("gold") ? 0 : reader.GetUInt32("gold"),
-                PositionX = reader.GetUInt32("positionX"),
-                PositionY = reader.GetUInt32("positionY"),
+                PositionX = reader.GetUInt16("positionX"),
+                PositionY = reader.GetUInt16("positionY"),
                 CreationTime = reader.GetString("creationTime"),
                 DeleteTime = reader.IsDBNull("deleteTime") ? string.Empty : reader.GetString("deleteTime"),
                 LoginTime = reader.IsDBNull("loginTime") ? 0 : reader.GetUInt32("loginTime"),
-                ActiveTitle = reader.IsDBNull("activeTitle") ? 0 : reader.GetUInt32("activeTitle"),
-                ActiveAction = reader.IsDBNull("activeAction") ? 0 : reader.GetUInt32("activeAction"),
+                ActiveTitle = reader.IsDBNull("activeTitle") ? (byte)0 : reader.GetByte("activeTitle"),
+                ActiveAction = reader.IsDBNull("activeAction") ? (byte)0 : reader.GetByte("activeAction"),
                 TeleportPositions = reader.IsDBNull("teleportPositions") ? string.Empty : reader.GetString("teleportPositions"),
-                PranEvolutionCount = reader.IsDBNull("pranEvolutionCount") ? 0 : reader.GetUInt32("pranEvolutionCount"),
-                SavedPositionX = reader.IsDBNull("savedPositionX") ? 0 : reader.GetUInt32("savedPositionX"),
-                SavedPositionY = reader.IsDBNull("savedPositionY") ? 0 : reader.GetUInt32("savedPositionY"),
+                PranEvolutionCount = reader.IsDBNull("pranEvolutionCount") ? (byte)0 : reader.GetByte("pranEvolutionCount"),
+                SavedPositionX = reader.IsDBNull("savedPositionX") ? (byte)0 : reader.GetByte("savedPositionX"),
+                SavedPositionY = reader.IsDBNull("savedPositionY") ? (byte)0 : reader.GetByte("savedPositionY"),
             };
 
             character.Position = new(character.PositionX, character.Position.Y);

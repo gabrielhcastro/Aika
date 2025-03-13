@@ -11,9 +11,9 @@ namespace GameServer.Core.Base;
 public class Session : IDisposable {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
     private readonly SocketAsyncEventArgs _writeEventArg = new();
+    private readonly RingBuffer _packetQueue = new(1024 * 64);
     private INetwork _network;
     public INetwork Network => _network;
-    private RingBuffer _packetQueue = new(1024 * 64);
     private int _processing;
     private int _sending;
     private int _closed;
