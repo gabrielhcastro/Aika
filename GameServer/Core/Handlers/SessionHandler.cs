@@ -89,54 +89,16 @@ public class SessionHandler : Singleton<SessionHandler> {
             if(otherCharacter == null || otherCharacter.Id == session.ActiveCharacter.Id)
                 continue;
 
-            Console.WriteLine($"[{character.Id}]{character.Name} -> OtherPlayer: [{otherCharacter.Id}] {otherCharacter.Name}");
+            Console.WriteLine($"[{character.Id}] {character.Name} -> Player Visível: [{otherCharacter.Id}] {otherCharacter.Name}");
 
             if(character.VisiblePlayers.Any(c => c.Id == otherCharacter?.Id)) continue;
 
             if(!character.VisiblePlayers.Contains(otherCharacter)) {
                 character.VisiblePlayers.Add(otherCharacter);
-                CharacterHandler.CreateCharacterMob(otherSession, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
+                CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)session.ActiveAccount.ConnectionId, 0);
+                Console.WriteLine($"{character.Name} criando -> [{otherCharacter.Id}] {otherCharacter.Name}");
             }
-
-            //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);
-
-            //    if(distance <= visibilityRange) {
-            //        if(!session.ActiveCharacter.VisiblePlayers.Contains((ushort)otherSession.Id)) {
-            //            session.ActiveCharacter.VisiblePlayers.Add((ushort)otherSession.Id);
-            //            var foundSession = GetSession((ushort)otherSession.Id);
-            //            if(foundSession != null) {
-            //                CharacterHandler.CreateCharacterMob(foundSession);
-            //            }
-
-            //            CharacterHandler.GameMessage(session, 16, 0, "Tentando adicionar personagem");
-            //        }
-            //    }
-            //    else {
-            //        if(session.ActiveCharacter.VisiblePlayers.Contains((ushort)otherSession.Id)) {
-            //            session.ActiveCharacter.VisiblePlayers.Remove((ushort)otherSession.Id);
-            //            CharacterHandler.GameMessage(session, 16, 0, "Tentando remover personagem");
-            //        }
-            //    }
-            //}
-
-            //foreach(var npc in NpcHandler.Instance.GetAllNpcs()) {
-            //    float distance = session.ActiveCharacter.DistanceTo(npc);
-
-            //    if(distance <= visibilityRange) {
-            //        if(!session.VisibleNpcs.Contains(npc.Id)) {
-            //            session.VisibleNpcs.Add(npc.Id);
-            //            session.SendPacket(PacketFactory.CreateSpawnNpc(npc));
-            //        }
-            //    }
-            //    else {
-            //        if(session.VisibleNpcs.Contains(npc.Id)) {
-            //            session.VisibleNpcs.Remove(npc.Id);
-            //            session.SendPacket(PacketFactory.CreateRemoveNpc(npc));
-            //        }
-            //    }
-            //}
-            character.VisiblePlayers.Add(otherCharacter);
-        }
+        } 
 
         Console.WriteLine("OK -> UpdateVisibleList");
     }

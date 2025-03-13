@@ -1,6 +1,7 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Data.Repositories;
 using GameServer.Model.Account;
+using GameServer.Model.Character;
 using GameServer.Model.World;
 using GameServer.Network;
 using GameServer.Service;
@@ -343,7 +344,8 @@ public static class CharacterHandler {
 
         Teleport(session, character.PositionX, character.PositionY);
 
-        CreateCharacterMob(session, 1, 0);
+        Console.WriteLine($"CRIANDO -> [{session.ActiveCharacter.Id}] {session.ActiveCharacter.Name}");
+        CreateCharacterMob(session, session.ActiveCharacter, 1, 0);
         CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
 
         SessionHandler.Instance.UpdateVisibleList(session);
@@ -621,10 +623,8 @@ public static class CharacterHandler {
         //UpdateRotationToAll(session, stream);
     }
 
-    public static void CreateCharacterMob(Session session, ushort id, ushort spawnType) {
+    public static void CreateCharacterMob(Session session, CharacterEntitie character, ushort id, ushort spawnType) {
         if(session == null) return;
-
-        var character = session.ActiveCharacter;
 
         var packet = PacketFactory.CreateHeader(0x349, id);
 
@@ -638,7 +638,7 @@ public static class CharacterHandler {
         packet.Write((Single)character.Position.X);
         packet.Write((Single)character.Position.Y);
 
-        packet.Write((uint)0); // Unk
+        packet.Write((uint)0); // Provavelmente a nação
 
         //packet.Write(character.MaxHealth);
         //packet.Write(character.MaxMana);
@@ -648,7 +648,9 @@ public static class CharacterHandler {
         packet.Write(character.CurrentMana);
 
         packet.Write((byte)0xA); // Unk
-        packet.Write((ushort)character.SpeedMove);
+        packet.Write(character.SpeedMove);
+
+        packet.Write((byte)0xA); // Unk
 
         packet.Write(character.Height);
         packet.Write(character.Trunk);
@@ -672,20 +674,18 @@ public static class CharacterHandler {
             packet.Write((uint)0); // TO-DO: BuffTime
         }
 
-        packet.Write(Encoding.ASCII.GetBytes(new string('\0', 30))); // Title
+        packet.Write(Encoding.ASCII.GetBytes(new string('\0', 32))); // Title
 
+        packet.Write((ushort)0); // Unk
+
+        packet.Write((byte)6); // Unk
         packet.Write((byte)0); // Unk
 
-        packet.Write((ushort)character.ClassInfo); // Unk
-        packet.Write((byte)0); // Unk
-
-        packet.Write((ushort)29); // Unk
+        packet.Write((ushort)0); // Unk
 
         //packet.Write((ushort)account.Nation * 4096); 
         packet.Write((uint)0);
         packet.Write((uint)0);
-
-        packet.Write((ushort)0);
 
         packet.Write((byte)0); // Unk
 
@@ -708,7 +708,7 @@ public static class CharacterHandler {
         var account = session.ActiveAccount;
         var character = session.ActiveCharacter;
 
-        var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.Id);
+        var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.ConnectionId);
 
         CharacterService.SetCharLobbyOrdered(character, packet);
 
@@ -771,35 +771,27 @@ public static class CharacterHandler {
         session.SendPacket(packetData);
 
         PacketPool.Return(packet);
-
-        Console.WriteLine("OK -> SpawnCharacter");
     }
 
     // TO-DO: Tratar player morto
     public static void MoveChar(Session session, StreamHandler stream) {
         var positionX = stream.ReadSingle();
         var positionY = stream.ReadSingle();
-        var null_0 = stream.ReadBytes(6);
+        _ = stream.ReadBytes(6);
         var moveType = stream.ReadByte();
         var speed = stream.ReadByte();
         var unk = stream.ReadUInt32();
 
-        Console.WriteLine($"PositionX: {positionX}");
-        Console.WriteLine($"PositionY: {positionY}");
-        Console.WriteLine($"MoveType: {moveType}");
-        Console.WriteLine($"Speed: {speed}");
-        Console.WriteLine($"Unk: {unk}");
-
         var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
 
-        packet.Write(session.ActiveCharacter.Position.X);
-        packet.Write(session.ActiveCharacter.Position.Y);
+        packet.Write(positionX);
+        packet.Write(positionY);
 
         packet.Write((uint)0); // Null
 
         packet.Write((ushort)0); // Null
 
-        packet.Write((byte)0); // Unk
+        packet.Write((byte)moveType); // moveType?
 
         packet.Write(speed); // Speed
         packet.Write(unk); // unk
