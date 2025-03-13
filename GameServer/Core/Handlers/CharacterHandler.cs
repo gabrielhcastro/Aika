@@ -27,7 +27,6 @@ public static class CharacterHandler {
             packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
 
             packet.Write((ushort)(account?.Nation ?? 0));
-            
             packet.Write((ushort)(character?.ClassInfo ?? 0));
 
             packet.Write((byte)(character?.Height ?? 0));
