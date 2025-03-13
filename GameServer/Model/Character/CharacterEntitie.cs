@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 namespace GameServer.Model.Character;
 public class CharacterEntitie {
     public uint Id { get; set; }
-    public ushort ConnectionId { get; set; }
     public uint OwnerAccountId { get; set; }
     public string Name { get; set; }
     public byte Slot { get; set; }
@@ -60,6 +59,7 @@ public class CharacterEntitie {
     public uint BonusDamage { get; set; }
     public uint Miss { get; set; }
     public uint Accuracy { get; set; }
+    public bool IsActive { get; set; }
 
     public ushort[] Skills { get; set; }
     public List<ItemEntitie> Equips { get; set; }

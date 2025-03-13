@@ -8,9 +8,9 @@ using System.Net.Sockets;
 namespace GameServer.Core.Handlers;
 public class SessionHandler : Singleton<SessionHandler> {
     private readonly ConcurrentDictionary<uint, Session> _sessions = [];
-    private static readonly Dictionary<int, CharacterEntitie> _characters = [];
     private readonly ObjectPool<Session> _sessionPool = new();
     private readonly SocketAsyncEventArgsPool _socketEventPool;
+    public static readonly Dictionary<int, CharacterEntitie> _characters = [];
 
     public SessionHandler() {
         _socketEventPool = new SocketAsyncEventArgsPool(100, ReadComplete);
@@ -84,17 +84,18 @@ public class SessionHandler : Singleton<SessionHandler> {
         character.VisiblePlayers ??= [];
 
         foreach(var otherSession in _sessions.Values) {
-            if(otherSession.ActiveCharacter == null)
+            var otherCharacter = otherSession.ActiveCharacter;
+
+            if(otherCharacter == null || otherCharacter.Id == session.ActiveCharacter.Id)
                 continue;
 
-            if(character.VisiblePlayers.Any(c => c.Id == otherSession?.ActiveCharacter?.Id)) continue;
+            Console.WriteLine($"[{character.Id}]{character.Name} -> OtherPlayer: [{otherCharacter.Id}] {otherCharacter.Name}");
 
-            var otherCharacter = otherSession.ActiveCharacter;
+            if(character.VisiblePlayers.Any(c => c.Id == otherCharacter?.Id)) continue;
 
             if(!character.VisiblePlayers.Contains(otherCharacter)) {
                 character.VisiblePlayers.Add(otherCharacter);
-
-                //CharacterHandler.CreateCharacterMob(otherSession);
+                CharacterHandler.CreateCharacterMob(otherSession, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
             }
 
             //float distance = session.ActiveCharacter.Position.Distance(otherSession.ActiveCharacter.Position);

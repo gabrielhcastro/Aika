@@ -19,7 +19,7 @@ public class AccountHandler{
 
         var packet = PacketFactory.CreateHeader(0x82);
 
-        packet.Write((uint)5077); // AccountID
+        packet.Write((uint)account.Id); // AccountID
         packet.Write((uint)Environment.TickCount); // LoginTime
         packet.Write((uint)account.Nation); // Nação
         packet.Write((byte)0); // Null_1 (padding)

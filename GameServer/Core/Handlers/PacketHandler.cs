@@ -37,7 +37,7 @@ public static class PacketHandler {
             CharacterHandler.SendToWorld(session, stream);
             break;
             case 0xF0B:
-            CharacterHandler.SendToWorldSends(session);
+            await CharacterHandler.SendToWorldSends(session);
             break;
             case 0x3E04:
             await CharacterHandler.CreateChar(session, stream);
