@@ -52,16 +52,14 @@ public static class CharacterHandler {
 
             packet.Write(new byte[6]); // Null
 
-            packet.Write((ulong)99999); // Exp
-            packet.Write((ulong)88888); // Gold
-            //packet.Write((long)(character?.Experience ?? 1)); // Exp
-            //packet.Write((long)(character?.Gold ?? 0)); // Gold
+            packet.Write((long)(character?.Experience ?? 1)); // Exp
+            packet.Write((long)(character?.Gold ?? 0)); // Gold
 
             packet.Write((uint)0); // Unk
             
-            packet.Write((uint)0); // Pronto para excluir
+            packet.Write((uint)(character?.Deleted ?? 0));
 
-            packet.Write((byte)0); // Quantidade de erros de numérica
+            packet.Write((byte)(character?.NumericErrors ?? 0));
 
             packet.Write((uint)0); // Unk
 
