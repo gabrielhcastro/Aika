@@ -103,76 +103,65 @@ public static class CharacterHandler {
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
 
         // Serial
-        packet.Write(account.Id);
+        packet.Write((uint)account.ConnectionId);
 
         // TO-DO: First Login 
         packet.Write((uint)1);
 
-        packet.Write((uint)0); // Unk
-        packet.Write((uint)0); // Unk
+        packet.Write((uint)0);
+        packet.Write((uint)character.Id);
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
-
-        packet.Write((byte)account.Nation);
+        packet.Write(account.Nation);
         packet.Write(character.ClassInfo);
-
-        packet.Write((ushort)character.Strength);
-        packet.Write((ushort)character.Agility);
-        packet.Write((ushort)character.Intelligence);
-        packet.Write((ushort)character.Constitution);
-        packet.Write((ushort)character.Luck);
-        packet.Write((ushort)character.Status);
+        packet.Write(character.Strength);
+        packet.Write(character.Agility);
+        packet.Write(character.Intelligence);
+        packet.Write(character.Constitution);
+        packet.Write(character.Luck);
+        packet.Write(character.Status);
         packet.Write(character.Height);
         packet.Write(character.Trunk);
         packet.Write(character.Leg);
         packet.Write(character.Body);
-        packet.Write(character.MaxHealth);
+        //packet.Write(character.MaxHealth);
         packet.Write(character.CurrentHealth);
-        packet.Write(character.MaxMana);
+        packet.Write(character.CurrentHealth);
+        //packet.Write(character.MaxMana);
+        packet.Write(character.CurrentMana);
         packet.Write(character.CurrentMana);
 
-        packet.Write((ushort)0); // Unk
-
-        packet.Write((uint)0); // Unk
-
+        packet.Write((ushort)0); // Server Reset Time
         packet.Write(character.Honor);
         packet.Write(character.KillPoint);
-
-        packet.Write((uint)0); // Unk
-
-        packet.Write((ushort)character.Infamia);
+        packet.Write((uint)character.Infamia);
 
         packet.Write((ushort)0); // TO-DO: Evil Points
         packet.Write((ushort)0); // TO-DO: Skill Points
 
+        packet.Write(new byte[60]); // Null_1
+
         packet.Write((ushort)0); // Unk_0
 
-        for(ushort i = 0; i < 60; i++)
-            packet.Write((byte)0); // Null_1
+        packet.Write(character.PhysicDamage);
+        packet.Write(character.PhysicDefense);
+        packet.Write(character.MagicDamage);
+        packet.Write(character.MagicDefense);
+        packet.Write(character.BonusDamage);
 
-        packet.Write((ushort)0); // Unk_1
+        packet.Write(new byte[10]); // Null_2
 
-        packet.Write((ushort)character.PhysicDamage);
-        packet.Write((ushort)character.PhysicDefense);
-        packet.Write((ushort)character.MagicDamage);
-        packet.Write((ushort)character.MagicDefense);
-        packet.Write((ushort)character.BonusDamage);
-
-        for(ushort i = 0; i < 10; i++)
-            packet.Write((byte)0); // Null_2
-
-        // Calculados dinamicamente?!
         packet.Write((ushort)0); // Critical
         packet.Write((byte)0); // Miss
         packet.Write((byte)0); // Accuracy
-        packet.Write((ushort)0);     // Null_3
 
-        packet.Write((long)character.Experience);
+        packet.Write((uint)0); // Null_3
+
+        packet.Write((ulong)character.Experience);
         packet.Write((ushort)character.Level);
 
-        packet.Write((ushort)0);     // GuildIndex/Logo ??
+        packet.Write((ushort)0); // Guild Index
 
-        for(ushort i = 0; i < 32; i++)
-            packet.Write((byte)0); // Null_4
+        packet.Write(new byte[32]); // Null_4
 
         for(ushort i = 0; i < 20; i++)
             packet.Write((ushort)0); // BuffsId
@@ -186,46 +175,26 @@ public static class CharacterHandler {
 
         CharacterService.SetCharInventoryOrdered(character, stream);
 
-        packet.Write((long)character.Gold);
+        packet.Write((ulong)character.Gold);
 
-        // Unk_2
-        for(ushort i = 0; i < 192; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[192]); // Null_6
 
-        // Quests
-        for(ushort i = 0; i < 16; i++) {
-            packet.Write((ushort)0); // Id
+        packet.Write(new byte[224]); // Quests
 
-            for(ushort j = 0; j < 10; j++) {
-                packet.Write((byte)0); // Unk (Progress?!)
-            }
-        }
+        packet.Write(new byte[212]); // Unk_1
 
-        // Unk_3
-        for(ushort i = 0; i < 212; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write((uint)0);  // Unk_2
+        packet.Write((uint)0);  // Location
 
-        packet.Write((uint)0); // Unk_4
-        packet.Write((ushort)0); // Location
-
-        // Unk_5
-        for(ushort i = 0; i < 128; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[128]); // Unk_3
 
         packet.Write((uint)DateTime.Parse(character.CreationTime).Ticks);
 
-        for(ushort i = 0; i < 436; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[436]); // Unk_4
 
-        packet.Write(Encoding.ASCII.GetBytes(character.NumericToken));
+        packet.Write(Encoding.ASCII.GetBytes("0000"));
 
-        for(ushort i = 0; i < 212; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[212]); // Unk_5
 
         // Skill List
         for(ushort i = 0; i < 60; i++) {
@@ -237,17 +206,14 @@ public static class CharacterHandler {
             packet.Write((uint)0);
         }
 
-        packet.Write((uint)0); // NULL_6
+        packet.Write((uint)0); // Null_7
 
         // TitleCategoryLevel
         for(ushort i = 0; i < 12; i++) {
             packet.Write((uint)0);
         }
 
-        // Unk_7
-        for(ushort i = 0; i < 80; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[80]); // Unk_4
 
         packet.Write((ushort)0); // Active Title
 
@@ -279,24 +245,20 @@ public static class CharacterHandler {
         packet.Write((uint)DateTime.Now.AddDays(1).Ticks); // EndDayTime
 
         packet.Write((uint)0); // Null_9
-        packet.Write((uint)0); // Unk_10
+        packet.Write((uint)0); // Tempo de caça
 
-        // Null_10
-        for(ushort i = 0; i < 52; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[52]); // Unk_4
 
-        packet.Write((uint)0); // Utc
+        packet.Write((uint)3); // Utc
+        packet.Write((uint)DateTime.Now.Ticks); // LoginTime
         packet.Write((uint)DateTime.Now.Ticks); // LoginTime
 
-        // Unk_11
-        for(ushort i = 0; i < 12; i++) {
-            packet.Write((byte)0);
-        }
+        packet.Write(new byte[852]); // Unk_4
+        packet.Write((uint)0);
+        packet.Write(new byte[12]); // Unk_4
 
         //Pran Name
         packet.Write(Encoding.ASCII.GetBytes("Pran 1".PadRight(16, '\0')));
-        packet.Write(Encoding.ASCII.GetBytes("Pran 2".PadRight(16, '\0')));
 
         packet.Write((uint)0); // Unk_12
 
@@ -564,7 +526,7 @@ public static class CharacterHandler {
             return;
         }
 
-        account.ConnectionId = connectionId;
+        account.ConnectionId = (ushort)connectionId;
         session.ActiveAccount = account;
 
         await SendToCharactersList(session);

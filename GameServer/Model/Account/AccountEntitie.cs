@@ -2,18 +2,18 @@
 
 namespace GameServer.Model.Account;
 public class AccountEntitie {
-    public uint Id { get; set; }
-    public uint ConnectionId { get; set; }
+    public ushort Id { get; set; }
+    public ushort ConnectionId { get; set; }
     public string Username { get; set; }
     public string PasswordHash { get; set; }
     public string Token { get; set; }
     public DateTime TokenCreationTime { get; set; }
-    public ushort AccountStatus { get; set; }
-    public ushort BanDays { get; set; }
-    public ushort Nation { get; set; }
+    public byte AccountStatus { get; set; }
+    public byte BanDays { get; set; }
+    public byte Nation { get; set; }
     public AccountType AccountType { get; set; }
-    public uint StorageGold { get; set; }
-    public uint Cash { get; set; }
+    public ulong StorageGold { get; set; }
+    public ulong Cash { get; set; }
     public string PremiumExpiration { get; set; }
     public List<CharacterEntitie> Characters { get; set; } = [];
 }
