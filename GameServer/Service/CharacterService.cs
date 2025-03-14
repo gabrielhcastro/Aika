@@ -176,53 +176,24 @@ public static class CharacterService {
         }
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharLobbyEquipsOrdered(List<ItemEntitie> equips) {
-        var orderedEquips = new Dictionary<int, ItemEntitie>();
+    private static Dictionary<int, ItemEntitie> OrderItems(List<ItemEntitie> items, int maxSlots) {
+        var orderedItems = Enumerable.Range(0, maxSlots).ToDictionary(i => i, _ => new ItemEntitie());
 
-        for(int i = 0; i < 8; i++) {
-            orderedEquips[i] = new ItemEntitie();
+        foreach(var item in items ?? []) {
+            if(item.Slot >= 0 && item.Slot < maxSlots) orderedItems[item.Slot] = item;
         }
 
-        foreach(var equip in equips ?? []) {
-            if(equip.Slot >= 0 && equip.Slot < 8) {
-                orderedEquips[equip.Slot] = equip;
-            }
-        }
-
-        return orderedEquips;
+        return orderedItems;
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharEquipsOrdered(List<ItemEntitie> equips) {
-        var orderedEquips = new Dictionary<int, ItemEntitie>();
+    public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> inventory)
+    => OrderItems(inventory, 60);
 
-        for(int i = 0; i < 16; i++) {
-            orderedEquips[i] = new ItemEntitie();
-        }
+    public static Dictionary<int, ItemEntitie> GetCharEquipsOrdered(List<ItemEntitie> equips)
+        => OrderItems(equips, 16);
 
-        foreach(var equip in equips ?? []) {
-            if(equip.Slot >= 0 && equip.Slot < 16) {
-                orderedEquips[equip.Slot] = equip;
-            }
-        }
-
-        return orderedEquips;
-    }
-
-    public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> itens) {
-        var orderedInventory = new Dictionary<int, ItemEntitie>();
-
-        for(int i = 0; i < 60; i++) {
-            orderedInventory[i] = new ItemEntitie();
-        }
-
-        foreach(var item in itens ?? []) {
-            if(item.Slot >= 0 && item.Slot < 60) {
-                orderedInventory[item.Slot] = item;
-            }
-        }
-
-        return orderedInventory;
-    }
+    public static Dictionary<int, ItemEntitie> GetCharLobbyEquipsOrdered(List<ItemEntitie> equips)
+        => OrderItems(equips, 8);
 
     public static void SetCurrentNeighbors(CharacterEntitie character) {
         character.Neighbors.Clear();

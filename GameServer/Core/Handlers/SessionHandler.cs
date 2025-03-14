@@ -27,53 +27,46 @@ public class SessionHandler : Singleton<SessionHandler> {
         _sessionPool.Return(session);
     }
 
-    public void ReturnSocketEvent(SocketAsyncEventArgs eventArg) {
-        _socketEventPool.Return(eventArg);
-    }
+    public void ReturnSocketEvent(SocketAsyncEventArgs eventArg) => _socketEventPool.Return(eventArg);
 
     public void AddSession(Session session) {
         _sessions[session.Id] = session;
-        session.LastActivity = DateTime.UtcNow;
         UpdateSessionActivity(session);
     }
 
     public void RemoveSession(Session session) {
-        _sessions.TryRemove(session.Id, out _);
-        RemoveCharacter(session.ActiveCharacter.Id);
-        session.ActiveCharacter = null;
-        session.ActiveAccount = null;
+        if(_sessions.TryRemove(session.Id, out _)) {
+            session.ActiveCharacter = null;
+            session.ActiveAccount = null;
+            RemoveCharacter(session.ActiveCharacter?.Id ?? -1);
+            session.Close();
+        }
 
         UpdateSessionActivity(session);
-        session.Close();
     }
-
-    public Session GetSessionByCharacterId(ushort characterId) {
-        return _sessions.Values.FirstOrDefault(s => s.ActiveCharacter?.Id == characterId);
-    }
-
+    
     public int GetAllSessionsCount() => _sessions.Values.Count;
 
     public List<Session> GetAllSessions() => [.. _sessions.Values];
 
     public static int GetAllCharacters() => _characters.Values.Count;
 
-    public static void UpdateSessionActivity(Session session) {
-        session.LastActivity = DateTime.UtcNow;
-    }
+    public static void UpdateSessionActivity(Session session) => session.LastActivity = DateTime.UtcNow;
+
+    public Session GetSessionByCharacterId(ushort characterId) =>
+        _sessions.Values.FirstOrDefault(s => s.ActiveCharacter?.Id == characterId);
+
+    public static CharacterEntitie GetCharacter(int playerId) =>
+        _characters.TryGetValue(playerId, out var player) ? player : null;
 
     public static void AddCharacter(CharacterEntitie character) {
         _characters.TryAdd(GetAllCharacters() + 1, character);
         Console.WriteLine($"Player logou: {character.Name}.");
     }
 
-    public static CharacterEntitie GetCharacter(int playerId) {
-        _characters.TryGetValue(playerId, out var player);
-        return player;
-    }
-
     public static void RemoveCharacter(int playerId) {
-        _characters.Remove(playerId, out var character);
-        Console.WriteLine($"Player deslogou: {character?.Name}.");
+        if(_characters.Remove(playerId, out var character)) Console.WriteLine($"Player deslogou: {character?.Name}.");
+        else Console.WriteLine($"Erro ao remover player: {character?.Name}.");
     }
 
     public void UpdateVisibleList(Session session) {
@@ -83,24 +76,18 @@ public class SessionHandler : Singleton<SessionHandler> {
         character.Neighbors?.Clear();
         character.VisiblePlayers ??= [];
 
-        foreach(var otherSession in _sessions.Values) {
-            if(otherSession.Id == session.Id) continue;
-
-            var otherCharacter = otherSession.ActiveCharacter;
-            if(otherCharacter == null) continue;
-
+        foreach(var otherSession in _sessions.Values.Where(oS => oS.Id != session.Id && oS.ActiveCharacter != null)) {
+            var otherCharacter = otherSession.ActiveCharacter!;
             if(character.VisiblePlayers.Contains(otherCharacter.Id)) continue;
 
             character.VisiblePlayers.Add(otherCharacter.Id);
             CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
 
-            if(otherCharacter.VisiblePlayers.Contains(character.Id)) continue;
-
-            otherCharacter.VisiblePlayers.Add(character.Id);
-            CharacterHandler.CreateCharacterMob(otherSession, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+            if(!otherCharacter.VisiblePlayers.Contains(character.Id)) {
+                otherCharacter.VisiblePlayers.Add(character.Id);
+                CharacterHandler.CreateCharacterMob(otherSession, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+            }
         }
-
-        Console.WriteLine("OK -> UpdateVisibleList");
     }
 
     private void ReadComplete(object sender, SocketAsyncEventArgs e) {
