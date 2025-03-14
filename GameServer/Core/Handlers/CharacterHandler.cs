@@ -35,7 +35,7 @@ public static class CharacterHandler {
             packet.Write((byte)(character?.Leg ?? 0));
             packet.Write((byte)(character?.Body ?? 0));
 
-            CharacterService.SetCharLobbyOrdered(character, packet);
+            CharacterService.SetLobbyEquips(character, packet);
 
             for(ushort k = 0; k < 12; k++) {
                 packet.Write((byte)0); //Refine?
@@ -325,20 +325,12 @@ public static class CharacterHandler {
     }
 
     private static void CreateCharVisibleList(Session session) {
-        foreach(var playerId in session.ActiveCharacter.VisiblePlayers) {
-            var character = SessionHandler.GetCharacter(playerId);
+        foreach(var visiblePlayerId in session.ActiveCharacter.VisiblePlayers) {
+            var visibleChar = SessionHandler.GetCharacter(visiblePlayerId);
 
-            if(character == null) continue;
+            if(visibleChar == null) continue;
 
-            var sessionTest = SessionHandler.Instance.GetSessionByCharacterId(playerId);
-            if(sessionTest == null) {
-                Console.WriteLine($"Erro: Sessão não encontrada para o personagem {playerId}");
-            }
-            else {
-                Console.WriteLine($"Personagem {playerId} pertence à sessão {sessionTest.Id}");
-            }
-
-            CreateCharacterMob(session, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+            CreateCharacterMob(session, visibleChar, (ushort)session.ActiveAccount.ConnectionId, 1);
         }
     }
 
@@ -535,30 +527,42 @@ public static class CharacterHandler {
     }
 
     public static async Task CreateChar(Session session, StreamHandler stream) {
-        var character = CharacterService.GenerateInitCharacter(session, stream);
-        if(string.IsNullOrWhiteSpace(character.Name)) {
-            GameMessage(session, 16, 0, "PERSONAGEM INVALIDO");
-            return;
+        try {
+            var character = CharacterService.GenerateInitCharacter(session, stream);
+
+            if(character == null || string.IsNullOrWhiteSpace(character.Name)) {
+                GameMessage(session, 16, 0, "Personagem Invalido!");
+                return;
+            }
+
+            var account = session.ActiveAccount;
+            if(account == null || account.Characters.Count >= 3) {
+                GameMessage(session, 16, 0, "Atingiu a quantidade maxima!");
+                return;
+            }
+
+            if(!CharacterService.ValidateSlot(character.Slot, session)) {
+                GameMessage(session, 16, 0, "Slot Invalido!");
+                return;
+            }
+
+            var success = await CharacterService.CreateCharAsync(character, account);
+            if(!success) {
+                GameMessage(session, 16, 0, "Erro ao criar o personagem!");
+                return;
+            }
+
+            character.Inventory = [];
+            account.Characters.Add(character);
+
+            Console.WriteLine($"Personagem criado: {character.Name}");
+
+            await SendToCharactersList(session);
         }
-
-        var account = session.ActiveAccount;
-        if(account == null || account.Characters.Count >= 3) {
-            GameMessage(session, 16, 0, "QUANTIDADE MAXIMA: 3");
-            return;
+        catch(Exception ex) {
+            Console.WriteLine($"Erro ao criar personagem: {ex.Message}");
+            GameMessage(session, 16, 0, "ERRO INTERNO AO CRIAR PERSONAGEM");
         }
-
-        var success = await CharacterService.CreateCharAsync(character, account);
-        if(!success) {
-            GameMessage(session, 16, 0, "ERRO: CRIAR PERSONAGEM");
-            return;
-        }
-
-        character.Inventory = [];
-        account.Characters.Add(character);
-
-        Console.WriteLine($"Personagem criado: {character.Name}");
-
-        await SendToCharactersList(session);
     }
 
     public static async Task ChangeChar(Session session) {
@@ -599,7 +603,13 @@ public static class CharacterHandler {
         if(session.ActiveCharacter.Rotation != rotation)
             session.ActiveCharacter.Rotation = rotation;
 
-        //UpdateRotationToAll(session, stream);
+        Console.WriteLine("[{0}] Rotation: {1}", session.ActiveAccount.ConnectionId, rotation);
+
+        UpdateToAll(session, stream);
+    }
+
+    private static void UpdateToAll(Session session, StreamHandler stream) {
+        throw new NotImplementedException();
     }
 
     public static void CreateCharacterMob(Session session, CharacterEntitie character, ushort id, ushort spawnType) {
@@ -609,7 +619,7 @@ public static class CharacterHandler {
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
-        CharacterService.SetCharLobbyOrdered(character, packet);
+        CharacterService.SetLobbyEquips(character, packet);
 
         // Item Effect?
         packet.Write(new byte[12]);
@@ -688,7 +698,7 @@ public static class CharacterHandler {
 
         var packet = PacketFactory.CreateHeader(0x35E, (ushort)account.ConnectionId);
 
-        CharacterService.SetCharLobbyOrdered(character, packet);
+        CharacterService.SetLobbyEquips(character, packet);
 
         packet.Write(character.Position.X);
         packet.Write(character.Position.Y);
@@ -759,6 +769,8 @@ public static class CharacterHandler {
         var moveType = stream.ReadByte();
         var speed = stream.ReadByte();
         var unk = stream.ReadUInt32();
+
+        Console.WriteLine("[{0}] Move Type: {1} Speed: {2} Unk: {3}", session.ActiveAccount.ConnectionId, moveType, speed, unk);
 
         var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
 

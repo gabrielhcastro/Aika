@@ -39,6 +39,7 @@ public class SessionHandler : Singleton<SessionHandler> {
 
     public void RemoveSession(Session session) {
         _sessions.TryRemove(session.Id, out _);
+        RemoveCharacter(session.ActiveCharacter.Id);
         session.ActiveCharacter = null;
         session.ActiveAccount = null;
 
@@ -70,7 +71,6 @@ public class SessionHandler : Singleton<SessionHandler> {
         return player;
     }
 
-    // TO-DO: REMOÇÃO DE PERSONAGEM AO DESLOGAR
     public static void RemoveCharacter(int playerId) {
         _characters.Remove(playerId, out var character);
         Console.WriteLine($"Player deslogou: {character?.Name}.");

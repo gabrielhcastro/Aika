@@ -53,7 +53,7 @@ public static class CharacterRepository {
         new() { Slot = 6, SlotType = 0, ItemId = 1244, App = 1244, MinimalValue = 140, MaxValue = 140 }
         })
         };
-    
+
     public static async Task<List<CharacterEntitie>> GetCharactersByAccountIdAsync(uint accountId) {
         List<CharacterEntitie> characters = [];
 
