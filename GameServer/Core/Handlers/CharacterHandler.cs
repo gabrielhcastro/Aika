@@ -311,8 +311,6 @@ public static class CharacterHandler {
         CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
 
-        CreateCharVisibleList(session);
-
         foreach(var equip in character.Equips) {
             ItemHandler.UpdateItemBySlotAndType(session, equip, true);
         }
@@ -322,16 +320,6 @@ public static class CharacterHandler {
         }
 
         Console.WriteLine($"OK -> SendToWorldSends");
-    }
-
-    private static void CreateCharVisibleList(Session session) {
-        foreach(var visiblePlayerId in session.ActiveCharacter.VisiblePlayers) {
-            var visibleChar = SessionHandler.GetCharacter(visiblePlayerId);
-
-            if(visibleChar == null) continue;
-
-            CreateCharacterMob(session, visibleChar, (ushort)session.ActiveAccount.ConnectionId, 1);
-        }
     }
 
     public static void Teleport(Session session, Single positionX, Single positionY) {
@@ -536,13 +524,7 @@ public static class CharacterHandler {
             }
 
             var account = session.ActiveAccount;
-            if(account == null || account.Characters.Count >= 3) {
-                GameMessage(session, 16, 0, "Atingiu a quantidade maxima!");
-                return;
-            }
-
-            if(!CharacterService.ValidateSlot(character.Slot, session)) {
-                GameMessage(session, 16, 0, "Slot Invalido!");
+            if(account == null) {
                 return;
             }
 
@@ -561,7 +543,7 @@ public static class CharacterHandler {
         }
         catch(Exception ex) {
             Console.WriteLine($"Erro ao criar personagem: {ex.Message}");
-            GameMessage(session, 16, 0, "ERRO INTERNO AO CRIAR PERSONAGEM");
+            GameMessage(session, 16, 0, "Erro ao criar o personagem!");
         }
     }
 
@@ -605,11 +587,26 @@ public static class CharacterHandler {
 
         Console.WriteLine("[{0}] Rotation: {1}", session.ActiveAccount.ConnectionId, rotation);
 
-        UpdateToAll(session, stream);
+        var packet = PacketFactory.CreateHeader(0x305, session.ActiveAccount.ConnectionId);
+        packet.Write((uint)rotation);
+
+        PacketFactory.FinalizePacket(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
+
+        UpdateToAll(session, packetData);
     }
 
-    private static void UpdateToAll(Session session, StreamHandler stream) {
-        throw new NotImplementedException();
+    private static void UpdateToAll(Session session, byte[] packet) {
+        if(session.ActiveCharacter.VisiblePlayers.Count <= 0) return;
+        foreach(var visiblePlayerId in session.ActiveCharacter.VisiblePlayers) {
+            var visibleCharSession = SessionHandler.Instance.GetSessionByCharacterId(visiblePlayerId);
+
+            if(visibleCharSession == null) continue;
+
+            visibleCharSession.SendPacket(packet);
+        }
     }
 
     public static void CreateCharacterMob(Session session, CharacterEntitie character, ushort id, ushort spawnType) {
@@ -772,7 +769,7 @@ public static class CharacterHandler {
 
         Console.WriteLine("[{0}] Move Type: {1} Speed: {2} Unk: {3}", session.ActiveAccount.ConnectionId, moveType, speed, unk);
 
-        var packet = PacketFactory.CreateHeader(0x301, (ushort)session.ActiveAccount.Id);
+        var packet = PacketFactory.CreateHeader(0x301, session.ActiveAccount.ConnectionId);
 
         packet.Write(positionX);
         packet.Write(positionY);
@@ -781,17 +778,19 @@ public static class CharacterHandler {
 
         packet.Write((ushort)0); // Null
 
-        packet.Write((byte)moveType); // moveType?
+        packet.Write(moveType); // moveType?
 
         packet.Write(speed); // Speed
         packet.Write(unk); // unk
 
         PacketFactory.FinalizePacket(packet);
 
-        byte[] packetByte = packet.GetBytes();
-        EncDec.Encrypt(ref packetByte, packetByte.Length);
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packetData.Length);
 
         session.SendPacket(packet);
+
+        UpdateToAll(session, packetData);
 
         PacketPool.Return(packet);
     }

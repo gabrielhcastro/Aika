@@ -28,6 +28,9 @@ public class SocketAsyncEventArgsPool : Singleton<SocketAsyncEventArgsPool> {
 
     public SocketAsyncEventArgs Rent() {
         if(_pool.TryTake(out var args)) {
+            args.Completed -= _completedHandler;
+            args.Completed += _completedHandler;
+
             return args;
         }
 
@@ -37,9 +40,20 @@ public class SocketAsyncEventArgsPool : Singleton<SocketAsyncEventArgsPool> {
     public void Return(SocketAsyncEventArgs args) {
         if(args == null) return;
 
-        args.AcceptSocket = null;
+        try {
+            args.AcceptSocket?.Close();
+            args.AcceptSocket = null;
+        }
+        catch(ObjectDisposedException) {
+        }
+
         args.UserToken = null;
-        args.SetBuffer(null, 0, 0);
+
+        if(args.Buffer != null) {
+            Array.Clear(args.Buffer, 0, args.Buffer.Length);
+        }
+
+        args.Completed -= _completedHandler;
 
         _pool.Add(args);
     }

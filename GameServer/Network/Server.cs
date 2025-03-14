@@ -124,7 +124,7 @@ public class Server : INetwork {
                 var willRaiseEvent = session.Socket.ReceiveAsync(e);
                 if(!willRaiseEvent)
                     ProcessReceive(e);
-            }
+                }
             catch(ObjectDisposedException) {
                 session.Close();
             }

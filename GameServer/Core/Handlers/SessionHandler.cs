@@ -27,6 +27,13 @@ public class SessionHandler : Singleton<SessionHandler> {
         _sessionPool.Return(session);
     }
 
+    public SocketAsyncEventArgs RentSocketEvent() {
+        var args = SocketAsyncEventArgsPool.Instance.Rent();
+        args.Completed -= ReadComplete;
+        args.Completed += ReadComplete;
+        return args;
+    }
+
     public void ReturnSocketEvent(SocketAsyncEventArgs eventArg) => _socketEventPool.Return(eventArg);
 
     public void AddSession(Session session) {
@@ -66,7 +73,6 @@ public class SessionHandler : Singleton<SessionHandler> {
 
     public static void RemoveCharacter(int playerId) {
         if(_characters.Remove(playerId, out var character)) Console.WriteLine($"Player deslogou: {character?.Name}.");
-        else Console.WriteLine($"Erro ao remover player: {character?.Name}.");
     }
 
     public void UpdateVisibleList(Session session) {
