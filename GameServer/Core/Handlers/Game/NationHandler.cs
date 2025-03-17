@@ -2,7 +2,7 @@
 using GameServer.Network;
 using Shared.Core;
 
-namespace GameServer.Core.Handlers;
+namespace GameServer.Core.Handlers.InGame;
 public class NationHandler : Singleton<NationHandler> {
     public List<Server> ServersList { get; private set; }
 

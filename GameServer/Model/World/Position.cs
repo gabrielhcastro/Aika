@@ -1,26 +1,23 @@
-﻿namespace GameServer.Model.World; 
+﻿namespace GameServer.Model.World;
 public struct Position(float x, float y) {
     public float X { get; set; } = x;
     public float Y { get; set; } = y;
 
     public readonly bool IsValid() {
-        return !float.IsInfinity(X) && !float.IsInfinity(Y) &&
-               !float.IsNaN(X) && !float.IsNaN(Y);
+        return !(
+            float.IsInfinity(X) ||
+            float.IsInfinity(Y) ||
+            float.IsNaN(X) ||
+            float.IsNaN(Y)
+            );
     }
 
     public readonly float Distance(Position pos) {
-        if(!IsValid() || !pos.IsValid()) return 65354;
+        if(!IsValid() || !pos.IsValid()) return float.MaxValue;
 
-        try {
-            float dx = X - pos.X;
-            float dy = Y - pos.Y;
-            float distance = (float)Math.Sqrt(dx * dx + dy * dy);
-            return Math.Clamp(distance, 0, 65354);
-        }
-        catch(Exception ex) {
-            Console.WriteLine($"Erro de cálculo em Distance: {ex.Message}");
-            return 65354;
-        }
+        float dx = X - pos.X;
+        float dy = Y - pos.Y;
+        return MathF.Sqrt(dx * dx + dy * dy);
     }
 
     public readonly bool InRange(Position pos, float range) {
@@ -28,11 +25,13 @@ public struct Position(float x, float y) {
     }
 
     public readonly void ForEach(byte range, Action<Position> action) {
-        for(int x = (int)Math.Round(X) - range; x <= (int)Math.Round(X) + range; x++) {
-            for(int y = (int)Math.Round(Y) - range; y <= (int)Math.Round(Y) + range; y++) {
-                if(x > 4096 || x == 0 || y > 4096 || y == 0)
-                    continue;
+        int startX = Math.Max((int)Math.Floor(X) - range, 0);
+        int startY = Math.Max((int)Math.Floor(Y) - range, 0);
+        int endX = Math.Min((int)Math.Floor(X) + range, 4096);
+        int endY = Math.Min((int)Math.Floor(Y) + range, 4096);
 
+        for(int x = startX; x <= endX; x++) {
+            for(int y = startY; y <= endY; y++) {
                 action(new Position(x, y));
             }
         }
@@ -68,21 +67,22 @@ public struct Position(float x, float y) {
     }
 
     public static Position MidAdvanceValue(Position currentPosition, float range) {
-        float newRange = range / 2;
-        return new Position(currentPosition.X + newRange, currentPosition.Y + newRange);
+        return currentPosition + new Position(range / 2, range / 2);
     }
 
     public static Position MidBackValue(Position oldestPosition, float range) {
-        float newRange = range / 2;
-        return new Position(oldestPosition.X - newRange, oldestPosition.Y - newRange);
+        return oldestPosition - new Position(range / 2, range / 2);
     }
 
-    public override readonly bool Equals(object obj) {
-        if(obj is Position pos) return this == pos;
-        return false;
+    public Position Floor() {
+        return new Position(MathF.Floor(X), MathF.Floor(Y));
     }
 
     public override readonly int GetHashCode() {
         return HashCode.Combine(X, Y);
+    }
+
+    public override readonly bool Equals(object obj) {
+        return obj is Position pos && this == pos;
     }
 }

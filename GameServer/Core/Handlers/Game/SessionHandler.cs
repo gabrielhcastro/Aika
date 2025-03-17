@@ -1,16 +1,17 @@
 ﻿using GameServer.Core.Base;
+using GameServer.Core.Handlers.Game;
 using GameServer.Model.Character;
 using GameServer.Network;
 using Shared.Core;
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace GameServer.Core.Handlers;
+namespace GameServer.Core.Handlers.InGame;
 public class SessionHandler : Singleton<SessionHandler> {
     private readonly ConcurrentDictionary<uint, Session> _sessions = [];
     private readonly ObjectPool<Session> _sessionPool = new();
     private readonly SocketAsyncEventArgsPool _socketEventPool;
-    public static readonly Dictionary<int, CharacterEntitie> _characters = [];
+    public static readonly Dictionary<ushort, CharacterEntitie> _characters = [];
 
     public SessionHandler() {
         _socketEventPool = new SocketAsyncEventArgsPool(100, ReadComplete);
@@ -43,35 +44,35 @@ public class SessionHandler : Singleton<SessionHandler> {
 
     public void RemoveSession(Session session) {
         if(_sessions.TryRemove(session.Id, out _)) {
+            if(session.ActiveCharacter != null) RemoveChar((ushort)session.ActiveCharacter.Id);
             session.ActiveCharacter = null;
             session.ActiveAccount = null;
-            RemoveCharacter(session.ActiveCharacter?.Id ?? -1);
             session.Close();
         }
 
         UpdateSessionActivity(session);
     }
-    
+
     public int GetAllSessionsCount() => _sessions.Values.Count;
 
     public List<Session> GetAllSessions() => [.. _sessions.Values];
 
-    public static int GetAllCharacters() => _characters.Values.Count;
+    public static ushort GetAllCharCount() => (ushort)_characters.Values.Count;
 
     public static void UpdateSessionActivity(Session session) => session.LastActivity = DateTime.UtcNow;
 
-    public Session GetSessionByCharacterId(ushort characterId) =>
+    public Session GetSessionByCharId(ushort characterId) =>
         _sessions.Values.FirstOrDefault(s => s.ActiveCharacter?.Id == characterId);
 
-    public static CharacterEntitie GetCharacter(int playerId) =>
+    public static CharacterEntitie GetChar(ushort playerId) =>
         _characters.TryGetValue(playerId, out var player) ? player : null;
 
-    public static void AddCharacter(CharacterEntitie character) {
-        _characters.TryAdd(GetAllCharacters() + 1, character);
+    public static void AddChar(CharacterEntitie character) {
+        _characters.TryAdd((ushort)(GetAllCharCount() + 1), character);
         Console.WriteLine($"Player logou: {character.Name}.");
     }
 
-    public static void RemoveCharacter(int playerId) {
+    public static void RemoveChar(ushort playerId) {
         if(_characters.Remove(playerId, out var character)) Console.WriteLine($"Player deslogou: {character?.Name}.");
     }
 
@@ -84,22 +85,20 @@ public class SessionHandler : Singleton<SessionHandler> {
 
         foreach(var otherSession in _sessions.Values.Where(oS => oS.Id != session.Id && oS.ActiveCharacter != null)) {
             var otherCharacter = otherSession.ActiveCharacter!;
-            if(character.VisiblePlayers.Contains(otherCharacter.Id)) continue;
+            if(character.VisiblePlayers.Contains((ushort)otherCharacter.Id)) continue;
 
-            character.VisiblePlayers.Add(otherCharacter.Id);
+            character.VisiblePlayers.Add((ushort)otherCharacter.Id);
             CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
 
-            if(!otherCharacter.VisiblePlayers.Contains(character.Id)) {
-                otherCharacter.VisiblePlayers.Add(character.Id);
+            if(!otherCharacter.VisiblePlayers.Contains((ushort)character.Id)) {
+                otherCharacter.VisiblePlayers.Add((ushort)character.Id);
                 CharacterHandler.CreateCharacterMob(otherSession, character, (ushort)session.ActiveAccount.ConnectionId, 1);
             }
         }
     }
 
     private void ReadComplete(object sender, SocketAsyncEventArgs e) {
-        if(e.LastOperation == SocketAsyncOperation.Receive) {
-            ProcessReceive(e);
-        }
+        if(e.LastOperation == SocketAsyncOperation.Receive)             ProcessReceive(e);
         else {
             throw new ArgumentException("The last operation completed on the socket was not a receive.");
         }

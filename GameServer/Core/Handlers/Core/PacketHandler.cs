@@ -1,6 +1,7 @@
 ﻿using GameServer.Core.Base;
+using GameServer.Core.Handlers.InGame;
 
-namespace GameServer.Core.Handlers;
+namespace GameServer.Core.Handlers.Core;
 public static class PacketHandler {
     public static async Task HandlePacket(Session session, StreamHandler stream) {
         stream.ReadInt32();
@@ -24,8 +25,8 @@ public static class PacketHandler {
             CharacterHandler.UpdateCharInfo(session, stream);
             break;
             case 0x39D:
-                // packet que o client envia antes de pedir pra entrar no mundo
-                // ignored
+            // packet que o client envia antes de pedir pra entrar no mundo
+            // ignored
             break;
             case 0x668:
             await CharacterHandler.ChangeChar(session);
@@ -39,12 +40,15 @@ public static class PacketHandler {
             case 0xF0B:
             await CharacterHandler.SendToWorldSends(session);
             break;
+            case 0xF86:
+            CharacterHandler.SendSay(session, stream);
+            break;
             case 0x3E04:
             await CharacterHandler.CreateChar(session, stream);
             break;
             default:
             Console.WriteLine($"Unknown opcode: {opcode}, Sender: {sender}");
-            Console.WriteLine("Packet Data: {0} -> {1}", stream.Count, BitConverter.ToString(stream));
+            Console.WriteLine("Packet Data: Size {0} -> {1}", stream.Count, BitConverter.ToString(stream));
             break;
         }
     }

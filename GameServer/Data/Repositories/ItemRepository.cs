@@ -27,7 +27,6 @@ public class ItemRepository {
             equips.Add(equip);
         }
 
-        Console.WriteLine($"Personagem ID [{characterId}] - Equipamentos encontrados: {equips.Count}");
         return equips;
     }
 
@@ -55,7 +54,6 @@ public class ItemRepository {
             itens.Add(item);
         }
 
-        Console.WriteLine($"Personagem ID [{characterId}] - Itens encontrados: {itens.Count}");
         return itens;
     }
 }

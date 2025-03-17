@@ -1,4 +1,4 @@
-﻿using GameServer.Core.Handlers;
+﻿using GameServer.Core.Handlers.Core;
 using System.Collections.Concurrent;
 
 namespace GameServer.Network;

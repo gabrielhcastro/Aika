@@ -9,7 +9,7 @@ namespace GameServer.Data.Repositories;
 public static class CharacterRepository {
     public static readonly Dictionary<ushort,
         (ushort Strength, ushort Intelligence, ushort Agility, ushort Constitution, ushort Luck, List<ItemEntitie> Items)>
-        InitialClassItensAndStatus = new() {
+        ClassInitAttributesAndEquips = new() {
             // WR
             [0] = (15, 5, 9, 16, 0, new List<ItemEntitie> {
         new() { Slot = 3, SlotType = 0, ItemId = 1719, App = 1719, MinimalValue = 100, MaxValue = 100 },
@@ -93,10 +93,10 @@ public static class CharacterRepository {
                 Honor = reader.IsDBNull("honor") ? 0 : reader.GetUInt32("honor"),
                 KillPoint = reader.IsDBNull("killPoint") ? 0 : reader.GetUInt32("killPoint"),
                 Infamia = reader.IsDBNull("infamia") ? (byte)0 : reader.GetByte("infamia"),
-                SkillPoint = reader.IsDBNull("skillPoint") ? 0 : reader.GetUInt32("skillPoint"),
+                SkillPoint = reader.IsDBNull("skillPoint") ? (ushort)0 : reader.GetUInt16("skillPoint"),
                 Experience = reader.GetUInt64("experience"),
                 Level = reader.GetByte("level"),
-                GuildIndex = reader.IsDBNull("guildIndex") ? 0 : reader.GetUInt32("guildIndex"),
+                GuildIndex = reader.IsDBNull("guildIndex") ? (ushort)0 : reader.GetUInt16("guildIndex"),
                 Gold = reader.IsDBNull("gold") ? 0 : reader.GetUInt32("gold"),
                 PositionX = reader.GetUInt16("positionX"),
                 PositionY = reader.GetUInt16("positionY"),

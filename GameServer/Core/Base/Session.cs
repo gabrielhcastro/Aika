@@ -1,4 +1,5 @@
-using GameServer.Core.Handlers;
+using GameServer.Core.Handlers.Core;
+using GameServer.Core.Handlers.InGame;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
 using GameServer.Network;

@@ -1,5 +1,6 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Core.Handlers;
+using GameServer.Core.Handlers.Core;
 using GameServer.Network;
 
 namespace GameServer.Core.Protocol;

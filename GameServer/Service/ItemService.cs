@@ -1,5 +1,4 @@
-﻿
-using GameServer.Core.Handlers;
+﻿using GameServer.Core.Handlers.Core;
 using GameServer.Data.Repositories;
 using GameServer.Model.Character;
 using GameServer.Model.Item;

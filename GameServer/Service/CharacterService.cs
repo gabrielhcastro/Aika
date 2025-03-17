@@ -1,5 +1,7 @@
 ﻿using GameServer.Core.Base;
-using GameServer.Core.Handlers;
+using GameServer.Core.Handlers.Core;
+using GameServer.Core.Handlers.Game;
+using GameServer.Core.Handlers.InGame;
 using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
@@ -18,40 +20,35 @@ public static class CharacterService {
     public static CharacterEntitie GenerateInitCharacter(Session session, StreamHandler stream) {
         try {
             var character = CreateBaseCharacter(stream);
-            character.OwnerAccountId = (ushort)(stream.ReadUInt32());
-            var charSlot = (byte)(stream.ReadUInt16());
+            var charSlot = stream.ReadBytes(4)[0];
             var charName = Encoding.ASCII.GetString(stream.ReadBytes(16)).Trim('\0');
-            var charClass = (byte)(stream.ReadUInt16());
-            var charHair = stream.ReadUInt16();
+            var charClass = stream.ReadBytes(2)[0];
+            var charHair = BitConverter.ToUInt16(stream.ReadBytes(2), 0);
             _ = Encoding.ASCII.GetString(stream.ReadBytes(12)).TrimEnd('\0');
-            var startPositionChoice = (byte)(stream.ReadUInt32());
+            var startPositionChoice = BitConverter.ToUInt32(stream.ReadBytes(4), 0);
 
-            if(!ValidateSlot(charSlot, session)) {
-                CharacterHandler.GameMessage(session, 16, 0, "Slot Erro!");
-                return null; 
-            }
+            if(!IsSlotValid(session, charSlot)) return null; 
 
-            if(!ValidateCharacterName(charName, session)) {
-                CharacterHandler.GameMessage(session, 16, 0, "Somente Alfanumericos!");
-                return null;
-            }
+            character.Slot = charSlot;
+
+            if(!IsNameValid(charName)) return null;
+
+            character.Name = charName;
             
-            if(!GetValidatedClassInfo(charClass, session)) {
-                CharacterHandler.GameMessage(session, 16, 0, "Classe Invalida!");
-                return null;
-            }
+            if(!IsClassValid(charClass)) return null;
 
-            var classValue = GetCharClassInfo(charClass);
+            character.ClassInfo = charClass;
+
+            var classValue = GetClassValue(charClass);
             if(classValue > 5) return null;
 
-            SetCharInitAttributesAndItens(character, classValue);
+            SetInitAttributesAndEquips(character, classValue);
 
-            if(charHair < 7700 || charHair > 7731)
-                CharacterHandler.GameMessage(session, 16, 0, "Voce ta tentando fazer o que?");
+            if(charHair < 7700 || charHair > 7731) return null;
 
-            SetCharAppearance(character, classValue, charHair);
+            SetInitAppearance(character, classValue, charHair);
 
-            SetCharInitPosition(character, startPositionChoice);
+            SetInitPosition(character, startPositionChoice);
 
             character.CurrentHealth = 120;
             character.CurrentMana = 120;
@@ -76,15 +73,17 @@ public static class CharacterService {
         };
     }
 
-    public static bool ValidateSlot(byte slot, Session session) {
-        if(slot > 2 || session.ActiveAccount.Characters[slot] != null) {
-            return false;
+    public static bool IsSlotValid(Session session, byte slot) {
+        if(slot > 2) return false;
+
+        foreach(var character in session?.ActiveAccount?.Characters) {
+            if(character.Slot == slot) return false;
         }
 
         return true;
     }
 
-    private static bool ValidateCharacterName(string name, Session session) {
+    private static bool IsNameValid(string name) {
         if(name.Length > 14 || !Regex.IsMatch(name, @"^[A-Za-z][A-Za-z0-9]*$")) {
             return false;
         }
@@ -92,15 +91,15 @@ public static class CharacterService {
         return true;
     }
 
-    private static bool GetValidatedClassInfo(byte classInfoValue, Session session) {
-        if(classInfoValue < 10 || classInfoValue > 69) {
+    private static bool IsClassValid(byte classValue) {
+        if(classValue < 10 || classValue > 69) {
             return false;
         }
         return true;
     }
 
-    private static void SetCharAppearance(CharacterEntitie character, byte classInfo, uint hair) {
-        var classMapping = new Dictionary<byte, (ushort itemId, byte classInfo)> {
+    private static void SetInitAppearance(CharacterEntitie character, byte classInfo, uint hair) {
+        var appearancePresets = new Dictionary<byte, (ushort classAppearance, byte classValue)> {
             {0, (10, 1)},
             {1, (20, 11)},
             {2, (30, 21)},
@@ -109,14 +108,14 @@ public static class CharacterService {
             {5, (60, 51)}
         };
 
-        if(!classMapping.TryGetValue(classInfo, out var classData)) return;
+        if(!appearancePresets.TryGetValue(classInfo, out var classData)) return;
 
-        character.ClassInfo = classData.classInfo;
-        character.Equips[0] = new ItemEntitie { Slot = 0, SlotType = 0, ItemId = classData.itemId };
+        character.ClassInfo = classData.classValue;
+        character.Equips[0] = new ItemEntitie { Slot = 0, SlotType = 0, ItemId = classData.classAppearance };
         character.Equips[1] = new ItemEntitie { Slot = 1, SlotType = 0, ItemId = hair };
     }
 
-    private static void SetCharInitPosition(CharacterEntitie character, uint locationChoice) {
+    private static void SetInitPosition(CharacterEntitie character, uint locationChoice) {
         var positions = new Dictionary<uint, Position> {
             {0, new(3450, 690)}, // Regenshein
             {1, new(3470, 935)} // Verband
@@ -126,22 +125,20 @@ public static class CharacterService {
         else return;
     }
 
-    private static void SetCharInitAttributesAndItens(CharacterEntitie character, byte classInfo) {
-        if(CharacterRepository.InitialClassItensAndStatus.TryGetValue(classInfo, out var classConfig)) {
-            character.Strength = classConfig.Strength;
-            character.Intelligence = classConfig.Intelligence;
-            character.Agility = classConfig.Agility;
-            character.Constitution = classConfig.Constitution;
-            character.Luck = classConfig.Luck;
+    private static void SetInitAttributesAndEquips(CharacterEntitie character, byte classValue) {
+        if(CharacterRepository.ClassInitAttributesAndEquips.TryGetValue(classValue, out var classPreset)) {
+            character.Strength = classPreset.Strength;
+            character.Intelligence = classPreset.Intelligence;
+            character.Agility = classPreset.Agility;
+            character.Constitution = classPreset.Constitution;
+            character.Luck = classPreset.Luck;
 
-            foreach(var item in classConfig.Items) {
-                character.Equips[item.Slot] = item;
-            }
+            foreach(var item in classPreset.Items) character.Equips[item.Slot] = item;
         }
     }
 
-    private static byte GetCharClassInfo(byte classInfo) {
-        return classInfo switch {
+    private static byte GetClassValue(byte classValue) {
+        return classValue switch {
             >= 10 and <= 19 => 0,
             >= 20 and <= 29 => 1,
             >= 30 and <= 39 => 2,
@@ -153,27 +150,23 @@ public static class CharacterService {
     }
 
     public static void SetLobbyEquips(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharLobbyEquipsOrdered(character?.Equips);
+        var orderedEquips = GetLobbyEquipsOrdered(character?.Equips);
 
         for(int i = 0; i < 8; i++) {
             stream.Write((ushort)orderedEquips[i].ItemId);
         }
     }
 
-    public static void SetCharEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedEquips = GetCharEquipsOrdered(character?.Equips);
+    public static void SetEquipsOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedEquips = GetEquipsOrdered(character?.Equips);
 
-        for(int i = 0; i < 16; i++) {
-            stream.Write((ushort)orderedEquips[i].ItemId);
-        }
+        for(int i = 0; i < 16; i++) stream.Write((ushort)orderedEquips[i].ItemId);
     }
 
-    public static void SetCharInventoryOrdered(CharacterEntitie character, StreamHandler stream) {
-        var orderedInventory = GetCharInventoryOrdered(character?.Inventory);
+    public static void SetInventoryOrdered(CharacterEntitie character, StreamHandler stream) {
+        var orderedInventory = GetInventoryOrdered(character?.Inventory);
 
-        for(int i = 0; i < 60; i++) {
-            stream.Write((ushort)orderedInventory[i].ItemId);
-        }
+        for(int i = 0; i < 60; i++) stream.Write((ushort)orderedInventory[i].ItemId);
     }
 
     private static Dictionary<int, ItemEntitie> OrderItems(List<ItemEntitie> items, int maxSlots) {
@@ -186,29 +179,26 @@ public static class CharacterService {
         return orderedItems;
     }
 
-    public static Dictionary<int, ItemEntitie> GetCharInventoryOrdered(List<ItemEntitie> inventory)
+    public static Dictionary<int, ItemEntitie> GetInventoryOrdered(List<ItemEntitie> inventory)
     => OrderItems(inventory, 60);
 
-    public static Dictionary<int, ItemEntitie> GetCharEquipsOrdered(List<ItemEntitie> equips)
+    public static Dictionary<int, ItemEntitie> GetEquipsOrdered(List<ItemEntitie> equips)
         => OrderItems(equips, 16);
 
-    public static Dictionary<int, ItemEntitie> GetCharLobbyEquipsOrdered(List<ItemEntitie> equips)
+    public static Dictionary<int, ItemEntitie> GetLobbyEquipsOrdered(List<ItemEntitie> equips)
         => OrderItems(equips, 8);
 
     public static void SetCurrentNeighbors(CharacterEntitie character) {
         character.Neighbors.Clear();
 
-        float x = character.PositionX;
-        float y = character.PositionY;
+        var neighbors = ViewHandler.Instance.QueryRange(character.Position, 30);
 
-        character.Neighbors.Add(new(x - 0.6f, y - 0.6f));
-        character.Neighbors.Add(new(x + 0.6f, y + 0.6f));
-        character.Neighbors.Add(new(x - 0.7f, y - 0.7f));
-        character.Neighbors.Add(new(x + 0.7f, y + 0.7f));
-        character.Neighbors.Add(new(x - 0.5f, y - 0.5f));
-        character.Neighbors.Add(new(x + 0.5f, y + 0.5f));
-        character.Neighbors.Add(new(x - 0.8f, y - 0.8f));
-        character.Neighbors.Add(new(x + 0.8f, y + 0.8f));
-        character.Neighbors.Add(new(x - 1.0f, y - 1.0f));
+        foreach(var neighbor in neighbors) {
+            if(neighbor.Id != character.Id) {
+                character.Neighbors.Add(new Neighbors(neighbor.Position));
+            }
+        }
+
+        Console.WriteLine($"[DEBUG] {character.Name} tem {character.Neighbors.Count} vizinhos.");
     }
 }

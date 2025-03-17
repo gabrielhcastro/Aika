@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System.Globalization;
 
-namespace GameServer.Core.Handlers;
+namespace GameServer.Core.Handlers.Core;
 public static class JsonHandler {
     public static void DeserializeFile<T>(string path, out T list) {
         if(!File.Exists(path)) throw new Exception($"File not found. {path}");

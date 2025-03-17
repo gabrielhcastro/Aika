@@ -1,6 +1,6 @@
 ﻿using System.Net;
 
-namespace GameServer.Core.Handlers; 
+namespace GameServer.Core.Handlers.InGame;
 public class ServersHandle {
     public int ServersCount { get; private set; }
     public List<string> ServersName { get; private set; } = [];

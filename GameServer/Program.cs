@@ -1,4 +1,4 @@
-﻿using GameServer.Core.Handlers;
+﻿using GameServer.Core.Handlers.InGame;
 
 namespace GameServer;
 

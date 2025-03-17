@@ -1,4 +1,4 @@
-﻿namespace GameServer.Core.Handlers;
+﻿namespace GameServer.Core.Handlers.Core;
 public class RingBuffer(int capacity) {
     private readonly byte[] _buffer = new byte[capacity];
     private readonly int _capacity = capacity;

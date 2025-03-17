@@ -1,5 +1,6 @@
 using GameServer.Core.Base;
-using GameServer.Core.Handlers;
+using GameServer.Core.Handlers.Core;
+using GameServer.Core.Handlers.InGame;
 using NLog;
 using System.Net;
 using System.Net.Sockets;

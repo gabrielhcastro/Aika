@@ -2,7 +2,7 @@
 using System.Collections.Concurrent;
 using System.Net.Sockets;
 
-namespace GameServer.Core.Handlers;
+namespace GameServer.Core.Handlers.Core;
 public class BufferHandler(int totalBufferSize, int blockSize) {
     private readonly int _bufferSize = totalBufferSize;
     private readonly int _blockSize = blockSize;

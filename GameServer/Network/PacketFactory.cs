@@ -1,4 +1,4 @@
-﻿using GameServer.Core.Handlers;
+﻿using GameServer.Core.Handlers.Core;
 
 namespace GameServer.Network;
 public static class PacketFactory {

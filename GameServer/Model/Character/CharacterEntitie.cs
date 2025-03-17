@@ -4,8 +4,8 @@ using System.Collections.Concurrent;
 
 namespace GameServer.Model.Character;
 public class CharacterEntitie {
-    public ushort Id { get; set; }
-    public ushort OwnerAccountId { get; set; }
+    public uint Id { get; set; }
+    public uint OwnerAccountId { get; set; }
     public string Name { get; set; }
     public byte Slot { get; set; }
     public string NumericToken { get; set; }
@@ -35,10 +35,10 @@ public class CharacterEntitie {
     public uint Honor { get; set; }
     public uint KillPoint { get; set; }
     public byte Infamia { get; set; }
-    public uint SkillPoint { get; set; }
+    public ushort SkillPoint { get; set; }
     public ulong Experience { get; set; }
     public byte Level { get; set; }
-    public uint GuildIndex { get; set; }
+    public ushort GuildIndex { get; set; }
     public ulong Gold { get; set; }
     public string CreationTime { get; set; }
     public string DeleteTime { get; set; }
