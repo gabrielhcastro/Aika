@@ -6,9 +6,14 @@ internal static class Program {
     /// </summary>
     [STAThread]
     static void Main() {
-        // To customize application configuration such as set high DPI settings or default font,
-        // see https://aka.ms/applicationconfiguration.
-        ApplicationConfiguration.Initialize();
-        Application.Run(new PacketToolDesign());
+        if(OperatingSystem.IsWindowsVersionAtLeast(6, 1)) {
+            // To customize application configuration such as set high DPI settings or default font,
+            // see https://aka.ms/applicationconfiguration.
+            ApplicationConfiguration.Initialize();
+            Application.Run(new PacketToolDesign());
+        }
+        else {
+            Console.WriteLine("This application is only supported on Windows 6.1 and later.");
+        }
     }
 }

@@ -73,27 +73,55 @@ public class SessionHandler : Singleton<SessionHandler> {
     }
 
     public static void RemoveChar(ushort playerId) {
-        if(_characters.Remove(playerId, out var character)) Console.WriteLine($"Player deslogou: {character?.Name}.");
+        if(_characters.Remove(playerId, out var character)) {
+            Console.WriteLine($"Player deslogou: {character?.Name}.");
+        }
     }
 
-    public void UpdateVisibleList(Session session) {
+    public void UpdateSendToWorldVisibleList(Session session) {
         if(session.ActiveCharacter == null) return;
 
         var character = session.ActiveCharacter;
-        character.Neighbors?.Clear();
         character.VisiblePlayers ??= [];
 
         foreach(var otherSession in _sessions.Values.Where(oS => oS.Id != session.Id && oS.ActiveCharacter != null)) {
             var otherCharacter = otherSession.ActiveCharacter!;
             if(character.VisiblePlayers.Contains((ushort)otherCharacter.Id)) continue;
+            var distance = character.Position.Distance(otherCharacter.Position);
+                    
+            var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 20);
 
-            character.VisiblePlayers.Add((ushort)otherCharacter.Id);
-            CharacterHandler.CreateCharacterMob(session, otherCharacter, (ushort)otherSession.ActiveAccount.ConnectionId, 1);
+            foreach(var nearbyCharacter in nearbyCharacters) {
+                if(nearbyCharacter.Id == character.Id) continue;
 
-            if(!otherCharacter.VisiblePlayers.Contains((ushort)character.Id)) {
-                otherCharacter.VisiblePlayers.Add((ushort)character.Id);
-                CharacterHandler.CreateCharacterMob(otherSession, character, (ushort)session.ActiveAccount.ConnectionId, 1);
+                var nearbySession = GetSessionByCharId((ushort)nearbyCharacter.Id);
+
+
+                if(!character.VisiblePlayers.Contains((ushort)nearbyCharacter.Id)) {
+                    character.VisiblePlayers.Add((ushort)nearbyCharacter.Id);
+                    CharacterHandler.CreateCharacterMob(session, nearbyCharacter, nearbySession.ActiveAccount.ConnectionId, 1);
+                }
+
+                if(!nearbyCharacter.VisiblePlayers.Contains((ushort)character.Id)) {
+                    nearbyCharacter.VisiblePlayers.Add((ushort)character.Id);
+                    CharacterHandler.CreateCharacterMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
+                }
             }
+
+            foreach(var visiblePlayerId in character.VisiblePlayers.ToList()) {
+                var visibleCharacter = GetSessionByCharId(visiblePlayerId)?.ActiveCharacter;
+                if(visibleCharacter == null) continue;
+
+                if(!nearbyCharacters.Any(c => c.Id == visibleCharacter.Id)) {
+                    //charactersToRemove.Add(visiblePlayerId);
+                    Console.WriteLine($"Removendo {visibleCharacter.Name} da lista de visíveis.");
+                    CharacterHandler.RemoveCharacterMob(session, visibleCharacter.Id);
+                }
+            }
+
+            //foreach(var playerId in charactersToRemove) {
+            //    character.VisiblePlayers.Remove(playerId);
+            //}
         }
     }
 

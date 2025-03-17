@@ -60,6 +60,7 @@ public class CharacterEntitie {
     public byte Miss { get; set; }
     public byte Accuracy { get; set; }
     public bool IsActive { get; set; }
+    public bool IsAlive { get; internal set; }
 
     public HashSet<ushort> Skills { get; set; }
     public List<ItemEntitie> Equips { get; set; }
@@ -70,6 +71,4 @@ public class CharacterEntitie {
     public HashSet<ushort> VisibleMobs { get; set; }
     public HashSet<ushort> VisibleNpcs { get; set; }
     public HashSet<Neighbors> Neighbors { get; set; }
-
-
 }

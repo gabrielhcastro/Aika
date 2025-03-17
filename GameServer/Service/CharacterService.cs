@@ -1,7 +1,5 @@
 ﻿using GameServer.Core.Base;
 using GameServer.Core.Handlers.Core;
-using GameServer.Core.Handlers.Game;
-using GameServer.Core.Handlers.InGame;
 using GameServer.Data.Repositories;
 using GameServer.Model.Account;
 using GameServer.Model.Character;
@@ -187,18 +185,4 @@ public static class CharacterService {
 
     public static Dictionary<int, ItemEntitie> GetLobbyEquipsOrdered(List<ItemEntitie> equips)
         => OrderItems(equips, 8);
-
-    public static void SetCurrentNeighbors(CharacterEntitie character) {
-        character.Neighbors.Clear();
-
-        var neighbors = ViewHandler.Instance.QueryRange(character.Position, 30);
-
-        foreach(var neighbor in neighbors) {
-            if(neighbor.Id != character.Id) {
-                character.Neighbors.Add(new Neighbors(neighbor.Position));
-            }
-        }
-
-        Console.WriteLine($"[DEBUG] {character.Name} tem {character.Neighbors.Count} vizinhos.");
-    }
 }

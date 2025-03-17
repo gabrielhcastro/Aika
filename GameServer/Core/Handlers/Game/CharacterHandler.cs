@@ -2,12 +2,10 @@
 using GameServer.Core.Handlers.Core;
 using GameServer.Core.Handlers.Game;
 using GameServer.Data.Repositories;
-using GameServer.Model.Account;
 using GameServer.Model.Character;
 using GameServer.Model.World;
 using GameServer.Network;
 using GameServer.Service;
-using System.IO;
 using System.Text;
 
 namespace GameServer.Core.Handlers.InGame;
@@ -264,24 +262,27 @@ public static class CharacterHandler {
         }
 
         if(character.IsActive) return;
-        else session.ActiveCharacter.IsActive = true;
+        
+        session.ActiveCharacter.IsActive = true;
 
         character.Neighbors = [];
         character.VisiblePlayers = [];
         character.VisibleMobs = [];
         character.VisibleNpcs = [];
+        character.Position = new(character.PositionX, character.PositionY);
 
         SendCurrentLevelAndXp(session);
         SendStatus(session);
         SendCurrentHpMp(session);
         SendAttributes(session);
 
-        Teleport(session, character.PositionX, character.PositionY);
+        Teleport(session, character.Position.X, character.Position.Y);
 
+        // Cria o proprio personagem com o index fixo 1
         CreateCharacterMob(session, session.ActiveCharacter, 1, 0);
 
-        CharacterService.SetCurrentNeighbors(session.ActiveCharacter);
-        SessionHandler.Instance.UpdateVisibleList(session);
+        GridHandler.Instance.AddCharacter(session.ActiveCharacter);
+        SessionHandler.Instance.UpdateSendToWorldVisibleList(session);
 
         foreach(var equip in character.Equips) ItemHandler.UpdateItemBySlotAndType(session, equip, true);
 
@@ -549,13 +550,18 @@ public static class CharacterHandler {
     }
 
     private static void UpdateToAll(Session session, byte[] packet) {
-        if(session.ActiveCharacter.VisiblePlayers.Count <= 0) return;
-        foreach(var visiblePlayerId in session.ActiveCharacter.VisiblePlayers) {
-            var visibleCharSession = SessionHandler.Instance.GetSessionByCharId(visiblePlayerId);
+        if(session.ActiveCharacter == null) return;
 
-            if(visibleCharSession == null) continue;
+        var character = session.ActiveCharacter;
 
-            visibleCharSession.SendPacket(packet);
+        var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 5);
+
+        foreach(var nearbyCharacter in nearbyCharacters) {
+            var nearbySession = SessionHandler.Instance.GetSessionByCharId((ushort)nearbyCharacter.Id);
+
+            if(nearbySession == null) continue;
+
+            nearbySession.SendPacket(packet);
         }
     }
 
@@ -687,8 +693,8 @@ public static class CharacterHandler {
 
     // TO-DO: Tratar player morto
     public static void MoveChar(Session session, StreamHandler stream) {
-        var positionX = stream.ReadSingle();
-        var positionY = stream.ReadSingle();
+        var destinationX = stream.ReadSingle();
+        var destinationY = stream.ReadSingle();
         _ = stream.ReadBytes(6);
         var moveType = stream.ReadByte();
         var speed = stream.ReadByte();
@@ -696,14 +702,14 @@ public static class CharacterHandler {
 
         var packet = PacketFactory.CreateHeader(0x301, session.ActiveAccount.ConnectionId);
 
-        packet.Write(positionX);
-        packet.Write(positionY);
+        packet.Write(destinationX);
+        packet.Write(destinationY);
 
         packet.Write((uint)0); // Null
 
         packet.Write((ushort)0); // Null
 
-        packet.Write(moveType); // moveType?
+        packet.Write(moveType); // moveType
 
         packet.Write(speed); // Speed
         packet.Write(unk); // unk
@@ -785,5 +791,9 @@ public static class CharacterHandler {
                 break;
             }
         }
+    }
+
+    public static void RemoveCharacterMob(Session otherSession, uint id) {
+        Console.WriteLine($"Tentando remover {otherSession.ActiveCharacter.Name}");
     }
 }

@@ -1,7 +1,8 @@
-﻿namespace GameServer.Model.World; 
-public struct Neighbors(Position position) {
-    public Position Position { get; } = position;
-    public bool Occupied { get; private set; } = false;
+﻿using GameServer.Model.World;
 
-    public void SetOccupied(bool status) => Occupied = status;
+namespace GameServer.Model.Character;
+
+public class Neighbors(Single positionX, Single positionY) {
+    readonly bool Occuped = false;
+    Position Position = new(positionX, positionY);
 }

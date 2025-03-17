@@ -74,7 +74,7 @@ public struct Position(float x, float y) {
         return oldestPosition - new Position(range / 2, range / 2);
     }
 
-    public Position Floor() {
+    public readonly Position Floor() {
         return new Position(MathF.Floor(X), MathF.Floor(Y));
     }
 
