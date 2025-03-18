@@ -8,11 +8,7 @@ internal class GridHandler : Singleton<GridHandler> {
     private readonly Dictionary<(int, int), List<CharacterEntitie>> _grid = [];
 
     public GridHandler() {
-        _cellSize = 50;
-    }
-
-    public GridHandler(int cellSize) {
-        _cellSize = cellSize;
+        _cellSize = 100;
     }
 
     public void AddCharacter(CharacterEntitie character) {

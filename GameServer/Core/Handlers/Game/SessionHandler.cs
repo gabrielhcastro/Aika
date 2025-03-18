@@ -44,7 +44,11 @@ public class SessionHandler : Singleton<SessionHandler> {
 
     public void RemoveSession(Session session) {
         if(_sessions.TryRemove(session.Id, out _)) {
-            if(session.ActiveCharacter != null) RemoveChar((ushort)session.ActiveCharacter.Id);
+            if(session.ActiveCharacter != null) {
+                GridHandler.Instance.RemoveCharacter(session.ActiveCharacter);
+                RemoveChar((ushort)session.ActiveCharacter.Id);
+            }
+
             session.ActiveCharacter = null;
             session.ActiveAccount = null;
             session.Close();
@@ -75,10 +79,11 @@ public class SessionHandler : Singleton<SessionHandler> {
     public static void RemoveChar(ushort playerId) {
         if(_characters.Remove(playerId, out var character)) {
             Console.WriteLine($"Player deslogou: {character?.Name}.");
+            GridHandler.Instance.RemoveCharacter(character);
         }
     }
 
-    public void UpdateSendToWorldVisibleList(Session session) {
+    public void UpdateVisibleList(Session session) {
         if(session.ActiveCharacter == null) return;
 
         var character = session.ActiveCharacter;
@@ -89,13 +94,12 @@ public class SessionHandler : Singleton<SessionHandler> {
             if(character.VisiblePlayers.Contains((ushort)otherCharacter.Id)) continue;
             var distance = character.Position.Distance(otherCharacter.Position);
                     
-            var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 20);
+            var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 25);
 
             foreach(var nearbyCharacter in nearbyCharacters) {
                 if(nearbyCharacter.Id == character.Id) continue;
 
                 var nearbySession = GetSessionByCharId((ushort)nearbyCharacter.Id);
-
 
                 if(!character.VisiblePlayers.Contains((ushort)nearbyCharacter.Id)) {
                     character.VisiblePlayers.Add((ushort)nearbyCharacter.Id);
@@ -107,21 +111,6 @@ public class SessionHandler : Singleton<SessionHandler> {
                     CharacterHandler.CreateCharacterMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
                 }
             }
-
-            foreach(var visiblePlayerId in character.VisiblePlayers.ToList()) {
-                var visibleCharacter = GetSessionByCharId(visiblePlayerId)?.ActiveCharacter;
-                if(visibleCharacter == null) continue;
-
-                if(!nearbyCharacters.Any(c => c.Id == visibleCharacter.Id)) {
-                    //charactersToRemove.Add(visiblePlayerId);
-                    Console.WriteLine($"Removendo {visibleCharacter.Name} da lista de visíveis.");
-                    CharacterHandler.RemoveCharacterMob(session, visibleCharacter.Id);
-                }
-            }
-
-            //foreach(var playerId in charactersToRemove) {
-            //    character.VisiblePlayers.Remove(playerId);
-            //}
         }
     }
 

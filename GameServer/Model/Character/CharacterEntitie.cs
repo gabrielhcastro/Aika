@@ -66,7 +66,7 @@ public class CharacterEntitie {
     public List<ItemEntitie> Equips { get; set; }
     public List<ItemEntitie> Inventory { get; set; }
     public ConcurrentDictionary<ushort, uint> Buffs { get; set; }
-    public Position Position { get; set; }
+    public Position Position { get; set; } = new(0, 0);
     public HashSet<ushort> VisiblePlayers { get; set; } = [];
     public HashSet<ushort> VisibleMobs { get; set; }
     public HashSet<ushort> VisibleNpcs { get; set; }

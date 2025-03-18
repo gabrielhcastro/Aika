@@ -282,7 +282,7 @@ public static class CharacterHandler {
         CreateCharacterMob(session, session.ActiveCharacter, 1, 0);
 
         GridHandler.Instance.AddCharacter(session.ActiveCharacter);
-        SessionHandler.Instance.UpdateSendToWorldVisibleList(session);
+        SessionHandler.Instance.UpdateVisibleList(session);
 
         foreach(var equip in character.Equips) ItemHandler.UpdateItemBySlotAndType(session, equip, true);
 
@@ -502,13 +502,16 @@ public static class CharacterHandler {
 
     public static async Task ChangeChar(Session session) {
         var account = session.ActiveAccount;
+        var character = session.ActiveCharacter;
 
         if(account == null) {
             Console.WriteLine("Conta não encontrada.");
             return;
         }
 
-        session.ActiveCharacter.IsActive = false;
+        character.IsActive = false;
+        character.VisiblePlayers.Clear();
+        SessionHandler.RemoveChar((ushort)character.Id);
 
         await SendToCharactersList(session);
     }
@@ -554,12 +557,15 @@ public static class CharacterHandler {
 
         var character = session.ActiveCharacter;
 
-        var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 5);
+        var nearbyCharacters = GridHandler.Instance.GetNearbyCharacters(character.Position, 25);
 
         foreach(var nearbyCharacter in nearbyCharacters) {
             var nearbySession = SessionHandler.Instance.GetSessionByCharId((ushort)nearbyCharacter.Id);
 
             if(nearbySession == null) continue;
+
+            if(!character.VisiblePlayers.Contains((ushort)nearbyCharacter.Id)) 
+                SessionHandler.Instance.UpdateVisibleList(session);
 
             nearbySession.SendPacket(packet);
         }
@@ -722,6 +728,9 @@ public static class CharacterHandler {
         session.SendPacket(packet);
 
         UpdateToAll(session, packetData);
+
+        session.ActiveCharacter.Position.X = destinationX;
+        session.ActiveCharacter.Position.Y = destinationY;
 
         PacketPool.Return(packet);
     }

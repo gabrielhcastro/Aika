@@ -1,9 +1,9 @@
 ﻿namespace GameServer.Model.World;
-public struct Position(float x, float y) {
+public class Position(float x, float y) {
     public float X { get; set; } = x;
     public float Y { get; set; } = y;
 
-    public readonly bool IsValid() {
+    public bool IsValid() {
         return !(
             float.IsInfinity(X) ||
             float.IsInfinity(Y) ||
@@ -12,7 +12,7 @@ public struct Position(float x, float y) {
             );
     }
 
-    public readonly float Distance(Position pos) {
+    public float Distance(Position pos) {
         if(!IsValid() || !pos.IsValid()) return float.MaxValue;
 
         float dx = X - pos.X;
@@ -20,11 +20,11 @@ public struct Position(float x, float y) {
         return MathF.Sqrt(dx * dx + dy * dy);
     }
 
-    public readonly bool InRange(Position pos, float range) {
+    public bool InRange(Position pos, float range) {
         return Distance(pos) <= range;
     }
 
-    public readonly void ForEach(byte range, Action<Position> action) {
+    public void ForEach(byte range, Action<Position> action) {
         int startX = Math.Max((int)Math.Floor(X) - range, 0);
         int startY = Math.Max((int)Math.Floor(Y) - range, 0);
         int endX = Math.Min((int)Math.Floor(X) + range, 4096);
@@ -74,15 +74,15 @@ public struct Position(float x, float y) {
         return oldestPosition - new Position(range / 2, range / 2);
     }
 
-    public readonly Position Floor() {
+    public Position Floor() {
         return new Position(MathF.Floor(X), MathF.Floor(Y));
     }
 
-    public override readonly int GetHashCode() {
+    public override int GetHashCode() {
         return HashCode.Combine(X, Y);
     }
 
-    public override readonly bool Equals(object obj) {
+    public override bool Equals(object obj) {
         return obj is Position pos && this == pos;
     }
 }
