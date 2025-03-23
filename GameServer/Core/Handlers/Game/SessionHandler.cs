@@ -103,12 +103,12 @@ public class SessionHandler : Singleton<SessionHandler> {
 
                 if(!character.VisiblePlayers.Contains((ushort)nearbyCharacter.Id)) {
                     character.VisiblePlayers.Add((ushort)nearbyCharacter.Id);
-                    CharacterHandler.CreateCharacterMob(session, nearbyCharacter, nearbySession.ActiveAccount.ConnectionId, 1);
+                    CharacterHandler.CreateMob(session, nearbyCharacter, nearbySession.ActiveAccount.ConnectionId, 1);
                 }
 
                 if(!nearbyCharacter.VisiblePlayers.Contains((ushort)character.Id)) {
                     nearbyCharacter.VisiblePlayers.Add((ushort)character.Id);
-                    CharacterHandler.CreateCharacterMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
+                    CharacterHandler.CreateMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
                 }
             }
         }
