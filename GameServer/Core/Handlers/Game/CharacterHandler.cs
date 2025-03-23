@@ -2,6 +2,7 @@
 using GameServer.Core.Handlers.Core;
 using GameServer.Core.Handlers.Game;
 using GameServer.Data.Repositories;
+using GameServer.Model.Account;
 using GameServer.Model.Character;
 using GameServer.Model.World;
 using GameServer.Network;
@@ -14,62 +15,64 @@ public static class CharacterHandler {
         var account = session.ActiveAccount;
         session.ActiveAccount.Characters = await CharacterRepository.GetCharactersByAccountIdAsync(account.Id);
 
+        var packet = CreateCharactersListPacket(account);
+        session.SendPacket(packet);
+    }
+
+    private static byte[] CreateCharactersListPacket(AccountEntitie account) {
         var packet = PacketFactory.CreateHeader(0x901, account.ConnectionId);
 
         packet.Write((uint)account.Id);
         packet.Write((uint)0); // Unk
         packet.Write((uint)0); // Unk
 
-        for(ushort i = 0; i < 3; i++) {
-            var character = i < account.Characters.Count ? account.Characters.ToList()[i] : null;
+        CharacterEntitie[] slots = new CharacterEntitie[3];
 
-            if(character != null) character.IsActive = false;
-            packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
-
-            packet.Write((ushort)(account?.Nation ?? 0));
-            packet.Write((ushort)(character?.ClassInfo ?? 0));
-
-            packet.Write(character?.Height ?? 0);
-            packet.Write(character?.Trunk ?? 0);
-            packet.Write(character?.Leg ?? 0);
-            packet.Write(character?.Body ?? 0);
-
-            CharacterService.SetLobbyEquips(character, packet);
-
-            for(ushort k = 0; k < 12; k++) packet.Write((byte)0); //Refine?
-
-            packet.Write(character?.Strength ?? 0); // Str
-            packet.Write(character?.Agility ?? 0); // Agi
-            packet.Write(character?.Intelligence ?? 0); // Int
-            packet.Write(character?.Constitution ?? 0); // Cons
-            packet.Write(character?.Luck ?? 0); // Luck
-            packet.Write(character?.Status ?? 0); // Status
-
-            packet.Write((ushort)(character?.Level ?? 65535)); // Level
-
-            packet.Write(new byte[6]); // Null
-
-            packet.Write((long)(character?.Experience ?? 1)); // Exp
-            packet.Write((long)(character?.Gold ?? 0)); // Gold
-
-            packet.Write((uint)0); // Unk
-
-            packet.Write((uint)(character?.Deleted ?? 0));
-
-            packet.Write(character?.NumericErrors ?? 0);
-
-            packet.Write((byte)1); // Unk
-
-            packet.Write((uint)0); // Unk
-            packet.Write((ushort)0); // Unk
+        foreach(var character in account.Characters) {
+            if(character.Slot < 3) {
+                slots[character.Slot] = character;
+            }
         }
 
-        byte[] packetData = packet.GetBytes();
-        EncDec.Encrypt(ref packetData, packetData.Length);
-
-        session.SendPacket(packetData);
+        for(byte i = 0; i < 3; i++) {
+            WriteCharacterEntry(packet, account, slots[i]);
+        }
 
         PacketPool.Return(packet);
+
+        byte[] packetData = packet.GetBytes();
+        EncDec.Encrypt(ref packetData, packet.Count);
+
+        return packetData;
+    }
+
+    private static void WriteCharacterEntry(StreamHandler packet, AccountEntitie account, CharacterEntitie character) {
+        if(character != null) character.IsActive = false;
+        packet.Write(Encoding.ASCII.GetBytes(character?.Name?.PadRight(16, '\0') ?? new string('\0', 16)));
+        packet.Write((ushort)(account?.Nation ?? 0));
+        packet.Write((ushort)(character?.ClassInfo ?? 0));
+        packet.Write(character?.Height ?? 0);
+        packet.Write(character?.Trunk ?? 0);
+        packet.Write(character?.Leg ?? 0);
+        packet.Write(character?.Body ?? 0);
+        CharacterService.SetLobbyEquips(character, packet);
+        for(ushort k = 0; k < 12; k++) packet.Write((byte)0); //Refine?
+        packet.Write(character?.Strength ?? 0); // Str
+        packet.Write(character?.Agility ?? 0); // Agi
+        packet.Write(character?.Intelligence ?? 0); // Int
+        packet.Write(character?.Constitution ?? 0); // Cons
+        packet.Write(character?.Luck ?? 0); // Luck
+        packet.Write(character?.Status ?? 0); // Status
+        packet.Write((ushort)(character?.Level ?? 65535)); // Level
+        packet.Write(new byte[6]); // Null
+        packet.Write((long)(character?.Experience ?? 1)); // Exp
+        packet.Write((long)(character?.Gold ?? 0)); // Gold
+        packet.Write((uint)0); // Unk
+        packet.Write((uint)(character?.Deleted ?? 0));
+        packet.Write(character?.NumericErrors ?? 0);
+        packet.Write((byte)1); // Unk
+        packet.Write((uint)0); // Unk
+        packet.Write((ushort)0); // Unk
     }
 
     // TO-DO: Mapear Personagem (Item, Buffs...)
