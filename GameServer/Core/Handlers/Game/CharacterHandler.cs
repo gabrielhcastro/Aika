@@ -7,6 +7,7 @@ using GameServer.Model.Character;
 using GameServer.Model.World;
 using GameServer.Network;
 using GameServer.Service;
+using System.IO;
 using System.Text;
 
 namespace GameServer.Core.Handlers.InGame;
@@ -55,7 +56,7 @@ public static class CharacterHandler {
         packet.Write(character?.Trunk ?? 0);
         packet.Write(character?.Leg ?? 0);
         packet.Write(character?.Body ?? 0);
-        CharacterService.SetLobbyEquips(character, packet);
+        ItemService.SetLobbyEquips(character, packet);
         for(ushort k = 0; k < 12; k++) packet.Write((byte)0); //Refine?
         packet.Write(character?.Strength ?? 0); // Str
         packet.Write(character?.Agility ?? 0); // Agi
@@ -83,11 +84,8 @@ public static class CharacterHandler {
         //var numeric2 = Encoding.ASCII.GetString(stream.ReadBytes(4));
 
         var account = session.ActiveAccount;
-
         var character = account.Characters[characterSlot];
         if(character == null) return;
-
-        session.ActiveCharacter = account.Characters[characterSlot];
 
         SendData(session, 0xCCCC, 1);
         SendData(session, 0x186, 1);
@@ -95,14 +93,20 @@ public static class CharacterHandler {
         SendData(session, 0x186, 1);
         SendClientIndex(session, account.ConnectionId);
 
+        var packet = CreateSendToWorldPacket(session, character);
+        session.SendPacket(packet);
+
+        session.ActiveCharacter = character;
+
+        SessionHandler.AddChar(character);
+    }
+
+    private static byte[] CreateSendToWorldPacket(Session session, CharacterEntitie character) {
+        var account = session.ActiveAccount;
+
         var packet = PacketFactory.CreateHeader(0x925, 0x7535);
-
-        // Serial
-        packet.Write((uint)account.ConnectionId);
-
-        // TO-DO: First Login 
-        packet.Write((uint)1);
-
+        packet.Write((uint)account.ConnectionId); // Serial
+        packet.Write((uint)1); // First Login 
         packet.Write((uint)0);
         packet.Write(character.Id);
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
@@ -124,89 +128,53 @@ public static class CharacterHandler {
         //packet.Write(character.MaxMana);
         packet.Write(character.CurrentMana);
         packet.Write(character.CurrentMana);
-
         packet.Write((ushort)0); // Server Reset Time
         packet.Write(character.Honor);
         packet.Write(character.KillPoint);
         packet.Write((uint)character.Infamia);
-
         packet.Write((ushort)0); // TO-DO: Evil Points
         packet.Write((ushort)0); // TO-DO: Skill Points
-
         packet.Write(new byte[60]); // Null_1
-
         packet.Write((ushort)0); // Unk_0
-
         packet.Write(character.PhysicDamage);
         packet.Write(character.PhysicDefense);
         packet.Write(character.MagicDamage);
         packet.Write(character.MagicDefense);
         packet.Write(character.BonusDamage);
-
         packet.Write(new byte[10]); // Null_2
-
         packet.Write((ushort)0); // Critical
         packet.Write((byte)0); // Miss
         packet.Write((byte)0); // Accuracy
-
         packet.Write((uint)0); // Null_3
-
         packet.Write(character.Experience);
         packet.Write((ushort)character.Level);
-
         packet.Write((ushort)0); // Guild Index
-
         packet.Write(new byte[32]); // Null_4
-
         for(ushort i = 0; i < 20; i++) packet.Write((ushort)0); // BuffsId
-
         for(ushort i = 0; i < 20; i++) packet.Write((uint)0); // BuffsDuration
-
-        CharacterService.SetEquipsOrdered(character, stream);
-
+        ItemService.SetEquipsOrdered(character, packet);
         packet.Write((uint)0);  // Null_5
-
-        CharacterService.SetInventoryOrdered(character, stream);
-
+        ItemService.SetInventoryOrdered(character, packet);
         packet.Write(character.Gold);
-
         packet.Write(new byte[192]); // Null_6
-
         packet.Write(new byte[224]); // Quests
-
         packet.Write(new byte[212]); // Unk_1
         packet.Write((uint)0);  // Unk_2
-
         packet.Write((uint)0);  // Location
-
         packet.Write(new byte[128]); // Unk_3
-
         packet.Write((uint)DateTime.Parse(character.CreationTime).Ticks);
-
         packet.Write(new byte[436]); // Unk_4
-
         packet.Write(Encoding.ASCII.GetBytes("0000"));
-
         packet.Write(new byte[212]); // Unk_5
-
         for(ushort i = 0; i < 60; i++) packet.Write((ushort)0); // Skill List
-
         for(ushort i = 0; i < 24; i++) packet.Write((uint)0); // Item Bar
-
         packet.Write((uint)0); // Null_7
-
         for(ushort i = 0; i < 12; i++) packet.Write((uint)0); // TitleCategoryLevel
-
         packet.Write(new byte[80]); // Unk_4
-
         packet.Write((ushort)0); // Active Title
-
         packet.Write((uint)0); // Null_8
-
         for(ushort i = 0; i < 48; i++) packet.Write((ushort)0); // TitleProgressType8
-
         for(ushort i = 0; i < 2; i++) packet.Write((ushort)0); // TitleProgressType9
-
         packet.Write((ushort)0); // TitleProgressType4
         packet.Write((ushort)0); // TitleProgressType10
         packet.Write((ushort)0); // TitleProgressType7
@@ -215,45 +183,29 @@ public static class CharacterHandler {
         packet.Write((ushort)0); // TitleProgressType13
         packet.Write((ushort)0); // TitleProgressType15
         packet.Write((ushort)0); // TitleProgressUnk
-
         for(ushort i = 0; i < 22; i++) packet.Write((ushort)0); // TitleProgressType16
-
         packet.Write((ushort)0); // TitleProgressType23
-
         for(ushort i = 0; i < 120; i++) packet.Write((ushort)0); // TitleProgress
-
         packet.Write((uint)DateTime.Now.AddDays(1).Ticks); // EndDayTime
-
         packet.Write((uint)0); // Null_9
         packet.Write((uint)0); // Tempo de caça
-
         packet.Write(new byte[52]); // Unk_4
-
         packet.Write((uint)3); // Utc
         packet.Write((uint)DateTime.Now.Ticks); // LoginTime
         packet.Write((uint)DateTime.Now.Ticks); // LoginTime
-
         packet.Write(new byte[852]); // Unk_4
         packet.Write((uint)0);
         packet.Write(new byte[12]); // Unk_4
-
-        //Pran Name
-        packet.Write(Encoding.ASCII.GetBytes("Pran 1".PadRight(16, '\0')));
-
+        packet.Write(Encoding.ASCII.GetBytes("Pran 1".PadRight(16, '\0'))); //Pran Name
         packet.Write((uint)0); // Unk_12
 
         PacketFactory.FinalizePacket(packet);
+        PacketPool.Return(packet);
 
         byte[] packetData = packet.GetBytes();
         EncDec.Encrypt(ref packetData, packetData.Length);
 
-        session.SendPacket(packetData);
-
-        PacketPool.Return(packet);
-
-        session.ActiveCharacter = character;
-
-        SessionHandler.AddChar(character);
+        return packetData;
     }
 
     public static async Task SendToWorldSends(Session session) {
@@ -281,15 +233,14 @@ public static class CharacterHandler {
 
         Teleport(session, character.Position.X, character.Position.Y);
 
-        // Cria o proprio personagem com o index fixo 1
-        CreateCharacterMob(session, session.ActiveCharacter, 1, 0);
+        CreateCharacterMob(session, session.ActiveCharacter, 1, 0); // Self Character
 
         GridHandler.Instance.AddCharacter(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
 
-        foreach(var equip in character.Equips) ItemHandler.UpdateItemBySlotAndType(session, equip, true);
+        foreach(var equip in character.Equips) ItemHandler.UpdateItemBySlotAndSlotType(session, equip, true);
 
-        foreach(var item in character.Inventory) ItemHandler.UpdateItemBySlotAndType(session, item, true);
+        foreach(var item in character.Inventory) ItemHandler.UpdateItemBySlotAndSlotType(session, item, true);
     }
 
     public static void Teleport(Session session, float positionX, float positionY) {
@@ -581,7 +532,7 @@ public static class CharacterHandler {
 
         packet.Write(Encoding.ASCII.GetBytes(character.Name.PadRight(16, '\0')));
 
-        CharacterService.SetLobbyEquips(character, packet);
+        ItemService.SetLobbyEquips(character, packet);
 
         // Item Effect?
         packet.Write(new byte[12]);
@@ -656,7 +607,7 @@ public static class CharacterHandler {
 
         var packet = PacketFactory.CreateHeader(0x35E, 1);
 
-        CharacterService.SetLobbyEquips(character, packet);
+        ItemService.SetLobbyEquips(character, packet);
 
         packet.Write(character.Position.X);
         packet.Write(character.Position.Y);

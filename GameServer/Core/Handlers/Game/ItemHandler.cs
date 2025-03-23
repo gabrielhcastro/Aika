@@ -1,53 +1,51 @@
 ﻿using GameServer.Core.Base;
+using GameServer.Core.Handlers.Core;
 using GameServer.Model.Item;
 using GameServer.Network;
-using GameServer.Service;
 
 namespace GameServer.Core.Handlers.InGame;
 
 public static class ItemHandler {
-    public static void UpdateItemBySlotAndType(Session session, ItemEntitie item, bool notice) {
+    public static void UpdateItemBySlotAndSlotType(Session session, ItemEntitie item, bool notice) {
         var account = session.ActiveAccount;
-        var connectionId = account.Id - 1 + 0x7535;
-        var packet = PacketFactory.CreateHeader(0xF0E, (ushort)connectionId);
+        var connectionId = account.ConnectionId;
 
+        var packet = CreateUpdateItemBySlotAndSlotTypePacket(connectionId, item, notice);
+
+        session.SendPacket(packet);
+    }
+
+    public static byte[] CreateUpdateItemBySlotAndSlotTypePacket(ushort connectionId, ItemEntitie item, bool notice) {
+        var packet = PacketFactory.CreateHeader(0xF0E, connectionId);
         packet.Write(notice);
         packet.Write(item.SlotType);
         packet.Write((ushort)item.Slot);
-
-        ItemService.WriteSingleItemOnPacket(packet, item);
+        WriteItemOnPacket(packet, item);
 
         PacketFactory.FinalizePacket(packet);
+        PacketPool.Return(packet);
 
         byte[] packetData = packet.GetBytes();
         EncDec.Encrypt(ref packetData, packetData.Length);
 
-        session.SendPacket(packetData);
-
-        PacketPool.Return(packet);
+        return packetData;
     }
 
-    public static void SetLobbyEquipsOrdered(Session session, bool notice) {
-        var lobbyOrderedEquips = CharacterService.GetLobbyEquipsOrdered(session.ActiveCharacter.Equips);
-
-        foreach(var equip in lobbyOrderedEquips) {
-            UpdateItemBySlotAndType(session, equip.Value, notice);
+    public static void WriteItemOnPacket(StreamHandler packet, ItemEntitie item) {
+        packet.Write(item.ItemId);
+        packet.Write(item.App);
+        packet.Write(item.Identification);
+        // Index Buff Effect
+        for(int i = 0; i < 3; i++) {
+            packet.Write((byte)0);
         }
-    }
-
-    public static void SetEquipsOrdered(Session session, bool notice) {
-        var lobbyOrderedEquips = CharacterService.GetEquipsOrdered(session.ActiveCharacter.Equips);
-
-        foreach(var equip in lobbyOrderedEquips) {
-            UpdateItemBySlotAndType(session, equip.Value, notice);
+        // Value Buff Effect
+        for(int i = 0; i < 3; i++) {
+            packet.Write((byte)0);
         }
-    }
-
-    public static void UpdateInventoryItensOrdered(Session session, bool notice) {
-        var orderedInventory = CharacterService.GetInventoryOrdered(session.ActiveCharacter.Inventory);
-
-        foreach(var item in orderedInventory) {
-            UpdateItemBySlotAndType(session, item.Value, notice);
-        }
+        packet.Write((byte)item.MinimalValue);
+        packet.Write((byte)item.MaxValue);
+        packet.Write(item.Refine);
+        packet.Write((ushort)item.Time);
     }
 }
