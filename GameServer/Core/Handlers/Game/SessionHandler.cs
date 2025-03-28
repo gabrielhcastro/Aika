@@ -103,22 +103,20 @@ public class SessionHandler : Singleton<SessionHandler> {
 
                 if(!character.VisiblePlayers.Contains((ushort)nearbyCharacter.Id)) {
                     character.VisiblePlayers.Add((ushort)nearbyCharacter.Id);
-                    CharacterHandler.CreateMob(session, nearbyCharacter, nearbySession.ActiveAccount.ConnectionId, 1);
+                    MobHandler.CreateMob(session, nearbyCharacter, nearbySession.ActiveAccount.ConnectionId, 1);
                 }
 
                 if(!nearbyCharacter.VisiblePlayers.Contains((ushort)character.Id)) {
                     nearbyCharacter.VisiblePlayers.Add((ushort)character.Id);
-                    CharacterHandler.CreateMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
+                    MobHandler.CreateMob(nearbySession, character, session.ActiveAccount.ConnectionId, 1);
                 }
             }
         }
     }
 
     private void ReadComplete(object sender, SocketAsyncEventArgs e) {
-        if(e.LastOperation == SocketAsyncOperation.Receive)             ProcessReceive(e);
-        else {
-            throw new ArgumentException("The last operation completed on the socket was not a receive.");
-        }
+        if(e.LastOperation == SocketAsyncOperation.Receive) ProcessReceive(e);
+        else throw new ArgumentException("Last operation completed on socket was not a receive");
     }
 
     private void ProcessReceive(SocketAsyncEventArgs e) {
@@ -133,15 +131,12 @@ public class SessionHandler : Singleton<SessionHandler> {
 
             try {
                 var willRaiseEvent = session.Socket.ReceiveAsync(e);
-                if(!willRaiseEvent)
-                    ProcessReceive(e);
+                if(!willRaiseEvent) ProcessReceive(e);
             }
             catch(ObjectDisposedException) {
                 session.Close();
             }
         }
-        else {
-            session.Close();
-        }
+        else session.Close();
     }
 }

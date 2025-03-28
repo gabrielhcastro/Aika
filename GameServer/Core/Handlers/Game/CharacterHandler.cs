@@ -57,7 +57,6 @@ public static class CharacterHandler {
         
         session.ActiveCharacter.IsActive = true;
 
-        character.Neighbors = [];
         character.VisiblePlayers = [];
         character.VisibleMobs = [];
         character.VisibleNpcs = [];
@@ -70,7 +69,7 @@ public static class CharacterHandler {
 
         Teleport(session, character.Position.X, character.Position.Y);
 
-        CreateMob(session, session.ActiveCharacter, 1, 0); // Self Character
+        MobHandler.CreateMob(session, session.ActiveCharacter, 1, 0); // Self Character
 
         GridHandler.Instance.AddCharacter(session.ActiveCharacter);
         SessionHandler.Instance.UpdateVisibleList(session);
@@ -190,6 +189,7 @@ public static class CharacterHandler {
         await SendToCharactersList(session);
     }
 
+    // Mudar para serverHandler?
     public static void GameMessage(Session session, byte type1, byte type2, string message) {
         var packet = CharacterService.CreateGameMessagePacket(type1, type2, message);
         session.SendPacket(packet);
@@ -228,21 +228,6 @@ public static class CharacterHandler {
         }
     }
 
-    public static void CreateMob(Session session, CharacterEntitie character, ushort id, byte spawnType) {
-        if(session == null) return;
-
-        var packet = CharacterService.CreateCharacterMobPacket(character, id, spawnType);
-        session.SendPacket(packet);
-    }
-
-    public static void SpawnMob(Session session, byte spawnType) {
-        var account = session.ActiveAccount;
-        var character = session.ActiveCharacter;
-
-        var packet = CharacterService.CreateSpawnMobPacket(character, 1);
-        session.SendPacket(packet);
-    }
-
     // TO-DO: Tratar player morto
     public static void MoveChar(Session session, StreamHandler stream) {
         var destinationX = stream.ReadSingle();
@@ -253,7 +238,7 @@ public static class CharacterHandler {
         var unk = stream.ReadUInt32();
 
         var account = session.ActiveAccount;
-        var packet = CharacterService.CreateMovMobPacket(account.ConnectionId, destinationX, destinationY, moveType, speed, unk);
+        var packet = MobService.CreateMovMobPacket(account.ConnectionId, destinationX, destinationY, moveType, speed, unk);
         session.SendPacket(packet);
         UpdateToAll(session, packet);
 
@@ -281,6 +266,7 @@ public static class CharacterHandler {
         Console.WriteLine($"UpdateCharInfo Data: {stream.GetBytes()}");
     }
 
+    // Mudar para serverHandler?
     public static void ChatMessage(Session session, StreamHandler stream) {
         var chatType = stream.ReadUInt16();
         _ = stream.ReadBytes(6);
@@ -293,7 +279,7 @@ public static class CharacterHandler {
         var isCommand = message.StartsWith('.');
 
         if(isCommand) {
-            var parts = message.Substring(1).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var parts = message[1..].Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if(parts.Length == 0) return;
 
             var command = parts[0].ToLower();
@@ -305,9 +291,9 @@ public static class CharacterHandler {
                 else return;
                 break;
                 case "spawn":
-                if(parts.Length < 4) return;
-                //if(byte.TryParse(parts[2], out byte mobId) && byte.TryParse(parts[3], out byte spawnType)) SpawnCharacter(session, spawnType);
-                //else return;
+                if(!string.IsNullOrWhiteSpace(parts[1])) {
+                    MobHandler.SpawnMob(session, byte.Parse(parts[1].Trim()));
+                }
                 break;
             }
         }
@@ -315,9 +301,5 @@ public static class CharacterHandler {
             var packet = CharacterService.CreateChatMessagePacket(account.ConnectionId, chatType, messageColor, charName, message);
             session.SendPacket(packet);
         }
-    }
-
-    public static void RemoveCharacterMob(Session otherSession, uint id) {
-        Console.WriteLine($"Tentando remover {otherSession.ActiveCharacter.Name}");
     }
 }

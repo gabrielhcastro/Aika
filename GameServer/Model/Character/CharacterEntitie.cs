@@ -52,8 +52,8 @@ public class CharacterEntitie {
     public ushort SavedPositionX { get; set; }
     public ushort SavedPositionY { get; set; }
     public ushort Critical { get; set; }
-    public ushort PhysicDamage { get; set; }
-    public ushort MagicDamage { get; set; }
+    public ushort PhysicAtack { get; set; }
+    public ushort MagicAtack { get; set; }
     public ushort PhysicDefense { get; set; }
     public ushort MagicDefense { get; set; }
     public ushort BonusDamage { get; set; }
@@ -70,5 +70,4 @@ public class CharacterEntitie {
     public HashSet<ushort> VisiblePlayers { get; set; } = [];
     public HashSet<ushort> VisibleMobs { get; set; }
     public HashSet<ushort> VisibleNpcs { get; set; }
-    public HashSet<Neighbors> Neighbors { get; set; }
 }
